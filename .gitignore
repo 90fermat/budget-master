@@ -1,11 +1,13 @@
-# Gradle
+# IDEs
+.idea/
+.vscode/
+*.iml
+
+# Kotlin / Build
 .gradle/
+.kotlin/
 build/
 !gradle/wrapper/gradle-wrapper.jar
-
-# Android Studio / IntelliJ
-*.iml
-.idea/
 /local.properties
 .externalNativeBuild
 .cxx
