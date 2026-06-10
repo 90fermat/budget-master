@@ -1,0 +1,292 @@
+-- ==========================================
+-- 1. USER ENTITY
+-- ==========================================
+CREATE TABLE UserEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    currency TEXT NOT NULL,
+    createdAt INTEGER NOT NULL
+);
+
+-- Queries for UserEntity
+insertUser:
+INSERT OR REPLACE INTO UserEntity (id, name, email, currency, createdAt)
+VALUES (?, ?, ?, ?, ?);
+
+selectUserById:
+SELECT * FROM UserEntity WHERE id = ?;
+
+deleteUser:
+DELETE FROM UserEntity WHERE id = ?;
+
+
+-- ==========================================
+-- 2. ACCOUNT ENTITY
+-- ==========================================
+CREATE TABLE AccountEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    userId TEXT NOT NULL,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL, -- CHECKING, SAVINGS, CREDIT_CARD, CASH, etc.
+    balance REAL NOT NULL,
+    currency TEXT NOT NULL,
+    createdAt INTEGER NOT NULL,
+    FOREIGN KEY(userId) REFERENCES UserEntity(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_account_user ON AccountEntity(userId);
+
+-- Queries for AccountEntity
+insertAccount:
+INSERT OR REPLACE INTO AccountEntity (id, userId, name, type, balance, currency, createdAt)
+VALUES (?, ?, ?, ?, ?, ?, ?);
+
+selectAccountsByUserId:
+SELECT * FROM AccountEntity WHERE userId = ? ORDER BY name ASC;
+
+selectAccountById:
+SELECT * FROM AccountEntity WHERE id = ?;
+
+updateAccountBalance:
+UPDATE AccountEntity SET balance = ? WHERE id = ?;
+
+deleteAccount:
+DELETE FROM AccountEntity WHERE id = ?;
+
+
+-- ==========================================
+-- 3. CATEGORY ENTITY
+-- ==========================================
+CREATE TABLE CategoryEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    userId TEXT NOT NULL,
+    name TEXT NOT NULL,
+    icon TEXT NOT NULL,
+    color TEXT NOT NULL, -- Hex color representation
+    isDefault INTEGER NOT NULL DEFAULT 0, -- 0 = False, 1 = True
+    FOREIGN KEY(userId) REFERENCES UserEntity(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_category_user ON CategoryEntity(userId);
+
+-- Queries for CategoryEntity
+insertCategory:
+INSERT OR REPLACE INTO CategoryEntity (id, userId, name, icon, color, isDefault)
+VALUES (?, ?, ?, ?, ?, ?);
+
+selectCategoriesByUserId:
+SELECT * FROM CategoryEntity WHERE userId = ? OR isDefault = 1 ORDER BY isDefault DESC, name ASC;
+
+selectCategoryById:
+SELECT * FROM CategoryEntity WHERE id = ?;
+
+deleteCategory:
+DELETE FROM CategoryEntity WHERE id = ?;
+
+
+-- ==========================================
+-- 4. TRANSACTION ENTITY
+-- ==========================================
+CREATE TABLE TransactionEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    accountId TEXT NOT NULL,
+    categoryId TEXT,
+    amount REAL NOT NULL, -- Negative for expenses, positive for income
+    description TEXT NOT NULL,
+    timestamp INTEGER NOT NULL,
+    notes TEXT,
+    tags TEXT, -- Comma-separated list of tags
+    isRecurring INTEGER NOT NULL DEFAULT 0, -- 0 = False, 1 = True
+    FOREIGN KEY(accountId) REFERENCES AccountEntity(id) ON DELETE CASCADE,
+    FOREIGN KEY(categoryId) REFERENCES CategoryEntity(id) ON DELETE SET NULL
+);
+
+CREATE INDEX idx_transaction_account ON TransactionEntity(accountId);
+CREATE INDEX idx_transaction_category ON TransactionEntity(categoryId);
+CREATE INDEX idx_transaction_timestamp ON TransactionEntity(timestamp);
+
+-- Queries for TransactionEntity
+insertTransaction:
+INSERT OR REPLACE INTO TransactionEntity (id, accountId, categoryId, amount, description, timestamp, notes, tags, isRecurring)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+selectAllTransactions:
+SELECT * FROM TransactionEntity ORDER BY timestamp DESC;
+
+selectTransactionsByAccount:
+SELECT * FROM TransactionEntity WHERE accountId = ? ORDER BY timestamp DESC;
+
+selectTransactionsByCategory:
+SELECT * FROM TransactionEntity WHERE categoryId = ? ORDER BY timestamp DESC;
+
+selectTransactionById:
+SELECT * FROM TransactionEntity WHERE id = ?;
+
+deleteTransaction:
+DELETE FROM TransactionEntity WHERE id = ?;
+
+
+-- ==========================================
+-- 5. BUDGET ENTITY
+-- ==========================================
+CREATE TABLE BudgetEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    userId TEXT NOT NULL,
+    categoryId TEXT NOT NULL,
+    amount REAL NOT NULL,
+    spent REAL NOT NULL DEFAULT 0.0,
+    startDate INTEGER NOT NULL,
+    endDate INTEGER NOT NULL,
+    FOREIGN KEY(userId) REFERENCES UserEntity(id) ON DELETE CASCADE,
+    FOREIGN KEY(categoryId) REFERENCES CategoryEntity(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_budget_user_category ON BudgetEntity(userId, categoryId);
+
+-- Queries for BudgetEntity
+insertBudget:
+INSERT OR REPLACE INTO BudgetEntity (id, userId, categoryId, amount, spent, startDate, endDate)
+VALUES (?, ?, ?, ?, ?, ?, ?);
+
+selectBudgetsByUserId:
+SELECT * FROM BudgetEntity WHERE userId = ? AND startDate <= ? AND endDate >= ?;
+
+selectBudgetById:
+SELECT * FROM BudgetEntity WHERE id = ?;
+
+updateBudgetSpent:
+UPDATE BudgetEntity SET spent = ? WHERE id = ?;
+
+deleteBudget:
+DELETE FROM BudgetEntity WHERE id = ?;
+
+
+-- ==========================================
+-- 6. SAVINGS GOAL ENTITY
+-- ==========================================
+CREATE TABLE SavingsGoalEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    userId TEXT NOT NULL,
+    name TEXT NOT NULL,
+    targetAmount REAL NOT NULL,
+    currentAmount REAL NOT NULL DEFAULT 0.0,
+    targetDate INTEGER NOT NULL,
+    createdAt INTEGER NOT NULL,
+    FOREIGN KEY(userId) REFERENCES UserEntity(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_savings_user ON SavingsGoalEntity(userId);
+
+-- Queries for SavingsGoalEntity
+insertSavingsGoal:
+INSERT OR REPLACE INTO SavingsGoalEntity (id, userId, name, targetAmount, currentAmount, targetDate, createdAt)
+VALUES (?, ?, ?, ?, ?, ?, ?);
+
+selectSavingsGoalsByUserId:
+SELECT * FROM SavingsGoalEntity WHERE userId = ? ORDER BY targetDate ASC;
+
+selectSavingsGoalById:
+SELECT * FROM SavingsGoalEntity WHERE id = ?;
+
+updateSavingsGoalAmount:
+UPDATE SavingsGoalEntity SET currentAmount = ? WHERE id = ?;
+
+deleteSavingsGoal:
+DELETE FROM SavingsGoalEntity WHERE id = ?;
+
+
+-- ==========================================
+-- 7. RECURRING TRANSACTION ENTITY
+-- ==========================================
+CREATE TABLE RecurringTransactionEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    accountId TEXT NOT NULL,
+    categoryId TEXT,
+    amount REAL NOT NULL,
+    description TEXT NOT NULL,
+    frequency TEXT NOT NULL, -- DAILY, WEEKLY, MONTHLY, YEARLY, etc.
+    startDate INTEGER NOT NULL,
+    nextRunDate INTEGER NOT NULL,
+    isActive INTEGER NOT NULL DEFAULT 1, -- 0 = False, 1 = True
+    FOREIGN KEY(accountId) REFERENCES AccountEntity(id) ON DELETE CASCADE,
+    FOREIGN KEY(categoryId) REFERENCES CategoryEntity(id) ON DELETE SET NULL
+);
+
+CREATE INDEX idx_recurring_account ON RecurringTransactionEntity(accountId);
+
+-- Queries for RecurringTransactionEntity
+insertRecurringTransaction:
+INSERT OR REPLACE INTO RecurringTransactionEntity (id, accountId, categoryId, amount, description, frequency, startDate, nextRunDate, isActive)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+selectActiveRecurringTransactions:
+SELECT * FROM RecurringTransactionEntity WHERE isActive = 1 AND nextRunDate <= ?;
+
+selectAllRecurringTransactionsByAccount:
+SELECT * FROM RecurringTransactionEntity WHERE accountId = ?;
+
+selectRecurringTransactionById:
+SELECT * FROM RecurringTransactionEntity WHERE id = ?;
+
+updateRecurringNextRun:
+UPDATE RecurringTransactionEntity SET nextRunDate = ? WHERE id = ?;
+
+deleteRecurringTransaction:
+DELETE FROM RecurringTransactionEntity WHERE id = ?;
+
+
+-- ==========================================
+-- 8. NOTIFICATION ENTITY
+-- ==========================================
+CREATE TABLE NotificationEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    userId TEXT NOT NULL,
+    title TEXT NOT NULL,
+    message TEXT NOT NULL,
+    timestamp INTEGER NOT NULL,
+    isRead INTEGER NOT NULL DEFAULT 0, -- 0 = False, 1 = True
+    FOREIGN KEY(userId) REFERENCES UserEntity(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_notification_user_unread ON NotificationEntity(userId, isRead);
+
+-- Queries for NotificationEntity
+insertNotification:
+INSERT OR REPLACE INTO NotificationEntity (id, userId, title, message, timestamp, isRead)
+VALUES (?, ?, ?, ?, ?, ?);
+
+selectUnreadNotificationsByUserId:
+SELECT * FROM NotificationEntity WHERE userId = ? AND isRead = 0 ORDER BY timestamp DESC;
+
+selectAllNotificationsByUserId:
+SELECT * FROM NotificationEntity WHERE userId = ? ORDER BY timestamp DESC;
+
+markNotificationRead:
+UPDATE NotificationEntity SET isRead = 1 WHERE id = ?;
+
+deleteNotification:
+DELETE FROM NotificationEntity WHERE id = ?;
+
+
+-- ==========================================
+-- 9. EXCHANGE RATE ENTITY
+-- ==========================================
+CREATE TABLE ExchangeRateEntity (
+    baseCurrency TEXT NOT NULL,
+    targetCurrency TEXT NOT NULL,
+    rate REAL NOT NULL,
+    timestamp INTEGER NOT NULL,
+    PRIMARY KEY(baseCurrency, targetCurrency)
+);
+
+-- Queries for ExchangeRateEntity
+insertExchangeRate:
+INSERT OR REPLACE INTO ExchangeRateEntity (baseCurrency, targetCurrency, rate, timestamp)
+VALUES (?, ?, ?, ?);
+
+selectExchangeRate:
+SELECT * FROM ExchangeRateEntity WHERE baseCurrency = ? AND targetCurrency = ?;
+
+deleteExchangeRate:
+DELETE FROM ExchangeRateEntity WHERE baseCurrency = ? AND targetCurrency = ?;

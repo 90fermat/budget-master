@@ -1,0 +1,13 @@
+# .agents/schedules.yaml
+tasks:
+  - name: "nightly-tests"
+    cron: "0 2 * * *"  # 2h du matin
+    prompt: "Run full test suite and report failures"
+    
+  - name: "dependency-check"
+    cron: "0 9 * * 1"  # Lundi 9h
+    prompt: "Check for dependency updates in libs.versions.toml and create PR"
+    
+  - name: "lint-check"
+    cron: "*/30 * * * *"  # Toutes les 30 min
+    prompt: "Run ktlint and detekt, fix auto-fixable issues"

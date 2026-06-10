@@ -1,0 +1,19 @@
+package com.budgetmaster.core.di
+
+import com.budgetmaster.core.db.DatabaseDriverFactory
+import com.budgetmaster.core.db.DatabaseProvider
+import org.koin.core.module.Module
+import org.koin.dsl.module
+
+/**
+ * Koin module for core database and infrastructure dependencies.
+ */
+val coreModule = module {
+    single { DatabaseDriverFactory() }
+    single { DatabaseProvider(get()) }
+}
+
+/**
+ * Platform-specific core module for dependencies (like DataStore) that vary by platform.
+ */
+expect val platformCoreModule: Module
