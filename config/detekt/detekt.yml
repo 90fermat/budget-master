@@ -1,0 +1,29 @@
+# Detekt configuration for Budget Master.
+# Layered on top of the default rule set (buildUponDefaultConfig = true).
+# A few rules are relaxed to fit Compose Multiplatform idioms (PascalCase
+# @Composable functions, UI dimension literals, long composable screens).
+
+naming:
+  FunctionNaming:
+    # @Composable functions are PascalCase by convention.
+    active: false
+  TopLevelPropertyNaming:
+    active: false
+
+style:
+  MagicNumber:
+    active: false
+  WildcardImport:
+    active: false
+
+complexity:
+  LongMethod:
+    active: false
+  LongParameterList:
+    active: false
+  TooManyFunctions:
+    active: false
+
+formatting:
+  NoWildcardImports:
+    active: false
