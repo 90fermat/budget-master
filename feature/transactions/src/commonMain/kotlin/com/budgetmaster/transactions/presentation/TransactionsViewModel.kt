@@ -1,0 +1,150 @@
+@file:OptIn(ExperimentalTime::class, ExperimentalCoroutinesApi::class)
+
+package com.budgetmaster.transactions.presentation
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.budgetmaster.core.util.DateUtils
+import com.budgetmaster.transactions.domain.model.TransactionFilter
+import com.budgetmaster.transactions.domain.model.TransactionItem
+import com.budgetmaster.transactions.domain.usecase.DeleteTransactionUseCase
+import com.budgetmaster.transactions.domain.usecase.ObserveCategoriesUseCase
+import com.budgetmaster.transactions.domain.usecase.ObserveTransactionsUseCase
+import com.budgetmaster.transactions.domain.usecase.RestoreTransactionUseCase
+import com.budgetmaster.transactions.domain.usecase.SaveTransactionUseCase
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlin.time.ExperimentalTime
+
+/**
+ * MVI ViewModel for the Transactions screen.
+ *
+ * The active [TransactionFilter] drives a `flatMapLatest` re-subscription so search
+ * and filter changes re-query reactively. Results are grouped by day for the UI.
+ */
+class TransactionsViewModel(
+    private val observeTransactions: ObserveTransactionsUseCase,
+    observeCategories: ObserveCategoriesUseCase,
+    private val saveTransaction: SaveTransactionUseCase,
+    private val deleteTransaction: DeleteTransactionUseCase,
+    private val restoreTransaction: RestoreTransactionUseCase,
+) : ViewModel() {
+
+    private val _state = MutableStateFlow(TransactionsState())
+    val state: StateFlow<TransactionsState> = _state.asStateFlow()
+
+    private val _effects = MutableSharedFlow<TransactionsEffect>()
+    val effects: SharedFlow<TransactionsEffect> = _effects.asSharedFlow()
+
+    private val filter = MutableStateFlow(TransactionFilter())
+
+    /** Holds the last-deleted transaction so it can be restored via undo. */
+    private var lastDeleted: TransactionItem? = null
+
+    init {
+        observeCategories()
+            .onEach { categories -> _state.update { it.copy(categories = categories) } }
+            .launchIn(viewModelScope)
+
+        filter
+            .flatMapLatest { f -> observeTransactions(f) }
+            .catch { e -> emitEffect(TransactionsEffect.ShowError(e.message ?: "Failed to load transactions.")) }
+            .onEach { items ->
+                _state.update { it.copy(isLoading = false, groups = groupByDay(items)) }
+            }
+            .launchIn(viewModelScope)
+    }
+
+    fun onIntent(intent: TransactionsIntent) {
+        when (intent) {
+            is TransactionsIntent.SearchChanged -> {
+                _state.update { it.copy(query = intent.query) }
+                filter.update { it.copy(query = intent.query) }
+            }
+            is TransactionsIntent.CategoryFilterChanged -> {
+                _state.update { it.copy(categoryFilterId = intent.categoryId) }
+                filter.update { it.copy(categoryId = intent.categoryId) }
+            }
+            is TransactionsIntent.TypeFilterChanged -> {
+                _state.update { it.copy(typeFilter = intent.type) }
+                filter.update { it.copy(type = intent.type) }
+            }
+            is TransactionsIntent.DeleteRequested -> delete(intent.id)
+            is TransactionsIntent.UndoDelete -> undoDelete()
+            is TransactionsIntent.SaveTransaction -> save(intent)
+            is TransactionsIntent.AddClicked ->
+                _state.update { it.copy(editor = EditorState(visible = true, editing = null)) }
+            is TransactionsIntent.EditClicked ->
+                _state.update { it.copy(editor = EditorState(visible = true, editing = intent.item)) }
+            is TransactionsIntent.EditorDismissed ->
+                _state.update { it.copy(editor = EditorState(visible = false)) }
+        }
+    }
+
+    private fun delete(id: String) {
+        val target = _state.value.groups.flatMap { it.items }.firstOrNull { it.id == id } ?: return
+        lastDeleted = target
+        viewModelScope.launch {
+            try {
+                deleteTransaction(id)
+                emitEffect(TransactionsEffect.ShowUndoDelete(target.description))
+            } catch (e: Exception) {
+                emitEffect(TransactionsEffect.ShowError(e.message ?: "Failed to delete."))
+            }
+        }
+    }
+
+    private fun undoDelete() {
+        val deleted = lastDeleted ?: return
+        lastDeleted = null
+        viewModelScope.launch {
+            try {
+                restoreTransaction(deleted)
+            } catch (e: Exception) {
+                emitEffect(TransactionsEffect.ShowError(e.message ?: "Failed to undo."))
+            }
+        }
+    }
+
+    private fun save(intent: TransactionsIntent.SaveTransaction) {
+        viewModelScope.launch {
+            try {
+                saveTransaction(intent.draft)
+                _state.update { it.copy(editor = EditorState(visible = false)) }
+            } catch (e: IllegalArgumentException) {
+                emitEffect(TransactionsEffect.ShowError(e.message ?: "Invalid transaction."))
+            } catch (e: Exception) {
+                emitEffect(TransactionsEffect.ShowError(e.message ?: "Failed to save."))
+            }
+        }
+    }
+
+    private fun groupByDay(items: List<TransactionItem>): List<TransactionDayGroup> =
+        items.groupBy { DateUtils.toLocalDate(it.timestamp) }
+            .toList()
+            .sortedByDescending { (date, _) -> date }
+            .map { (date, dayItems) ->
+                TransactionDayGroup(
+                    date = date,
+                    relative = DateUtils.relativeDay(date),
+                    items = dayItems.sortedByDescending { it.timestamp },
+                    net = dayItems.sumOf { it.amount },
+                )
+            }
+
+    private fun emitEffect(effect: TransactionsEffect) {
+        viewModelScope.launch { _effects.emit(effect) }
+    }
+}

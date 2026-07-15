@@ -1,7 +1,7 @@
 <resources>
     <string name="login_title">Bon retour</string>
     <string name="login_subtitle">Connectez-vous pour gérer votre budget</string>
-    <string name="login_brand_title">BudgetMaster</string>
+    <string name="login_brand_title">Budget Master</string>
     <string name="login_brand_subtitle">Votre centre de contrôle des finances personnelles, synchronisé sur tous vos appareils.</string>
     <string name="login_email_label">Adresse e-mail</string>
     <string name="login_email_placeholder">Saisissez votre e-mail</string>
@@ -40,7 +40,7 @@
 
     <!-- Register Screen Strings -->
     <string name="register_title">Créer un compte</string>
-    <string name="register_subtitle">Rejoignez BudgetMaster pour prendre le contrôle de vos finances</string>
+    <string name="register_subtitle">Rejoignez Budget Master pour prendre le contrôle de vos finances</string>
     <string name="register_confirm_password_label">Confirmer le mot de passe</string>
     <string name="register_confirm_password_placeholder">Saisissez à nouveau votre mot de passe</string>
     <string name="register_btn_text">S\'inscrire</string>
@@ -61,6 +61,28 @@
     <!-- Transactions Strings -->
     <string name="transactions_title">Transactions</string>
     <string name="transactions_search_placeholder">Rechercher des transactions…</string>
+    <string name="transactions_filter_all">Toutes</string>
+    <string name="transactions_filter_income">Revenus</string>
+    <string name="transactions_filter_expense">Dépenses</string>
+    <string name="transactions_today">Aujourd\'hui</string>
+    <string name="transactions_yesterday">Hier</string>
+    <string name="transactions_empty_title">Aucune transaction</string>
+    <string name="transactions_empty_subtitle">Appuyez sur + pour enregistrer votre premier revenu ou dépense.</string>
+    <string name="transactions_empty_filtered">Aucune transaction ne correspond à vos filtres.</string>
+    <string name="transactions_deleted">« %1$s » supprimée</string>
+    <string name="transactions_undo">Annuler</string>
+    <string name="transactions_add_title">Ajouter une transaction</string>
+    <string name="transactions_edit_title">Modifier la transaction</string>
+    <string name="transactions_amount_label">Montant</string>
+    <string name="transactions_description_label">Description</string>
+    <string name="transactions_description_placeholder">ex. Courses au supermarché</string>
+    <string name="transactions_category_label">Catégorie</string>
+    <string name="transactions_notes_label">Notes (facultatif)</string>
+    <string name="transactions_type_expense">Dépense</string>
+    <string name="transactions_type_income">Revenu</string>
+    <string name="transactions_save">Enregistrer</string>
+    <string name="transactions_cancel">Annuler</string>
+    <string name="transactions_uncategorized">Non catégorisé</string>
 
     <!-- Budgets Strings -->
     <string name="budgets_title">Budgets</string>
@@ -81,14 +103,16 @@
     <string name="settings_palette">Palette de couleurs</string>
     <string name="palette_indigo">Indigo</string>
     <string name="palette_emerald">Émeraude</string>
-    <string name="palette_ocean">Océan</string>
+    <string name="palette_amethyst">Améthyste</string>
     <string name="palette_sunset">Crépuscule</string>
+    <string name="palette_dynamic">Dynamique</string>
     <string name="settings_language">Langue</string>
     <string name="language_system">Système</string>
     <string name="language_english">English</string>
     <string name="language_french">Français</string>
     <string name="settings_preferences">Préférences</string>
     <string name="settings_currency">Devise principale</string>
+    <string name="settings_replay_onboarding">Revoir l\'intro</string>
     <string name="settings_sign_out">Se déconnecter</string>
 
     <!-- Navigation Strings -->

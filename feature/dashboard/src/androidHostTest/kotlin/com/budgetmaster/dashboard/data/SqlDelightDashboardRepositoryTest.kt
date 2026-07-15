@@ -53,7 +53,8 @@ class SqlDelightDashboardRepositoryTest {
         queries.insertTransaction("tx_2", accountId, categoryId, -200.0, "Groceries", now, null, null, 0)
 
         val balanceSummary = repository.getBalanceSummary(Period.MONTH).first()
-        assertEquals(1500.0, balanceSummary.totalBalance)
+        // Opening account balance (1500) + signed transaction sum (+500 - 200) = 1800
+        assertEquals(1800.0, balanceSummary.totalBalance)
         assertEquals(500.0, balanceSummary.monthlyIncome)
         assertEquals(200.0, balanceSummary.monthlyExpenses)
         assertEquals(BalanceTrend.POSITIVE, balanceSummary.balanceTrend)

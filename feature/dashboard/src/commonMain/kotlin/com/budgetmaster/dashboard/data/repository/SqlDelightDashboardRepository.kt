@@ -62,12 +62,12 @@ class SqlDelightDashboardRepository(
                         .filter { it.timestamp >= thirtyDaysAgo && it.amount < 0 }
                         .sumOf { kotlin.math.abs(it.amount) }
 
+                    // Account balances are opening balances; the live total is that plus
+                    // the signed sum of all transactions (single source of truth shared
+                    // with the transactions feature).
                     val accounts = queries.selectAccountsByUserId(defaultUserId).awaitAsList()
-                    val totalBalance = if (accounts.isNotEmpty()) {
-                        accounts.sumOf { it.balance }
-                    } else {
-                        transactions.sumOf { it.amount }
-                    }
+                    val openingBalance = accounts.sumOf { it.balance }
+                    val totalBalance = openingBalance + transactions.sumOf { it.amount }
 
                     val trend = if (monthlyIncome >= monthlyExpenses) BalanceTrend.POSITIVE else BalanceTrend.NEGATIVE
                     val trendPercentage = if (monthlyExpenses > 0.0) {

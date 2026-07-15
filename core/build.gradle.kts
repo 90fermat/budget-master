@@ -46,6 +46,7 @@ kotlin {
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.serialization.kotlinx.json)
             implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.kotlinx.datetime)
             
             // Compose Multiplatform for resources + design system foundation
             implementation(compose.runtime)
