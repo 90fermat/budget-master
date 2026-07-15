@@ -1,0 +1,101 @@
+<resources>
+    <string name="login_title">Bon retour</string>
+    <string name="login_subtitle">Connectez-vous pour gérer votre budget</string>
+    <string name="login_brand_title">BudgetMaster</string>
+    <string name="login_brand_subtitle">Votre centre de contrôle des finances personnelles, synchronisé sur tous vos appareils.</string>
+    <string name="login_email_label">Adresse e-mail</string>
+    <string name="login_email_placeholder">Saisissez votre e-mail</string>
+    <string name="login_password_label">Mot de passe</string>
+    <string name="login_password_placeholder">Saisissez votre mot de passe</string>
+    <string name="login_btn_text">Se connecter</string>
+    <string name="login_google_btn_text">Se connecter avec Google</string>
+    <string name="login_forgot_password_link">Mot de passe oublié ?</string>
+    <string name="login_register_link">Pas encore de compte ? Inscrivez-vous</string>
+    <string name="login_biometric_desc">Autorisation par empreinte digitale</string>
+    <string name="login_google_desc">Bouton d\'authentification Google</string>
+
+    <!-- Biometric Setup Screen Strings -->
+    <string name="biometric_setup_title">Verrouillage biométrique</string>
+    <string name="biometric_setup_subtitle">Protégez vos données financières personnelles</string>
+    <string name="biometric_enable_label">Activer l\'empreinte / Face ID</string>
+    <string name="biometric_status_enabled">La connexion biométrique est active</string>
+    <string name="biometric_status_disabled">La connexion biométrique est désactivée</string>
+    <string name="biometric_not_supported">Le matériel biométrique n\'est pas disponible sur cet appareil</string>
+    <string name="biometric_authenticate_reason">Confirmez vos données biométriques pour activer la connexion</string>
+    <string name="biometric_setup_success">Connexion biométrique configurée avec succès</string>
+    <string name="biometric_setup_disabled_msg">La connexion biométrique a été désactivée</string>
+    <string name="biometric_auth_failed">Échec de la vérification. Réessayez.</string>
+    <string name="btn_back">Retour</string>
+
+    <!-- Onboarding Screen Strings -->
+    <string name="onboarding_skip">Passer</string>
+    <string name="onboarding_next">Suivant</string>
+    <string name="onboarding_get_started">Commencer</string>
+    <string name="onboarding_page0_title">Suivez vos dépenses</string>
+    <string name="onboarding_page0_desc">Enregistrez vos achats quotidiens et visualisez où va votre argent grâce à des listes de transactions détaillées.</string>
+    <string name="onboarding_page1_title">Budgets intelligents</string>
+    <string name="onboarding_page1_desc">Définissez des limites personnalisées pour l\'alimentation, le shopping, les voyages et plus encore, et soyez averti avant de trop dépenser.</string>
+    <string name="onboarding_page2_title">Synchronisation sécurisée</string>
+    <string name="onboarding_page2_desc">Vos données sont entièrement chiffrées et synchronisées sur tous vos appareils via Firebase Auth.</string>
+
+    <!-- Register Screen Strings -->
+    <string name="register_title">Créer un compte</string>
+    <string name="register_subtitle">Rejoignez BudgetMaster pour prendre le contrôle de vos finances</string>
+    <string name="register_confirm_password_label">Confirmer le mot de passe</string>
+    <string name="register_confirm_password_placeholder">Saisissez à nouveau votre mot de passe</string>
+    <string name="register_btn_text">S\'inscrire</string>
+    <string name="register_login_link">Déjà un compte ? Connectez-vous</string>
+
+    <!-- Forgot Password Screen Strings -->
+    <string name="forgot_password_title">Réinitialiser le mot de passe</string>
+    <string name="forgot_password_subtitle">Saisissez votre e-mail pour recevoir un lien de réinitialisation</string>
+    <string name="forgot_password_btn_text">Envoyer le lien</string>
+    <string name="forgot_password_success_msg">E-mail de réinitialisation envoyé avec succès !</string>
+    <string name="forgot_password_login_link">Retour à la connexion</string>
+
+    <!-- Dashboard Strings -->
+    <string name="dashboard_title">Tableau de bord</string>
+    <string name="dashboard_total_balance">SOLDE TOTAL</string>
+    <string name="dashboard_recent_transactions">Transactions récentes</string>
+
+    <!-- Transactions Strings -->
+    <string name="transactions_title">Transactions</string>
+    <string name="transactions_search_placeholder">Rechercher des transactions…</string>
+
+    <!-- Budgets Strings -->
+    <string name="budgets_title">Budgets</string>
+
+    <!-- Goals Strings -->
+    <string name="goals_title">Objectifs d\'épargne</string>
+
+    <!-- Reports Strings -->
+    <string name="reports_title">Rapports</string>
+
+    <!-- Settings Strings -->
+    <string name="settings_title">Paramètres</string>
+    <string name="settings_appearance">Apparence</string>
+    <string name="settings_theme_mode">Thème</string>
+    <string name="theme_mode_system">Système</string>
+    <string name="theme_mode_light">Clair</string>
+    <string name="theme_mode_dark">Sombre</string>
+    <string name="settings_palette">Palette de couleurs</string>
+    <string name="palette_indigo">Indigo</string>
+    <string name="palette_emerald">Émeraude</string>
+    <string name="palette_ocean">Océan</string>
+    <string name="palette_sunset">Crépuscule</string>
+    <string name="settings_language">Langue</string>
+    <string name="language_system">Système</string>
+    <string name="language_english">English</string>
+    <string name="language_french">Français</string>
+    <string name="settings_preferences">Préférences</string>
+    <string name="settings_currency">Devise principale</string>
+    <string name="settings_sign_out">Se déconnecter</string>
+
+    <!-- Navigation Strings -->
+    <string name="nav_home">Accueil</string>
+    <string name="nav_history">Historique</string>
+    <string name="nav_budgets">Budgets</string>
+    <string name="nav_goals">Objectifs</string>
+    <string name="nav_reports">Rapports</string>
+    <string name="nav_settings">Paramètres</string>
+</resources>

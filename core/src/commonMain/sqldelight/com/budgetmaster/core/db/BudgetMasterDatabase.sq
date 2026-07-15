@@ -290,3 +290,34 @@ SELECT * FROM ExchangeRateEntity WHERE baseCurrency = ? AND targetCurrency = ?;
 
 deleteExchangeRate:
 DELETE FROM ExchangeRateEntity WHERE baseCurrency = ? AND targetCurrency = ?;
+
+
+-- ==========================================
+-- 10. INSIGHT ENTITY
+-- ==========================================
+CREATE TABLE InsightEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    type TEXT NOT NULL, -- SPENDING | SAVING | TREND
+    message TEXT NOT NULL,
+    actionRoute TEXT,
+    timestamp INTEGER NOT NULL
+);
+
+-- Queries for InsightEntity
+insertInsight:
+INSERT OR REPLACE INTO InsightEntity (id, type, message, actionRoute, timestamp)
+VALUES (?, ?, ?, ?, ?);
+
+selectAllInsights:
+SELECT * FROM InsightEntity ORDER BY timestamp DESC;
+
+deleteInsight:
+DELETE FROM InsightEntity WHERE id = ?;
+
+deleteAllInsights:
+DELETE FROM InsightEntity;
+
+
+-- Additional Transactions Queries
+selectTransactionsSince:
+SELECT * FROM TransactionEntity WHERE timestamp >= ? ORDER BY timestamp DESC;

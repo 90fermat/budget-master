@@ -1,6 +1,6 @@
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
-    alias(libs.plugins.android.library)
+    alias(libs.plugins.android.kmp.library)
     alias(libs.plugins.sqldelight)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.compose.multiplatform)
@@ -8,9 +8,15 @@ plugins {
 }
 
 kotlin {
-    androidTarget {
+    android {
+        namespace = "com.budgetmaster.core"
+        compileSdk = 37
+        minSdk = 26
         compilerOptions {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+        }
+        androidResources {
+            enable = true
         }
     }
     
@@ -39,11 +45,14 @@ kotlin {
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.serialization.kotlinx.json)
-            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
+            implementation(libs.kotlinx.coroutines.core)
             
-            // Compose Multiplatform for resources
+            // Compose Multiplatform for resources + design system foundation
             implementation(compose.runtime)
             implementation(compose.components.resources)
+            implementation(compose.ui)
+            implementation(compose.foundation)
+            implementation(compose.material3)
         }
         
         androidMain.dependencies {
@@ -60,26 +69,15 @@ kotlin {
         
         wasmJsMain.dependencies {
             implementation(libs.sqldelight.driver.webworker)
+            // Official browser API externals (org.w3c.dom.Worker etc.) for Kotlin/Wasm
+            implementation("org.jetbrains.kotlinx:kotlinx-browser:0.5.0")
+            // SQLDelight sql.js web worker (runs SQLite in a background worker)
+            implementation(npm("@cashapp/sqldelight-sqljs-worker", "2.3.2"))
+            implementation(npm("sql.js", "1.14.1"))
         }
     }
 }
 
-android {
-    namespace = "com.budgetmaster.core"
-    compileSdk = 35
-    defaultConfig {
-        minSdk = 26
-    }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-    packaging {
-        resources {
-            excludes += "/META-INF/versions/9/module-info.class"
-        }
-    }
-}
 
 sqldelight {
     databases {

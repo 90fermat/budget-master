@@ -40,3 +40,6 @@ fabric.properties
 # Secrets
 secrets.properties
 .env
+
+# Local agent/tooling workspace (machine-specific paths)
+.claude/

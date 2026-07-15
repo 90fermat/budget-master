@@ -13,14 +13,20 @@
             background-color: #121212;
             overflow: hidden;
         }
-        #compose-canvas {
-            width: 100%;
-            height: 100%;
-        }
     </style>
+    <script type="text/javascript">
+        // In-app language override: LocalAppLocale (wasm) writes window.__customLocale,
+        // which is surfaced as the first entry of navigator.languages so
+        // Compose resources resolve the selected locale.
+        window.__customLocale = null;
+        Object.defineProperty(window.navigator, "languages", {
+            get: () => window.__customLocale
+                ? [window.__customLocale]
+                : [window.navigator.language]
+        });
+    </script>
     <script type="text/javascript" src="webApp.js" defer></script>
 </head>
 <body>
-    <canvas id="compose-canvas"></canvas>
 </body>
 </html>

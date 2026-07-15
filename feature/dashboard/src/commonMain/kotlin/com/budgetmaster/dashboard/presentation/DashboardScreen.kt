@@ -1,9 +1,7 @@
 package com.budgetmaster.dashboard.presentation
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -14,36 +12,102 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path as ComposePath
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import budgetmaster.core.generated.resources.Res
-import budgetmaster.core.generated.resources.dashboard_recent_transactions
-import budgetmaster.core.generated.resources.dashboard_title
-import budgetmaster.core.generated.resources.dashboard_total_balance
-import org.jetbrains.compose.resources.stringResource
+import com.budgetmaster.dashboard.presentation.components.PreviewLightDark
+import com.budgetmaster.dashboard.domain.model.*
+import com.budgetmaster.dashboard.presentation.components.*
+import org.koin.compose.viewmodel.koinViewModel
 
 /**
- * Composable screen representing the primary fintech Dashboard.
- * Displays accounts, cash flow charts, quick actions, and recent transaction summaries.
+ * Dashboard screen entry-point composable.
+ * Collects state from [DashboardViewModel] and delegates rendering to specialised
+ * sub-composables, keeping business logic out of the UI layer.
  *
- * @param onQuickAction Callback invoked when a quick action (add transaction, scan, transfer) is tapped.
+ * @param onQuickAction Callback for navigation side-effects triggered by the ViewModel effects.
+ * @param onViewAllTransactions Callback to navigate to the full Transactions list screen.
+ * @param onInsightNavigate Callback for navigating to an insight action route.
  */
 @Composable
 fun DashboardScreen(
-    onQuickAction: (String) -> Unit = {}
+    onQuickAction: (String) -> Unit = {},
+    onViewAllTransactions: () -> Unit = {},
+    onInsightNavigate: (String) -> Unit = {}
+) {
+    val viewModel: DashboardViewModel = koinViewModel()
+    val state by viewModel.state.collectAsState()
+
+    DashboardContent(
+        state = state,
+        onIntent = viewModel::onIntent,
+        onQuickAction = onQuickAction,
+        onViewAllTransactions = onViewAllTransactions,
+        onInsightNavigate = onInsightNavigate
+    )
+}
+
+/**
+ * Pure stateless content composable for the Dashboard.
+ * Receives all data from [state] and dispatches user actions via [onIntent].
+ *
+ * @param state The current [DashboardState] snapshot.
+ * @param onIntent Dispatch function for [DashboardIntent] events.
+ * @param onQuickAction Navigation callback for Quick-Action buttons.
+ * @param onViewAllTransactions Navigation callback for "Voir tout" in the transactions list.
+ * @param onInsightNavigate Navigation callback for AI insight action routes.
+ */
+@Composable
+fun DashboardContent(
+    state: DashboardState,
+    onIntent: (DashboardIntent) -> Unit,
+    onQuickAction: (String) -> Unit = {},
+    onViewAllTransactions: () -> Unit = {},
+    onInsightNavigate: (String) -> Unit = {}
+) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (state.isLoading) {
+            DashboardSkeleton()
+        } else {
+            DashboardScrollableBody(
+                state = state,
+                onIntent = onIntent,
+                onQuickAction = onQuickAction,
+                onViewAllTransactions = onViewAllTransactions,
+                onInsightNavigate = onInsightNavigate
+            )
+        }
+
+        // Snackbar overlay for non-fatal errors
+        if (state.error != null) {
+            Snackbar(
+                action = {
+                    TextButton(onClick = { onIntent(DashboardIntent.RefreshRequested) }) {
+                        Text("Retry")
+                    }
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(16.dp)
+            ) {
+                Text(state.error)
+            }
+        }
+    }
+}
+
+@Composable
+private fun DashboardScrollableBody(
+    state: DashboardState,
+    onIntent: (DashboardIntent) -> Unit,
+    onQuickAction: (String) -> Unit,
+    onViewAllTransactions: () -> Unit,
+    onInsightNavigate: (String) -> Unit
 ) {
     val scrollState = rememberScrollState()
 
@@ -53,7 +117,7 @@ fun DashboardScreen(
             .verticalScroll(scrollState)
             .padding(16.dp)
     ) {
-        // App bar Header
+        // ── App Bar Header ─────────────────────────────────────────────────
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -91,7 +155,6 @@ fun DashboardScreen(
                     )
                 }
             }
-
             IconButton(onClick = { onQuickAction("Notifications") }) {
                 Icon(
                     imageVector = Icons.Default.Notifications,
@@ -101,93 +164,25 @@ fun DashboardScreen(
             }
         }
 
-        // Glassmorphic Balance Card
-        Card(
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-            ),
-            shape = RoundedCornerShape(24.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(
-                    width = 1.dp,
-                    brush = Brush.linearGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.15f),
-                            Color.White.copy(alpha = 0.03f)
-                        )
-                    ),
-                    shape = RoundedCornerShape(24.dp)
-                )
-        ) {
-            Box(
+        // ── Pull-to-refresh indicator ──────────────────────────────────────
+        if (state.isRefreshing) {
+            LinearProgressIndicator(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(
-                        brush = Brush.linearGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
-                                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.9f)
-                            )
-                        )
-                    )
-                    .padding(24.dp)
-            ) {
-                Column {
-                    Text(
-                        text = stringResource(Res.string.dashboard_total_balance),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "$12,450.80",
-                        style = MaterialTheme.typography.displayMedium.copy(
-                            fontFeatureSettings = "tnum"
-                        ),
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Custom canvas upward-arrow indicator (no extended icons needed)
-                        Canvas(modifier = Modifier.size(18.dp)) {
-                            val w = size.width
-                            val h = size.height
-                            val path = ComposePath().apply {
-                                moveTo(w / 2f, 2.dp.toPx())
-                                lineTo(2.dp.toPx(), h - 2.dp.toPx())
-                                lineTo(w - 2.dp.toPx(), h - 2.dp.toPx())
-                                close()
-                            }
-                            drawPath(path = path, color = Color(0xFF10B981))
-                        }
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "+2.4%",
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                fontFeatureSettings = "tnum"
-                            ),
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFF10B981)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "this month",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f)
-                        )
-                    }
-                }
-            }
+                    .padding(bottom = 8.dp),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        }
+
+        // ── Balance Card ───────────────────────────────────────────────────
+        if (state.balance != null) {
+            BalanceCard(balanceSummary = state.balance)
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Quick Actions Row
+        // ── Quick Actions Row ──────────────────────────────────────────────
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -198,99 +193,81 @@ fun DashboardScreen(
                 backgroundColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.weight(1f),
-                onClick = { onQuickAction("AddExpense") }
+                onClick = { onIntent(DashboardIntent.QuickActionClicked(TransactionType.EXPENSE)) }
             )
-
             QuickActionButton(
-                label = "Scan Receipt",
+                label = "Add Income",
                 icon = Icons.Default.Add,
                 backgroundColor = MaterialTheme.colorScheme.secondary,
                 contentColor = MaterialTheme.colorScheme.onSecondary,
                 modifier = Modifier.weight(1f),
-                onClick = { onQuickAction("ScanReceipt") }
+                onClick = { onIntent(DashboardIntent.QuickActionClicked(TransactionType.INCOME)) }
             )
-
             QuickActionButton(
                 label = "Transfer",
                 icon = Icons.Default.Refresh,
                 backgroundColor = MaterialTheme.colorScheme.surfaceVariant,
                 contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.weight(1f),
-                onClick = { onQuickAction("Transfer") }
+                onClick = { onIntent(DashboardIntent.QuickActionClicked(TransactionType.TRANSFER)) }
             )
         }
 
         Spacer(modifier = Modifier.height(28.dp))
 
-        // Cash Flow Sparkline
-        Text(
-            text = "Cash Flow",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground
+        // ── Period Filter Chips ────────────────────────────────────────────
+        PeriodFilterRow(
+            selectedPeriod = state.selectedPeriod,
+            onPeriodSelected = { onIntent(DashboardIntent.PeriodChanged(it)) }
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
-        Card(
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
-            ),
-            shape = RoundedCornerShape(16.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f), RoundedCornerShape(16.dp))
-                .height(160.dp)
-                .padding(16.dp)
-        ) {
-            CashFlowChart()
-        }
+        // ── Spending Chart ─────────────────────────────────────────────────
+        SpendingChart(chartData = state.chartData)
 
         Spacer(modifier = Modifier.height(28.dp))
 
-        // Recent Transactions Header
-        Text(
-            text = stringResource(Res.string.dashboard_recent_transactions),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground
+        // ── Budget Progress List ───────────────────────────────────────────
+        BudgetProgressList(budgets = state.budgets)
+
+        Spacer(modifier = Modifier.height(28.dp))
+
+        // ── Top Transactions List ──────────────────────────────────────────
+        TopTransactionsList(
+            transactions = state.topTransactions,
+            onTransactionSwiped = { onIntent(DashboardIntent.TransactionSwiped(it)) },
+            onViewAllClicked = onViewAllTransactions
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(28.dp))
 
-        // Transaction items list
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            TransactionRow(
-                description = "Starbucks Coffee",
-                date = "Today, 10:45 AM",
-                amount = "$4.50",
-                isExpense = true,
-                categoryColor = Color(0xFFF59E0B)
-            )
+        // ── AI Insights Widget ─────────────────────────────────────────────
+        AiInsightsWidget(
+            insightsState = state.insights,
+            onInsightClicked = onInsightNavigate,
+            onInsightDismissed = { onIntent(DashboardIntent.InsightsDismissed(it)) },
+            onRetry = { onIntent(DashboardIntent.RefreshRequested) }
+        )
 
-            TransactionRow(
-                description = "Salary Inflow",
-                date = "Yesterday, 8:00 AM",
-                amount = "$2,500.00",
-                isExpense = false,
-                categoryColor = Color(0xFF10B981)
-            )
-
-            TransactionRow(
-                description = "Chevron Gasoline",
-                date = "June 4, 3:15 PM",
-                amount = "$45.00",
-                isExpense = true,
-                categoryColor = Color(0xFF3B82F6)
-            )
-        }
+        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
+/**
+ * Quick action button with icon and label used in the Dashboard's action row.
+ *
+ * @param label Button text.
+ * @param icon The leading icon vector.
+ * @param backgroundColor The button container color.
+ * @param contentColor The icon and text color.
+ * @param modifier The modifier to be applied.
+ * @param onClick Click callback.
+ */
 @Composable
 private fun QuickActionButton(
     label: String,
-    icon: ImageVector,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
     backgroundColor: Color,
     contentColor: Color,
     modifier: Modifier = Modifier,
@@ -299,17 +276,21 @@ private fun QuickActionButton(
     Card(
         colors = CardDefaults.cardColors(containerColor = backgroundColor),
         shape = RoundedCornerShape(16.dp),
-        modifier = modifier
-            .height(54.dp)
-            .clickable(onClick = onClick)
+        onClick = onClick,
+        modifier = modifier.height(54.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxSize(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
-            Icon(imageVector = icon, contentDescription = label, tint = contentColor)
-            Spacer(modifier = Modifier.width(8.dp))
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = contentColor,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelMedium,
@@ -320,98 +301,65 @@ private fun QuickActionButton(
     }
 }
 
+/**
+ * Period selector row for filtering balance and chart data.
+ *
+ * @param selectedPeriod The currently active [Period].
+ * @param onPeriodSelected Callback invoked when a period chip is tapped.
+ */
 @Composable
-private fun CashFlowChart() {
-    Canvas(modifier = Modifier.fillMaxSize()) {
-        val w = size.width
-        val h = size.height
-
-        // Draw grid
-        for (i in 1..3) {
-            val y = h * (i * 0.25f)
-            drawLine(
-                color = Color.White.copy(alpha = 0.05f),
-                start = Offset(0f, y),
-                end = Offset(w, y),
-                strokeWidth = 1f
+private fun PeriodFilterRow(
+    selectedPeriod: Period,
+    onPeriodSelected: (Period) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Period.entries.forEach { period ->
+            FilterChip(
+                selected = selectedPeriod == period,
+                onClick = { onPeriodSelected(period) },
+                label = {
+                    Text(
+                        text = when (period) {
+                            Period.WEEK -> "Week"
+                            Period.MONTH -> "Month"
+                            Period.YEAR -> "Year"
+                            Period.ALL -> "All"
+                        }
+                    )
+                },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                )
             )
         }
-
-        // Draw trend line
-        val path = ComposePath().apply {
-            moveTo(0f, h * 0.8f)
-            lineTo(w * 0.2f, h * 0.7f)
-            lineTo(w * 0.4f, h * 0.45f)
-            lineTo(w * 0.6f, h * 0.5f)
-            lineTo(w * 0.8f, h * 0.25f)
-            lineTo(w, h * 0.15f)
-        }
-
-        drawPath(
-            path = path,
-            brush = Brush.horizontalGradient(
-                colors = listOf(Color(0xFF6366F1), Color(0xFF10B981))
-            ),
-            style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
-        )
     }
 }
 
+@PreviewLightDark
 @Composable
-private fun TransactionRow(
-    description: String,
-    date: String,
-    amount: String,
-    isExpense: Boolean,
-    categoryColor: Color
-) {
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f)
-        ),
-        shape = RoundedCornerShape(16.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.05f), RoundedCornerShape(16.dp))
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(categoryColor.copy(alpha = 0.15f))
-                )
-                Spacer(modifier = Modifier.width(16.dp))
-                Column {
-                    Text(
-                        text = description,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Text(
-                        text = date,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
-                    )
-                }
-            }
-
-            Text(
-                text = (if (isExpense) "-" else "+") + amount,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontFeatureSettings = "tnum"
+private fun DashboardContentPreview() {
+    MaterialTheme {
+        DashboardContent(
+            state = DashboardState(
+                isLoading = false,
+                balance = BalanceSummary(
+                    totalBalance = 12450.80,
+                    monthlyIncome = 5320.00,
+                    monthlyExpenses = 2869.20,
+                    balanceTrend = BalanceTrend.POSITIVE,
+                    trendPercentage = 2.4
                 ),
-                fontWeight = FontWeight.Bold,
-                color = if (isExpense) MaterialTheme.colorScheme.error else Color(0xFF10B981)
-            )
-        }
+                budgets = listOf(
+                    BudgetProgress("1", "Food & Dining", "🍔", 450.0, 500.0, 0.9, BudgetStatus.WARNING),
+                    BudgetProgress("2", "Entertainment", "🎬", 180.0, 150.0, 1.2, BudgetStatus.EXCEEDED)
+                ),
+                insights = InsightsState.Loading
+            ),
+            onIntent = {}
+        )
     }
 }

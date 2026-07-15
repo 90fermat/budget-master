@@ -11,6 +11,13 @@ class DatabaseProvider(private val driverFactory: DatabaseDriverFactory) {
     private var database: BudgetMasterDatabase? = null
 
     /**
+     * Secondary constructor for testing to inject a pre-configured database instance.
+     */
+    constructor(testDatabase: BudgetMasterDatabase) : this(DatabaseDriverFactory()) {
+        this.database = testDatabase
+    }
+
+    /**
      * Returns the initialized [BudgetMasterDatabase] instance.
      */
     suspend fun getDatabase(): BudgetMasterDatabase {

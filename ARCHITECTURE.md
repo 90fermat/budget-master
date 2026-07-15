@@ -70,21 +70,28 @@ graph TD
 
 ### `:core` — Foundation
 
-The only cross-cutting shared infrastructure. Contains **no business logic**.
+The only cross-cutting shared infrastructure. Contains **no business logic and no screens**.
 
 | Package | Contents |
 |---|---|
 | `core.db` | SQLDelight `BudgetMasterDatabase`, `DatabaseDriverFactory` (expect/actual), `DatabaseProvider` (async-safe lazy init) |
-| `core.di` | `coreModule` + `platformCoreModule` — registers DB, Ktor client, DataStore |
+| `core.designsystem` | `AppTheme`, 4 selectable `AppPalette`s (Indigo default, Emerald, Ocean, Sunset), `AppTypography` (tabular figures for amounts), `FinancialColors` (palette-independent income/expense/chart colors), `Spacing`, `Motion`, `DarkModeSetting` |
+| `core.localization` | `AppLanguage` (System/English/French), `LocalAppLocale` (expect/actual in-app locale override) |
+| `core.prefs` | `KeyValueStore` (expect impls: DataStore on Android/iOS, `localStorage` on Wasm), `AppSettingsRepository` (palette / dark mode / language) |
+| `core.di` | `coreModule` + `platformCoreModule` — registers DB, `KeyValueStore`, `AppSettingsRepository` |
 | `core.model` | Shared primitive domain models reused by multiple features |
 | `core.navigation` | `AuthRoute` — sealed type-safe route hierarchy shared by all feature nav graphs |
 
+String resources (`values/strings.xml`, `values-fr/strings.xml`) also live in `:core` —
+the single source for all localized text.
+
 **Platform variants** (`androidMain` / `iosMain` / `wasmJsMain`):
-- `AndroidSqliteDriver` / `NativeSqliteDriver` / `WebWorkerDriver`
+- `AndroidSqliteDriver` / `NativeSqliteDriver` / `WebWorkerDriver` (sql.js worker via `@cashapp/sqldelight-sqljs-worker`)
 - OkHttp / Darwin / built-in HTTP clients
 - `AppContextHolder` — static Android `Context` reference for driver init
 
-**Dependencies:** Kotlin std, Coroutines, SQLDelight runtime, Ktor core, DataStore. No Compose UI.
+**Dependencies:** Kotlin std, Coroutines, SQLDelight runtime, Ktor core, DataStore,
+Compose runtime/ui/foundation/material3 (for the design system — still no screens).
 
 ---
 
@@ -220,19 +227,26 @@ runnable app. It contains no business logic.
 
 ### `:composeApp` — Android Launcher
 
-Minimal Android entry point. Contains only two files:
+Minimal **plain Android application module** (AGP 9 built-in Kotlin — no KMP plugin;
+sources live in `src/main`). Contains:
 
 | File | Purpose |
 |---|---|
 | `BudgetMasterApplication` | Initializes `AppContextHolder`, calls `initKoin { androidContext(…) }` |
 | `MainActivity` | `FragmentActivity`, sets `ActivityProvider`, hosts `setContent { App() }` |
+| `src/test/DashboardScreenshotTest` | Roborazzi + Robolectric screenshot tests (goldens in `src/test/snapshots`; `recordRoborazziDebug` / `verifyRoborazziDebug`) |
 
 **Dependencies:** `:shared`, `:core`, `:feature:auth` (androidMain sources needed for
 `AppContextHolder` and `ActivityProvider`).
 
+> **Build convention (AGP 9):** every KMP library module applies
+> `com.android.kotlin.multiplatform.library` and configures Android inside
+> `kotlin { android { … } }` (namespace, compileSdk, minSdk, `androidResources`,
+> `withHostTest`). Only `:composeApp` uses `com.android.application`.
+
 ---
 
-## 3. Dependency Injection (Koin 4.0.1)
+## 3. Dependency Injection (Koin 4.2.2)
 
 All modules self-register their bindings. `initKoin()` in `:shared` wires them all together.
 
@@ -300,7 +314,7 @@ hold business logic.
 
 ---
 
-## 5. Persistence (SQLDelight 2.1.0)
+## 5. Persistence (SQLDelight 2.3.2)
 
 SQLDelight is configured in `:core` with `generateAsync = true` to support Kotlin/Wasm.
 
@@ -329,5 +343,5 @@ These rules are **non-negotiable**. Violations must be caught in code review.
 | Use cases are `factory` scoped (stateless) | Never hold mutable state in a use case |
 | All async work in ViewModels uses `viewModelScope` only | Never use `GlobalScope` or `runBlocking` |
 | All platform-specific code uses `expect/actual` | Keeps `commonMain` clean and testable |
-| All colors from `MaterialTheme.colorScheme` | No hardcoded `Color(…)` outside the theme setup in `App.kt` |
-| No hardcoded strings — use `StringResources` (CMP) | i18n-ready from day one |
+| All colors from `MaterialTheme.colorScheme` / `MaterialTheme.financialColors` | No hardcoded `Color(…)` outside `core.designsystem` |
+| No hardcoded strings — use `StringResources` from `:core` (`values/`, `values-fr/`) | Bilingual EN/FR from day one |

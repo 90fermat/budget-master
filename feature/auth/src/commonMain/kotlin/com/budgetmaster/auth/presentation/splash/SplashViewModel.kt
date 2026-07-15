@@ -31,7 +31,7 @@ class SplashViewModel(
     /** Observable UI state. */
     val state: StateFlow<SplashState> = _state.asStateFlow()
 
-    private val _effects = MutableSharedFlow<SplashEffect>()
+    private val _effects = MutableSharedFlow<SplashEffect>(replay = 1)
 
     /** Observable stream of navigation side-effects. */
     val effects: SharedFlow<SplashEffect> = _effects.asSharedFlow()

@@ -2,6 +2,7 @@ package com.budgetmaster.core.di
 
 import com.budgetmaster.core.db.DatabaseDriverFactory
 import com.budgetmaster.core.db.DatabaseProvider
+import com.budgetmaster.core.prefs.AppSettingsRepository
 import org.koin.core.module.Module
 import org.koin.dsl.module
 
@@ -10,7 +11,8 @@ import org.koin.dsl.module
  */
 val coreModule = module {
     single { DatabaseDriverFactory() }
-    single { DatabaseProvider(get()) }
+    single { DatabaseProvider(get<DatabaseDriverFactory>()) }
+    single { AppSettingsRepository(get()) }
 }
 
 /**

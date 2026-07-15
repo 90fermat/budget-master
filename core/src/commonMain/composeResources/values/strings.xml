@@ -73,4 +73,29 @@
 
     <!-- Settings Strings -->
     <string name="settings_title">Settings</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_theme_mode">Theme</string>
+    <string name="theme_mode_system">System</string>
+    <string name="theme_mode_light">Light</string>
+    <string name="theme_mode_dark">Dark</string>
+    <string name="settings_palette">Color palette</string>
+    <string name="palette_indigo">Indigo</string>
+    <string name="palette_emerald">Emerald</string>
+    <string name="palette_ocean">Ocean</string>
+    <string name="palette_sunset">Sunset</string>
+    <string name="settings_language">Language</string>
+    <string name="language_system">System</string>
+    <string name="language_english">English</string>
+    <string name="language_french">Français</string>
+    <string name="settings_preferences">Preferences</string>
+    <string name="settings_currency">Primary Currency</string>
+    <string name="settings_sign_out">Sign Out</string>
+
+    <!-- Navigation Strings -->
+    <string name="nav_home">Home</string>
+    <string name="nav_history">History</string>
+    <string name="nav_budgets">Budgets</string>
+    <string name="nav_goals">Goals</string>
+    <string name="nav_reports">Reports</string>
+    <string name="nav_settings">Settings</string>
 </resources>

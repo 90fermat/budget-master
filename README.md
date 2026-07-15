@@ -22,13 +22,15 @@ BudgetMaster is a production-ready, feature-rich personal finance management app
 BudgetMaster follows **Clean Architecture** principles with a **Feature-First** module structure to ensure scalability and maintainability.
 
 ### Tech Stack
-- **UI**: Compose Multiplatform (1.8.2)
-- **Logic**: Kotlin Multiplatform (2.1.0)
-- **DI**: Koin (4.0.1)
-- **Networking**: Ktor (3.1.2)
-- **Database**: SQLDelight (2.1.0)
-- **Navigation**: Compose Navigation (2.9.0)
-- **Charts**: Vico (2.0.1)
+- **UI**: Compose Multiplatform (1.11.1)
+- **Logic**: Kotlin Multiplatform (2.4.10)
+- **Build**: Gradle 9.6.1 + AGP 9.3.0 (KMP modules use `com.android.kotlin.multiplatform.library`)
+- **DI**: Koin (4.2.2)
+- **Networking**: Ktor (3.5.1)
+- **Database**: SQLDelight (2.3.2)
+- **Navigation**: Compose Navigation (2.9.2)
+- **Charts**: Vico (2.5.2)
+- **Screenshot tests**: Roborazzi (1.68.0) + Robolectric
 
 ### Project Structure
 ```bash

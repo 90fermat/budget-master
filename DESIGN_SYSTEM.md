@@ -17,7 +17,23 @@ Our brand voice is **Precision meets Delight**. A personal finance app must proj
 
 ## 2. Color Palette (Material 3 Expressive)
 
-BudgetMaster uses a dual-palette architecture. It supports native **Dynamic Color** (Material You) extraction on Android 12+ while falling back to a custom, curated fintech palette on iOS and Web.
+BudgetMaster ships **four user-selectable brand palettes** (Settings → Appearance), each
+with full light/dark Material 3 color schemes built on a shared slate/obsidian neutral
+foundation (implemented in `core.designsystem.AppPalette`):
+
+| Palette | Primary | Secondary | Tertiary |
+| :--- | :--- | :--- | :--- |
+| **Indigo** (default) | Indigo `#4F46E5` | Emerald `#059669` | Amethyst `#7C3AED` |
+| **Emerald** | Emerald `#059669` | Teal `#0D9488` | Lime `#65A30D` |
+| **Ocean** | Sky `#0284C7` | Cyan `#0891B2` | Blue `#2563EB` |
+| **Sunset** | Rose `#E11D48` | Amber `#D97706` | Fuchsia `#C026D3` |
+
+Financial semantics (income green, expense red, warning amber, chart category colors)
+are **palette-independent** — provided by `MaterialTheme.financialColors` so money colors
+never change meaning. Dynamic Color (Material You) on Android 12+ remains planned as a
+fifth "System" option.
+
+The default Indigo palette tokens:
 
 ### Custom Palette Tokens
 

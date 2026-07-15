@@ -1,14 +1,20 @@
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
-    alias(libs.plugins.android.library)
+    alias(libs.plugins.android.kmp.library)
     alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.compose.compiler)
 }
 
 kotlin {
-    androidTarget {
+    android {
+        namespace = "com.budgetmaster.transactions"
+        compileSdk = 37
+        minSdk = 26
         compilerOptions {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+        }
+        androidResources {
+            enable = true
         }
     }
     
@@ -37,6 +43,7 @@ kotlin {
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
+            implementation(compose.materialIconsExtended)
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
             
@@ -50,6 +57,7 @@ kotlin {
         }
         
         androidMain.dependencies {
+            implementation(compose.uiTooling)
             implementation(libs.koin.android)
         }
         
@@ -57,19 +65,3 @@ kotlin {
     }
 }
 
-android {
-    namespace = "com.budgetmaster.transactions"
-    compileSdk = 35
-    defaultConfig {
-        minSdk = 26
-    }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-    packaging {
-        resources {
-            excludes += "/META-INF/versions/9/module-info.class"
-        }
-    }
-}

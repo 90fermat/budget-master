@@ -13,10 +13,10 @@ import kotlinx.browser.document
 fun main() {
     // Initialize Koin DI for Web
     initKoin()
-    
-    // Render the Compose Multiplatform UI inside the HTML canvas
-    val canvas = document.getElementById("compose-canvas") ?: throw IllegalStateException("Canvas element not found!")
-    ComposeViewport(canvas) {
+
+    // Render the Compose Multiplatform UI. Since CMP 1.10, ComposeViewport manages
+    // its own canvas inside the given container element (here: <body>).
+    ComposeViewport(document.body!!) {
         App()
     }
 }

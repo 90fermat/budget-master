@@ -1,16 +1,23 @@
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
-    alias(libs.plugins.android.library)
+    alias(libs.plugins.android.kmp.library)
     alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.paparazzi)
 }
 
 kotlin {
-    androidTarget {
+    android {
+        namespace = "com.budgetmaster.shared"
+        compileSdk = 37
+        minSdk = 26
         compilerOptions {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+        }
+        androidResources {
+            enable = true
+        }
+        withHostTest {
         }
     }
     
@@ -48,13 +55,9 @@ kotlin {
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
+            implementation(compose.materialIconsExtended)
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
-            
-            // Material3 Adaptive components
-            implementation(libs.material3.adaptive)
-            implementation(libs.material3.adaptive.layout)
-            implementation(libs.material3.adaptive.navigation)
             
             // Koin DI
             implementation(libs.koin.core)
@@ -65,11 +68,13 @@ kotlin {
             implementation(libs.navigation.compose)
             
             // Coroutines
-            implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
+            implementation(libs.kotlinx.coroutines.core)
         }
         
         androidMain.dependencies {
+            implementation(compose.uiTooling)
             implementation(libs.koin.android)
+            implementation(project.dependencies.platform(libs.firebase.bom))
             implementation(libs.firebase.common)
             implementation(libs.firebase.firestore)
             implementation(libs.firebase.auth)
@@ -95,19 +100,3 @@ kotlin {
     }
 }
 
-android {
-    namespace = "com.budgetmaster.shared"
-    compileSdk = 35
-    defaultConfig {
-        minSdk = 26
-    }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-    packaging {
-        resources {
-            excludes += "/META-INF/versions/9/module-info.class"
-        }
-    }
-}
