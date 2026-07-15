@@ -35,15 +35,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import budgetmaster.core.generated.resources.Res
 import budgetmaster.core.generated.resources.language_english
 import budgetmaster.core.generated.resources.language_french
 import budgetmaster.core.generated.resources.language_system
+import budgetmaster.core.generated.resources.palette_amethyst
+import budgetmaster.core.generated.resources.palette_dynamic
 import budgetmaster.core.generated.resources.palette_emerald
 import budgetmaster.core.generated.resources.palette_indigo
-import budgetmaster.core.generated.resources.palette_ocean
 import budgetmaster.core.generated.resources.palette_sunset
 import budgetmaster.core.generated.resources.settings_appearance
 import budgetmaster.core.generated.resources.settings_currency
@@ -58,6 +60,7 @@ import budgetmaster.core.generated.resources.theme_mode_light
 import budgetmaster.core.generated.resources.theme_mode_system
 import com.budgetmaster.core.designsystem.AppPalette
 import com.budgetmaster.core.designsystem.DarkModeSetting
+import com.budgetmaster.core.designsystem.DynamicSwatchColors
 import com.budgetmaster.core.designsystem.Spacing
 import com.budgetmaster.core.designsystem.colorScheme
 import com.budgetmaster.core.localization.AppLanguage
@@ -70,11 +73,13 @@ import org.koin.compose.viewmodel.koinViewModel
  * and account actions. All selections are persisted and applied app-wide instantly.
  *
  * @param onSignOut Callback invoked when the user requests to sign out.
+ * @param onReplayOnboarding Callback invoked to navigate back into the onboarding intro.
  */
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel = koinViewModel(),
     onSignOut: () -> Unit = {},
+    onReplayOnboarding: () -> Unit = {},
 ) {
     val state by viewModel.state.collectAsState()
     val scrollState = rememberScrollState()
@@ -206,8 +211,9 @@ private fun AppLanguage.labelRes(): StringResource = when (this) {
 private fun AppPalette.labelRes(): StringResource = when (this) {
     AppPalette.INDIGO -> Res.string.palette_indigo
     AppPalette.EMERALD -> Res.string.palette_emerald
-    AppPalette.OCEAN -> Res.string.palette_ocean
+    AppPalette.AMETHYST -> Res.string.palette_amethyst
     AppPalette.SUNSET -> Res.string.palette_sunset
+    AppPalette.DYNAMIC -> Res.string.palette_dynamic
 }
 
 /**
@@ -236,13 +242,23 @@ private fun PaletteSwatch(
             .padding(vertical = Spacing.compact, horizontal = Spacing.micro)
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.micro)) {
-            listOf(scheme.primary, scheme.secondary, scheme.tertiary).forEach { color ->
+            if (palette == AppPalette.DYNAMIC) {
+                // Material You: show a multi-hue swatch since colors come from the wallpaper.
                 Box(
                     modifier = Modifier
-                        .size(14.dp)
+                        .size(width = 46.dp, height = 14.dp)
                         .clip(CircleShape)
-                        .background(color)
+                        .background(Brush.horizontalGradient(DynamicSwatchColors))
                 )
+            } else {
+                listOf(scheme.primary, scheme.secondary, scheme.tertiary).forEach { color ->
+                    Box(
+                        modifier = Modifier
+                            .size(14.dp)
+                            .clip(CircleShape)
+                            .background(color)
+                    )
+                }
             }
         }
         Spacer(modifier = Modifier.height(Spacing.small))
@@ -320,6 +336,40 @@ private fun SettingRowLink(label: String, value: String) {
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun SettingRowAction(label: String, onClick: () -> Unit) {
+    Card(
+        onClick = onClick,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Spacing.medium),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

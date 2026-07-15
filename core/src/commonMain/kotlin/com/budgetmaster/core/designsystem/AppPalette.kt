@@ -6,26 +6,30 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 
 /**
- * The four selectable brand palettes of BudgetMaster.
+ * The selectable brand palettes of Budget Master.
  *
- * Each palette provides a complete Material 3 [ColorScheme] for light and dark mode,
- * sharing the same premium slate/obsidian neutral foundation so switching palettes
- * only re-tints accent roles.
+ * A curated premium set of four hand-tuned palettes plus [DYNAMIC] (Material You
+ * extraction on Android 12+, falling back to [INDIGO] elsewhere). Each static palette
+ * provides a complete Material 3 [ColorScheme] for light and dark mode on a shared,
+ * jewel-toned neutral foundation.
  *
  * @property id Stable identifier persisted in user preferences. Never rename.
  */
 enum class AppPalette(val id: String) {
-    /** Indigo "Trust" — the default BudgetMaster identity (DESIGN_SYSTEM.md palette). */
+    /** Midnight Indigo — the flagship Budget Master identity (default). */
     INDIGO("indigo"),
 
-    /** Emerald "Growth" — green-forward, savings-focused feel. */
+    /** Emerald — a deep jewel green, savings-forward. */
     EMERALD("emerald"),
 
-    /** Ocean "Calm" — sky/cyan blues. */
-    OCEAN("ocean"),
+    /** Amethyst — regal violet with fuchsia accents. */
+    AMETHYST("amethyst"),
 
-    /** Sunset "Bold" — rose/amber warmth. */
-    SUNSET("sunset");
+    /** Sunset Gold — warm rose and amber, luxe and expressive. */
+    SUNSET("sunset"),
+
+    /** Dynamic — Material You colors from the wallpaper (Android 12+), else Indigo. */
+    DYNAMIC("dynamic");
 
     companion object {
         /** Palette applied when the user has never chosen one. */
@@ -36,15 +40,30 @@ enum class AppPalette(val id: String) {
     }
 }
 
-/** Returns the full Material 3 color scheme of this palette for the requested mode. */
+/**
+ * Illustrative multi-hue swatch for the [AppPalette.DYNAMIC] option in Settings, since
+ * its real colors are extracted from the device wallpaper at runtime.
+ */
+val DynamicSwatchColors: List<Color> = listOf(
+    Color(0xFF6366F1), Color(0xFF10B981), Color(0xFFF59E0B), Color(0xFFEC4899),
+)
+
+/**
+ * Returns the full Material 3 color scheme of this palette for the requested mode.
+ * [DYNAMIC] returns the Indigo fallback here; the real Material You scheme is resolved
+ * per-platform inside `AppTheme`.
+ */
 fun AppPalette.colorScheme(darkTheme: Boolean): ColorScheme = when (this) {
     AppPalette.INDIGO -> if (darkTheme) IndigoDark else IndigoLight
     AppPalette.EMERALD -> if (darkTheme) EmeraldDark else EmeraldLight
-    AppPalette.OCEAN -> if (darkTheme) OceanDark else OceanLight
+    AppPalette.AMETHYST -> if (darkTheme) AmethystDark else AmethystLight
     AppPalette.SUNSET -> if (darkTheme) SunsetDark else SunsetLight
+    AppPalette.DYNAMIC -> if (darkTheme) IndigoDark else IndigoLight
 }
 
-// ── Shared neutral foundation (slate light / obsidian dark) ─────────────────
+// ── Shared premium neutral foundation ───────────────────────────────────────
+// Light: soft slate paper. Dark: true obsidian with a faint blue cast and layered
+// surface elevation for depth.
 
 private fun premiumLightScheme(
     primary: Color,
@@ -61,6 +80,7 @@ private fun premiumLightScheme(
     onPrimary = Color.White,
     primaryContainer = primaryContainer,
     onPrimaryContainer = onPrimaryContainer,
+    inversePrimary = primaryContainer,
     secondary = secondary,
     onSecondary = Color.White,
     secondaryContainer = secondaryContainer,
@@ -73,19 +93,23 @@ private fun premiumLightScheme(
     onError = Color.White,
     errorContainer = Color(0xFFFEE2E2),
     onErrorContainer = Color(0xFF7F1D1D),
-    background = Color(0xFFF8FAFC),
-    onBackground = Color(0xFF0F172A),
+    background = Color(0xFFF6F8FC),
+    onBackground = Color(0xFF0E1524),
     surface = Color(0xFFFFFFFF),
-    onSurface = Color(0xFF0F172A),
-    surfaceVariant = Color(0xFFF1F5F9),
-    onSurfaceVariant = Color(0xFF475569),
-    outline = Color(0xFFCBD5E1),
-    outlineVariant = Color(0xFFE2E8F0),
-    inverseSurface = Color(0xFF1E293B),
-    inverseOnSurface = Color(0xFFF8FAFC),
-    inversePrimary = primaryContainer,
+    onSurface = Color(0xFF0E1524),
+    surfaceVariant = Color(0xFFEEF2F9),
+    onSurfaceVariant = Color(0xFF515C6E),
+    surfaceContainerLowest = Color(0xFFFFFFFF),
+    surfaceContainerLow = Color(0xFFF9FBFE),
+    surfaceContainer = Color(0xFFF1F5FA),
+    surfaceContainerHigh = Color(0xFFEAEFF6),
+    surfaceContainerHighest = Color(0xFFE3E9F2),
+    outline = Color(0xFFC3CDDB),
+    outlineVariant = Color(0xFFE1E7F0),
+    inverseSurface = Color(0xFF1B2434),
+    inverseOnSurface = Color(0xFFF3F6FB),
     surfaceTint = primary,
-    scrim = Color.Black,
+    scrim = Color(0xFF000000),
 )
 
 private fun premiumDarkScheme(
@@ -106,6 +130,7 @@ private fun premiumDarkScheme(
     onPrimary = onPrimary,
     primaryContainer = primaryContainer,
     onPrimaryContainer = onPrimaryContainer,
+    inversePrimary = primaryContainer,
     secondary = secondary,
     onSecondary = onSecondary,
     secondaryContainer = secondaryContainer,
@@ -118,133 +143,137 @@ private fun premiumDarkScheme(
     onError = Color(0xFF450A0A),
     errorContainer = Color(0xFF7F1D1D),
     onErrorContainer = Color(0xFFFECACA),
-    background = Color(0xFF0B0E14),
-    onBackground = Color(0xFFF8FAFC),
-    surface = Color(0xFF131924),
-    onSurface = Color(0xFFF8FAFC),
-    surfaceVariant = Color(0xFF1E293B),
-    onSurfaceVariant = Color(0xFF94A3B8),
-    outline = Color(0xFF334155),
-    outlineVariant = Color(0xFF1F293D),
-    inverseSurface = Color(0xFFF8FAFC),
-    inverseOnSurface = Color(0xFF0F172A),
-    inversePrimary = primaryContainer,
+    background = Color(0xFF080B12),
+    onBackground = Color(0xFFEDF1F7),
+    surface = Color(0xFF10151F),
+    onSurface = Color(0xFFEDF1F7),
+    surfaceVariant = Color(0xFF1B2534),
+    onSurfaceVariant = Color(0xFF9FABBD),
+    surfaceContainerLowest = Color(0xFF06090F),
+    surfaceContainerLow = Color(0xFF0E131C),
+    surfaceContainer = Color(0xFF141A25),
+    surfaceContainerHigh = Color(0xFF1B222F),
+    surfaceContainerHighest = Color(0xFF232B3A),
+    outline = Color(0xFF3A4557),
+    outlineVariant = Color(0xFF232D3D),
+    inverseSurface = Color(0xFFEDF1F7),
+    inverseOnSurface = Color(0xFF0E1524),
     surfaceTint = primary,
-    scrim = Color.Black,
+    scrim = Color(0xFF000000),
 )
 
-// ── Indigo (default) ─────────────────────────────────────────────────────────
+// ── Midnight Indigo (default) ────────────────────────────────────────────────
 
 private val IndigoLight = premiumLightScheme(
-    primary = Color(0xFF4F46E5),
+    primary = Color(0xFF4338CA),
     primaryContainer = Color(0xFFE0E7FF),
-    onPrimaryContainer = Color(0xFF312E81),
-    secondary = Color(0xFF059669),
-    secondaryContainer = Color(0xFFD1FAE5),
-    onSecondaryContainer = Color(0xFF064E3B),
+    onPrimaryContainer = Color(0xFF262163),
+    secondary = Color(0xFF0F766E),
+    secondaryContainer = Color(0xFFCCFBF1),
+    onSecondaryContainer = Color(0xFF0B3F3A),
     tertiary = Color(0xFF7C3AED),
     tertiaryContainer = Color(0xFFEDE9FE),
     onTertiaryContainer = Color(0xFF4C1D95),
 )
 
 private val IndigoDark = premiumDarkScheme(
-    primary = Color(0xFF6366F1),
-    onPrimary = Color(0xFF1E1B4B),
-    primaryContainer = Color(0xFF3730A3),
+    primary = Color(0xFF8B93FF),
+    onPrimary = Color(0xFF191553),
+    primaryContainer = Color(0xFF322C8C),
     onPrimaryContainer = Color(0xFFE0E7FF),
-    secondary = Color(0xFF10B981),
-    onSecondary = Color(0xFF022C22),
-    secondaryContainer = Color(0xFF065F46),
-    onSecondaryContainer = Color(0xFFD1FAE5),
-    tertiary = Color(0xFF8B5CF6),
-    onTertiary = Color(0xFF2E1065),
-    tertiaryContainer = Color(0xFF5B21B6),
+    secondary = Color(0xFF2DD4BF),
+    onSecondary = Color(0xFF022C28),
+    secondaryContainer = Color(0xFF0F5A52),
+    onSecondaryContainer = Color(0xFFCCFBF1),
+    tertiary = Color(0xFFB69BFF),
+    onTertiary = Color(0xFF2C1065),
+    tertiaryContainer = Color(0xFF51309B),
     onTertiaryContainer = Color(0xFFEDE9FE),
 )
 
 // ── Emerald ──────────────────────────────────────────────────────────────────
 
 private val EmeraldLight = premiumLightScheme(
-    primary = Color(0xFF059669),
-    primaryContainer = Color(0xFFD1FAE5),
-    onPrimaryContainer = Color(0xFF064E3B),
-    secondary = Color(0xFF0D9488),
-    secondaryContainer = Color(0xFFCCFBF1),
-    onSecondaryContainer = Color(0xFF134E4A),
-    tertiary = Color(0xFF65A30D),
-    tertiaryContainer = Color(0xFFECFCCB),
-    onTertiaryContainer = Color(0xFF365314),
+    primary = Color(0xFF047857),
+    primaryContainer = Color(0xFFCFFAE6),
+    onPrimaryContainer = Color(0xFF033D2C),
+    secondary = Color(0xFF0E7490),
+    secondaryContainer = Color(0xFFCFF3FB),
+    onSecondaryContainer = Color(0xFF083E4E),
+    tertiary = Color(0xFF4D7C0F),
+    tertiaryContainer = Color(0xFFE7F8C7),
+    onTertiaryContainer = Color(0xFF2C4A06),
 )
 
 private val EmeraldDark = premiumDarkScheme(
-    primary = Color(0xFF34D399),
-    onPrimary = Color(0xFF022C22),
-    primaryContainer = Color(0xFF065F46),
-    onPrimaryContainer = Color(0xFFD1FAE5),
-    secondary = Color(0xFF2DD4BF),
-    onSecondary = Color(0xFF042F2E),
-    secondaryContainer = Color(0xFF115E59),
-    onSecondaryContainer = Color(0xFFCCFBF1),
-    tertiary = Color(0xFFA3E635),
-    onTertiary = Color(0xFF1A2E05),
-    tertiaryContainer = Color(0xFF3F6212),
-    onTertiaryContainer = Color(0xFFECFCCB),
+    primary = Color(0xFF34E3A8),
+    onPrimary = Color(0xFF00341F),
+    primaryContainer = Color(0xFF065F43),
+    onPrimaryContainer = Color(0xFFCFFAE6),
+    secondary = Color(0xFF38D0EF),
+    onSecondary = Color(0xFF04333F),
+    secondaryContainer = Color(0xFF0C5063),
+    onSecondaryContainer = Color(0xFFCFF3FB),
+    tertiary = Color(0xFFAEE454),
+    onTertiary = Color(0xFF223500),
+    tertiaryContainer = Color(0xFF3C5E0C),
+    onTertiaryContainer = Color(0xFFE7F8C7),
 )
 
-// ── Ocean ────────────────────────────────────────────────────────────────────
+// ── Amethyst ─────────────────────────────────────────────────────────────────
 
-private val OceanLight = premiumLightScheme(
-    primary = Color(0xFF0284C7),
-    primaryContainer = Color(0xFFE0F2FE),
-    onPrimaryContainer = Color(0xFF0C4A6E),
-    secondary = Color(0xFF0891B2),
-    secondaryContainer = Color(0xFFCFFAFE),
-    onSecondaryContainer = Color(0xFF164E63),
-    tertiary = Color(0xFF2563EB),
-    tertiaryContainer = Color(0xFFDBEAFE),
-    onTertiaryContainer = Color(0xFF1E3A8A),
+private val AmethystLight = premiumLightScheme(
+    primary = Color(0xFF7E22CE),
+    primaryContainer = Color(0xFFF3E4FF),
+    onPrimaryContainer = Color(0xFF44136F),
+    secondary = Color(0xFFC026D3),
+    secondaryContainer = Color(0xFFFCE0FF),
+    onSecondaryContainer = Color(0xFF63106B),
+    tertiary = Color(0xFF4F46E5),
+    tertiaryContainer = Color(0xFFE0E7FF),
+    onTertiaryContainer = Color(0xFF262163),
 )
 
-private val OceanDark = premiumDarkScheme(
-    primary = Color(0xFF38BDF8),
-    onPrimary = Color(0xFF082F49),
-    primaryContainer = Color(0xFF075985),
-    onPrimaryContainer = Color(0xFFE0F2FE),
-    secondary = Color(0xFF22D3EE),
-    onSecondary = Color(0xFF083344),
-    secondaryContainer = Color(0xFF155E75),
-    onSecondaryContainer = Color(0xFFCFFAFE),
-    tertiary = Color(0xFF60A5FA),
-    onTertiary = Color(0xFF172554),
-    tertiaryContainer = Color(0xFF1E40AF),
-    onTertiaryContainer = Color(0xFFDBEAFE),
+private val AmethystDark = premiumDarkScheme(
+    primary = Color(0xFFC79BFF),
+    onPrimary = Color(0xFF360764),
+    primaryContainer = Color(0xFF5B1B95),
+    onPrimaryContainer = Color(0xFFF3E4FF),
+    secondary = Color(0xFFF29BFF),
+    onSecondary = Color(0xFF530A5B),
+    secondaryContainer = Color(0xFF8A1C93),
+    onSecondaryContainer = Color(0xFFFCE0FF),
+    tertiary = Color(0xFF9DA2FF),
+    onTertiary = Color(0xFF1D1B6E),
+    tertiaryContainer = Color(0xFF3730A3),
+    onTertiaryContainer = Color(0xFFE0E7FF),
 )
 
-// ── Sunset ───────────────────────────────────────────────────────────────────
+// ── Sunset Gold ──────────────────────────────────────────────────────────────
 
 private val SunsetLight = premiumLightScheme(
     primary = Color(0xFFE11D48),
-    primaryContainer = Color(0xFFFFE4E6),
-    onPrimaryContainer = Color(0xFF881337),
-    secondary = Color(0xFFD97706),
-    secondaryContainer = Color(0xFFFEF3C7),
-    onSecondaryContainer = Color(0xFF78350F),
-    tertiary = Color(0xFFC026D3),
-    tertiaryContainer = Color(0xFFFAE8FF),
-    onTertiaryContainer = Color(0xFF701A75),
+    primaryContainer = Color(0xFFFFE1E7),
+    onPrimaryContainer = Color(0xFF7C0A28),
+    secondary = Color(0xFFEA580C),
+    secondaryContainer = Color(0xFFFFE6D2),
+    onSecondaryContainer = Color(0xFF7A2C06),
+    tertiary = Color(0xFFCA8A04),
+    tertiaryContainer = Color(0xFFFCF0C8),
+    onTertiaryContainer = Color(0xFF6B4A03),
 )
 
 private val SunsetDark = premiumDarkScheme(
-    primary = Color(0xFFFB7185),
-    onPrimary = Color(0xFF4C0519),
-    primaryContainer = Color(0xFF9F1239),
-    onPrimaryContainer = Color(0xFFFFE4E6),
-    secondary = Color(0xFFFBBF24),
-    onSecondary = Color(0xFF451A03),
-    secondaryContainer = Color(0xFF92400E),
-    onSecondaryContainer = Color(0xFFFEF3C7),
-    tertiary = Color(0xFFE879F9),
-    onTertiary = Color(0xFF4A044E),
-    tertiaryContainer = Color(0xFF86198F),
-    onTertiaryContainer = Color(0xFFFAE8FF),
+    primary = Color(0xFFFF8098),
+    onPrimary = Color(0xFF5C0620),
+    primaryContainer = Color(0xFFA8123A),
+    onPrimaryContainer = Color(0xFFFFE1E7),
+    secondary = Color(0xFFFF9A5B),
+    onSecondary = Color(0xFF4E1B03),
+    secondaryContainer = Color(0xFF9C3908),
+    onSecondaryContainer = Color(0xFFFFE6D2),
+    tertiary = Color(0xFFF5CB4B),
+    onTertiary = Color(0xFF3E2E00),
+    tertiaryContainer = Color(0xFF8A6103),
+    onTertiaryContainer = Color(0xFFFCF0C8),
 )
