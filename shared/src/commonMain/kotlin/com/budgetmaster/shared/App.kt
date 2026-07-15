@@ -27,6 +27,7 @@ import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.PermanentNavigationDrawer
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -104,7 +105,15 @@ fun App() {
         // Re-key the subtree so string resources reload when the language changes.
         key(settings.language) {
             AppTheme(palette = settings.palette, darkTheme = darkTheme) {
-                AppShell()
+                // Root themed backdrop so every screen (incl. the auth flow) has a
+                // painted background and matching content color — otherwise onBackground
+                // text renders on the raw page background and can be invisible on web.
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background,
+                ) {
+                    AppShell()
+                }
             }
         }
     }
