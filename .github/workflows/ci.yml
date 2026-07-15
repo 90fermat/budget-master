@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-wrapper:
+    name: Validate Gradle wrapper
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: gradle/actions/wrapper-validation@v4
+
+  build-and-test:
+    name: Build & test (Android + Web)
+    needs: validate-wrapper
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Assemble Android debug APK
+        run: ./gradlew :composeApp:assembleDebug --stacktrace
+
+      - name: Run host tests
+        run: ./gradlew :feature:auth:testAndroidHostTest :feature:dashboard:testAndroidHostTest --stacktrace
+
+      - name: Build Web (Wasm) distribution
+        run: ./gradlew :webApp:wasmJsBrowserDistribution --stacktrace
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            **/build/reports/tests/
+          retention-days: 7
+
+  screenshot-tests:
+    name: Screenshot tests (Roborazzi)
+    needs: validate-wrapper
+    # Golden images were recorded on Windows; text rendering differs across OSes,
+    # so verification must run on the same platform. Re-record with
+    # `gradlew :composeApp:recordRoborazziDebug` when UI changes are intended.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Verify screenshots
+        run: ./gradlew :composeApp:verifyRoborazziDebug --stacktrace
+
+      - name: Upload Roborazzi report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: roborazzi-report
+          path: |
+            composeApp/build/outputs/roborazzi/
+            composeApp/build/reports/roborazzi/
+          retention-days: 7
