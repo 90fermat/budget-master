@@ -152,12 +152,24 @@ colors/strings; CI green.
 > Small, high-visibility fixes that make the app feel finished and branded. Requested
 > after the Phase 1 build.
 
-**P0 — Web render regression (blocker for web verification)**
-- [ ] After the Phase 1 additions, the Kotlin/Wasm app composes to a 0×0 surface (no
-  Skia canvas; `main()` completes with no thrown error). Android is unaffected (assembles,
-  tests + screenshots green). Root-cause (suspect: first-frame measure of
-  `ComposeViewport(document.body)` or an early composable in the Splash path) and restore
-  web rendering; re-verify palette + FR switching + the transactions flow on web.
+**P0 — Web render (resolved)**
+- [x] The suspected "0×0 surface" was a limitation of the in-app preview pane, not the
+  app — the Wasm build renders correctly in a real browser (confirmed by the user). No
+  code fix was required for rendering itself. Two real web issues found on device were
+  fixed instead (below).
+
+**Web fixes (found on device)**
+- [x] **Invisible `onBackground` text on white**: the auth flow rendered with no painted
+  background, so text sat on the raw page color. Added a root themed `Surface` in `App()`
+  so every screen has a matching background + content color.
+- [x] **Full-width text fields on desktop web**: constrained the auth forms
+  (login/register/forgot/biometric) to a centered `widthIn(max = 420.dp)` column.
+
+**Follow-ups (done)**
+- [x] Android adaptive launcher icon from the brand mark (fixed indigo→violet background,
+  white coin ring + emerald spark); app label set to "Budget Master".
+- [x] Bundle **Outfit** (headings) and **Inter** (body) variable fonts via compose-resources
+  and apply them in `appTypography()`; OFL licenses committed under `third_party/fonts/`.
 
 **Product/UX**
 - [x] **Onboarding shown once**: root cause was that completion was never persisted on
@@ -190,8 +202,10 @@ colors/strings; CI green.
   module ids, and `budgetmaster` namespaces unchanged.
 
 **Follow-ups**
-- [ ] Android adaptive launcher icon (mipmap) using the fixed brand-indigo mark.
-- [ ] Bundle Outfit/Inter fonts so the wordmark + emoji render identically on Web.
+- [x] Android adaptive launcher icon (mipmap) using the fixed brand-indigo mark.
+- [x] Bundle Outfit/Inter fonts and apply them in the typography scale.
+- [ ] Colored-emoji font for Web (category avatars render as tofu on Wasm); needs a
+  bundled color-emoji font (~large) — deferred.
 - [ ] Honor system reduced-motion for the splash animation where detectable.
 
 **Deliverable:** first launch shows a polished animated splash (logo + "by FoyangTech")

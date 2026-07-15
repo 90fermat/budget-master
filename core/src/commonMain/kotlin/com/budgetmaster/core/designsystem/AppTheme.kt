@@ -32,7 +32,7 @@ fun AppTheme(
     CompositionLocalProvider(LocalFinancialColors provides financialColors) {
         MaterialTheme(
             colorScheme = colorScheme,
-            typography = AppTypography,
+            typography = appTypography(),
             content = content,
         )
     }

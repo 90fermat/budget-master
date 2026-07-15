@@ -1,10 +1,15 @@
 package com.budgetmaster.core.designsystem
 
 import androidx.compose.material3.Typography
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import budgetmaster.core.generated.resources.Res
+import budgetmaster.core.generated.resources.inter
+import budgetmaster.core.generated.resources.outfit
+import org.jetbrains.compose.resources.Font
 
 /**
  * BudgetMaster typography scale (DESIGN_SYSTEM.md §3).
@@ -137,5 +142,51 @@ object FinancialTextStyles {
         fontSize = 12.sp,
         lineHeight = 16.sp,
         fontFeatureSettings = "tnum",
+    )
+}
+
+/** Outfit — geometric display/heading family (bundled variable font). */
+@Composable
+private fun outfitFamily() = FontFamily(
+    Font(Res.font.outfit, FontWeight.Medium),
+    Font(Res.font.outfit, FontWeight.SemiBold),
+    Font(Res.font.outfit, FontWeight.Bold),
+    Font(Res.font.outfit, FontWeight.ExtraBold),
+)
+
+/** Inter — highly readable body/label family (bundled variable font). */
+@Composable
+private fun interFamily() = FontFamily(
+    Font(Res.font.inter, FontWeight.Normal),
+    Font(Res.font.inter, FontWeight.Medium),
+    Font(Res.font.inter, FontWeight.SemiBold),
+    Font(Res.font.inter, FontWeight.Bold),
+)
+
+/**
+ * The [AppTypography] scale with the bundled fonts applied: **Outfit** for
+ * display/headline/title styles and **Inter** for body/label styles. Composable
+ * because font resources load at runtime; call from within an `AppTheme`.
+ */
+@Composable
+fun appTypography(): Typography {
+    val outfit = outfitFamily()
+    val inter = interFamily()
+    return AppTypography.copy(
+        displayLarge = AppTypography.displayLarge.copy(fontFamily = outfit),
+        displayMedium = AppTypography.displayMedium.copy(fontFamily = outfit),
+        displaySmall = AppTypography.displaySmall.copy(fontFamily = outfit),
+        headlineLarge = AppTypography.headlineLarge.copy(fontFamily = outfit),
+        headlineMedium = AppTypography.headlineMedium.copy(fontFamily = outfit),
+        headlineSmall = AppTypography.headlineSmall.copy(fontFamily = outfit),
+        titleLarge = AppTypography.titleLarge.copy(fontFamily = outfit),
+        titleMedium = AppTypography.titleMedium.copy(fontFamily = outfit),
+        titleSmall = AppTypography.titleSmall.copy(fontFamily = outfit),
+        bodyLarge = AppTypography.bodyLarge.copy(fontFamily = inter),
+        bodyMedium = AppTypography.bodyMedium.copy(fontFamily = inter),
+        bodySmall = AppTypography.bodySmall.copy(fontFamily = inter),
+        labelLarge = AppTypography.labelLarge.copy(fontFamily = inter),
+        labelMedium = AppTypography.labelMedium.copy(fontFamily = inter),
+        labelSmall = AppTypography.labelSmall.copy(fontFamily = inter),
     )
 }
