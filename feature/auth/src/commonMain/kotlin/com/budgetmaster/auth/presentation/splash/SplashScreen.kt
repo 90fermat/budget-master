@@ -38,11 +38,14 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import budgetmaster.core.generated.resources.Res
+import budgetmaster.core.generated.resources.splash_credit_from
 import com.budgetmaster.core.designsystem.AppLogoMark
 import com.budgetmaster.core.designsystem.AppWordmark
 import com.budgetmaster.core.designsystem.financialColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
 
 /** Minimum time the splash stays visible so its entrance animation is appreciated. */
 private const val MIN_SPLASH_MILLIS = 2000L
@@ -150,16 +153,30 @@ fun SplashScreen(
             )
         }
 
-        Text(
-            text = "by FoyangTech",
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 40.dp)
                 .alpha(creditAlpha.value),
-        )
+        ) {
+            Text(
+                text = stringResource(Res.string.splash_credit_from),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = "FoyangTech",
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = 0.5.sp,
+                    brush = Brush.horizontalGradient(
+                        listOf(primary, MaterialTheme.financialColors.income)
+                    ),
+                ),
+            )
+        }
     }
 }
 

@@ -1,83 +1,102 @@
 # BudgetMaster — Production Roadmap & Deliverable State
 
-> Status baseline: 2026-07-14. Derived from a full audit of the codebase against
-> `ARCHITECTURE.md` and `DESIGN_SYSTEM.md`.
+> Original audit baseline: 2026-07-14. **Status refreshed: 2026-07-15** after Phases 0, 1,
+> and 1.5. Derived from the codebase against `ARCHITECTURE.md` and `DESIGN_SYSTEM.md`.
 
 ---
 
 ## 1. Where the app stands today
 
-### Feature maturity matrix
+### Feature maturity matrix (refreshed 2026-07-15)
 
-| Feature | Domain layer | Data layer | MVI ViewModel | UI | Tests | Verdict |
+| Feature | Domain | Data | MVI ViewModel | UI | Tests | Verdict |
 |---|---|---|---|---|---|---|
-| **Auth** | ✅ 10 use cases | ✅ Firebase (Android/iOS), ❌ Web stub | ✅ 6 ViewModels | ✅ 6 screens | ✅ 3 test files | **~85% done** |
-| **Dashboard** | ✅ 5 use cases, 6 models | ✅ SQLDelight + Gemini AI | ✅ Full MVI | ✅ Components + skeleton | ✅ Unit + screenshot | **~90% done — reference implementation** |
-| **Transactions** | ❌ none | ❌ none | ❌ none | ⚠️ Static mockup (hardcoded data) | ❌ | **~15% — facade only** |
-| **Budgets** | ⚠️ Repo interface only | ⚠️ Repo impl bound in DI but **never consumed** | ❌ none | ⚠️ Static mockup | ❌ | **~25%** |
-| **Goals** | ❌ | ❌ | ❌ | ⚠️ Static mockup | ❌ | **~10%** |
+| **Auth** | ✅ 12 use cases | ⚠️ **stubbed** (Firebase not wired — throws) | ✅ 6 ViewModels | ✅ 6 screens (illustrated onboarding, animated splash) | ✅ | **Flow/UI ~75%, but sign-in is NON-FUNCTIONAL** |
+| **Dashboard** | ✅ 5 use cases, 6 models | ✅ SQLDelight + Gemini AI | ✅ Full MVI | ✅ Premium components + skeleton | ✅ Unit + Roborazzi | **~90% — reference implementation** |
+| **Transactions** | ✅ models, repo, 5 use cases | ✅ SqlDelight repo + first-launch seeding | ✅ Full MVI | ✅ Day-grouped list, search, filters, swipe+undo, editor | ✅ use-case/VM/repo | **~90% (was ~15%)** |
+| **Settings** | ✅ 5 use cases | ✅ DataStore/localStorage prefs | ✅ Full MVI | ✅ Theme/palette/language, replay-intro | ➖ | **~80% (was ~20%)** |
+| **Budgets** | ⚠️ Repo interface only | ⚠️ Repo bound in DI but **unused** | ❌ | ⚠️ Static mockup | ❌ | **~25%** |
 | **Reports** | ❌ | ❌ | ❌ | ⚠️ Static mockup | ❌ | **~15%** |
-| **Settings** | ❌ | ❌ | ❌ | ⚠️ Static mockup ("John Doe"), theme toggle not persisted | ❌ | **~20%** |
+| **Goals** | ❌ | ❌ | ❌ | ⚠️ Static mockup | ❌ | **~10%** |
 
-The SQLDelight schema (10 entities incl. recurring transactions, exchange rates,
-notifications, insights) is **well ahead** of the features — most tables have zero consumers.
+**Design system:** ✅ done — `AppTheme` with **5 palettes** (incl. Material You Dynamic),
+bundled **Outfit + Inter** fonts, adaptive brand **logo**, `Spacing`/`Motion` tokens, and
+palette-independent `FinancialColors`. **Localization:** EN/FR across the shell, transactions,
+settings, and onboarding; the login/register/forgot screens still have **hardcoded English**.
+**Auth backend:** ⚠️ **not implemented** — see §Authentication below.
+
+The SQLDelight schema (10 entities) still has unused tables (budgets, goals, recurring,
+exchange rates, notifications) — the next features consume them.
+
+### Authentication status ⚠️
+
+Sign-in / sign-up **do not work on any platform**. `FirebaseAuthRepositoryImpl`
+(Android & iOS) and `WasmAuthRepositoryImpl` (Web) throw
+`UnsupportedOperationException("… not configured")`; `getAuthStatus()` always returns
+`Unauthenticated`. The app is usable because data features run on a local `default_user`
+without a login gate, but there is no real account system.
+
+**To make auth work:** wire the GitLive Firebase Kotlin SDK (`Firebase.auth
+.signInWithEmailAndPassword` / `createUser…` / `sendPasswordReset` / `signOut`, mapping
+`FirebaseUser`→`User`, and `authStateChanged`→`getAuthStatus()`); initialize Firebase per
+platform (Android `google-services.json` is present, iOS needs `GoogleService-Info.plist`);
+for Web either add Firebase JS interop or keep the local-only mode. Tracked as **Phase 1.6**
+below. Localizing the three auth screens rides along.
 
 ### Architecture conformance (vs ARCHITECTURE.md)
 
 **Respected ✅**
-- Module graph matches the doc exactly; no feature→feature dependencies.
+- Module graph matches the doc; no feature→feature dependencies.
 - Koin module-per-feature wiring, `expect/actual` platform splits, async SQLDelight for Wasm.
-- Dashboard and Auth follow the MVI contract (Intent/State/Effect) faithfully.
+- Dashboard, Transactions, and Settings follow the MVI contract faithfully.
 
-**Violations / drift ❌**
-1. ARCHITECTURE.md documents `TransactionsViewModel`, `BudgetsViewModel`, `ReportsViewModel`,
-   `SettingsViewModel` — **none exist**. Doc describes the target, not the reality.
-2. `budgetsModule` binds `SqlDelightBudgetRepository` that nothing injects (dead DI wiring).
-3. "No hardcoded strings" rule: violated across Transactions/Budgets/Goals/Settings screens
-   and the nav items in `App.kt` ("Home", "History", …).
-4. "All colors from `MaterialTheme.colorScheme`" rule: **47 hardcoded `Color(0x…)`**
-   occurrences across 8 feature files.
-5. Theme state (`isDarkMode`) is a `remember {}` in `App()` — lost on process death; DataStore
-   is available but unused for preferences.
-6. Dashboard→Settings navigation uses stringly-typed `onQuickAction("Settings")` magic strings
+**Fixed since the original audit ✅**
+- Transactions/Settings ViewModels now exist; theme/palette/language persisted via DataStore.
+- Single `strings.xml` source in `:core` (the `:shared` duplicate was deleted); EN/FR added.
+- Hardcoded `Color(0x…)` removed from features — all color lives in `core.designsystem`.
+- The `BuildConfig` "empty file" hack replaced by a generated config task.
+- detekt + ktlint (via `detekt-formatting`) wired into the build and CI (reporting mode).
+
+**Remaining drift ❌**
+1. `budgetsModule` binds `SqlDelightBudgetRepository` that nothing injects (dead DI wiring).
+2. Budgets/Goals/Reports screens are static mockups with hardcoded strings/data.
+3. Login/Register/ForgotPassword screens use hardcoded English strings (not `StringResources`).
+4. Dashboard→Settings navigation uses stringly-typed `onQuickAction("Settings")` magic strings
    instead of a typed Effect.
-7. `strings.xml` is duplicated verbatim in `:core` and `:shared` — guaranteed drift.
-8. `feature/dashboard/.../BuildConfig.kt` ("empty file to avoid compilation conflicts") +
-   `config/BuildConfig.kt` expect/actual with mock-key string comparisons in
-   `GeminiInsightsService` — fragile config plumbing.
-9. **Security**: Gemini is called directly from the client with an embedded API key —
-   extractable from any APK/wasm bundle. Must move behind a proxy before release.
-10. README/doc version drift (Kotlin 2.1.0 vs 2.1.21, etc.).
+5. Konsist tests do not yet enforce the module-dependency / no-hardcoded-color rules
+   automatically (detekt covers style/formatting, not architecture).
+
+6. **Security (open)**: Gemini is still called directly from the client with an embedded
+   API key — extractable from any APK/wasm bundle. Must move behind Firebase AI Logic /
+   a proxy before release (Phase 6/7).
 
 ### Design-system conformance (vs DESIGN_SYSTEM.md)
 
-**Implemented ✅** — color palette hex-for-hex in both themes; 600/1240dp breakpoints with
-NavigationBar/Rail/Drawer; 1200dp max-width container; budget gauge thresholds (85%/100%).
+**Implemented ✅** — full light/dark `ColorScheme` across all roles; **5 palettes** incl.
+Material You Dynamic; **Outfit + Inter** typography with tabular figures; `Spacing`/`Motion`
+token objects; adaptive brand logo; 600/1240dp breakpoints (NavigationBar/Rail/Drawer);
+1200dp max-width container; budget gauge thresholds; premium animated splash.
 
-**Missing ❌**
-1. **Typography system entirely absent** — `MaterialTheme(colorScheme = …)` passes no
-   `typography`; no Outfit/Inter fonts bundled; `tnum` applied ad hoc via `.copy()`.
-2. **Incomplete colorScheme**: only ~12 roles overridden. Screens use `surfaceVariant`,
-   `primaryContainer`, `outlineVariant` — these fall back to **M3 baseline purple** defaults
-   that clash with the custom palette. Real visual bug.
-3. **No token layer in code**: `Spacing.*`, `Duration.*`, easing, shapes exist only in the doc.
-4. **No shared component library**: `TransactionRow`, budget progress cards, etc. are
-   re-implemented per feature with diverging styles (36dp vs 44dp icons, 16 vs 20dp radii).
-5. Dynamic Color (Material You) on Android 12+ — promised, not implemented.
-6. Motion system (count-up, press-to-scale, shimmer, screen transitions) — only the dashboard
-   skeleton exists.
-7. A11y: no semantics on gauges/charts, touch-target & font-scale (200%) audits not done.
-8. Placeholder nav icons (Info/Favorite/Star for Budgets/Reports/Goals).
+**Still missing ❌**
+1. Shared component library is only partial — `BalanceCard`/`TransactionRow` exist per
+   feature; no single reusable set yet.
+2. Motion system partial — splash + skeleton shimmer done; count-up, press-to-scale, and
+   screen transitions pending.
+3. A11y: no semantics on gauges/charts; touch-target & 200% font-scale audits not done.
+4. Placeholder nav icons (Info/Favorite/Star for Budgets/Reports/Goals).
+5. Colored-emoji font not bundled for Web → category emoji render as tofu on Wasm.
 
 ### Localization & formatting
-- English only, no locale variants; `$` and number formats hardcoded in UI despite
-  `currency` columns in the schema and an `ExchangeRateEntity` table.
+- EN/FR for the shell, transactions, settings, and onboarding; **login/register/forgot
+  still hardcoded English**. `MoneyFormatter` is locale/currency-aware, but the user's
+  currency isn't wired end-to-end yet (screens default to USD).
 
 ### Production infrastructure
-- No CI, no detekt/ktlint/Konsist enforcement of the "non-negotiable" rules.
+- ✅ GitHub Actions CI (build + host tests + Roborazzi screenshots); ✅ detekt + ktlint wired
+  (reporting mode). Konsist architecture-rule tests still pending.
 - Android release build: `isMinifyEnabled = false`, no signing config.
 - No crash reporting, analytics, or performance monitoring.
-- Web target: auth is a stub that throws; not shippable.
+- **Auth is stubbed on all platforms** (see §Authentication); Web DB is in-memory.
 
 ---
 
@@ -111,8 +130,12 @@ Phases are ordered so each ships a coherent increment. Estimates assume one deve
   (16 goldens recorded in `:composeApp`). Web `ComposeViewport` migrated to the
   CMP 1.10+ container API; SQLDelight web worker set up via
   `@cashapp/sqldelight-sqljs-worker` + kotlinx-browser.
-- [ ] Tooling: detekt + ktlint + Konsist tests enforcing module-dependency and
-  no-hardcoded-color rules; GitHub Actions CI (build all targets + tests on PR).
+- [x] Tooling: **detekt + ktlint** (via `detekt-formatting`) wired at the root and into CI
+  in reporting mode (`ignoreFailures = true`); GitHub Actions CI builds all targets, runs
+  host tests, and verifies Roborazzi screenshots. `gradlew` executable bit fixed for Linux CI.
+  - [ ] Clear the initial detekt findings, then flip detekt to blocking.
+  - [ ] **Konsist** tests to enforce module-dependency and no-hardcoded-color rules
+    (detekt covers style/formatting, not architecture).
 - [x] Doc drift fixed in ARCHITECTURE.md / README / DESIGN_SYSTEM.md.
 
 **Known issues / follow-ups**
@@ -215,6 +238,26 @@ then onboarding once; returning users skip straight to auth/dashboard; 5 premium
 (verified in the user's browser; the in-app preview pane can't screenshot the animated
 wasm canvas).
 
+### Phase 1.6 — Real authentication (1–1.5 weeks)
+> Sign-in/up is currently stubbed on every platform (throws "not configured"). The app
+> works locally on a `default_user`, but there is no account system. This phase makes it real.
+
+- [ ] Wire the **GitLive Firebase Kotlin SDK** in `FirebaseAuthRepositoryImpl`
+  (Android/iOS): `signInWithEmailAndPassword`, `createUserWithEmailAndPassword`,
+  `sendPasswordReset`, `signOut`; map `FirebaseUser`→`User`; back `getAuthStatus()` with
+  the `authStateChanged` flow.
+- [ ] Initialize Firebase per platform (Android `google-services.json` present; add iOS
+  `GoogleService-Info.plist` + init; confirm gitlive init on startup).
+- [ ] **Web**: implement Firebase JS-interop auth via gitlive, or keep an explicit local-only
+  mode with the auth screens hidden/disabled on Wasm (no throwing paths).
+- [ ] Surface auth errors inline (invalid credentials, network) via `state.errorMessage`;
+  wire the password-visibility toggle (currently a TODO).
+- [ ] Bind the real user into the app: replace the `default_user` seed owner with the signed-in
+  uid so data is per-account; migrate/scope existing local data.
+- [ ] Google sign-in button (optional) via gitlive.
+- [ ] **Localize** the login/register/forgot-password screens (EN/FR) — still hardcoded English.
+- [ ] Tests: repository tests with a fake Firebase, ViewModel tests for success/error flows.
+
 ### Phase 2 — Budgets, Goals, Settings on real data (1.5 weeks)
 - [ ] Budgets: consume the already-bound repository; `BudgetsViewModel` (MVI); create/edit
   budget per category & period; live `spent` computed from transactions (SQL join, not the
@@ -313,6 +356,16 @@ wasm canvas).
 `InsightEntity` pattern), per-feature daily request budgets, batch prompts, and Remote
 Config kill-switches if quotas tighten.
 
+### Phase 8 — Store polish & README showcase (0.5 week)
+> After the feature set is complete and premium (post Phase 7), capture the app at its best.
+
+- [ ] Capture polished **screenshots / a short GIF** across platforms and the 5 palettes
+  (light + dark): splash, dashboard, transactions + add-editor, budgets, reports, settings.
+  Prefer real-device/emulator captures over the Roborazzi goldens.
+- [ ] Add a **Screenshots** section to `README.md` (a responsive table/grid), plus store
+  listing assets (feature graphic, phone/tablet screenshots) for Play/App Store.
+- [ ] Optional: a hosted web demo link once auth degrades gracefully on Wasm.
+
 ---
 
 ## 3. Deliverable state (Definition of Done)
@@ -359,18 +412,20 @@ The app is "production-ready premium" when all of the following hold:
 
 ## 4. Suggested sequencing summary
 
-| Phase | Theme | Est. |
-|---|---|---|
-| 0 | Design system + tooling foundation | 1–1.5 wk |
-| 1 | Transactions end-to-end | 1.5–2 wk |
-| 1.5 | Polish & premium identity (onboarding, logo, splash, palettes, rebrand) | 1–1.5 wk |
-| 2 | Budgets / Goals / Settings on real data | 1.5 wk |
-| 3 | Reports + recurring engine | 1.5 wk |
-| 4 | Motion & premium polish | 1–1.5 wk |
-| 5 | Localization | 0.5–1 wk |
-| 6 | Hardening & release | 1.5–2 wk |
-| 7 | AI intelligence layer (free-tier Gemini via Firebase) | 2–2.5 wk |
-| | **Total** | **~11–13.5 weeks** |
+| Phase | Theme | Est. | Status |
+|---|---|---|---|
+| 0 | Design system + tooling foundation | 1–1.5 wk | ✅ done |
+| 1 | Transactions end-to-end | 1.5–2 wk | ✅ done |
+| 1.5 | Polish & premium identity (onboarding, logo, splash, palettes, rebrand) | 1–1.5 wk | ✅ done |
+| 1.6 | Real authentication (Firebase wiring) | 1–1.5 wk | ⬜ next |
+| 2 | Budgets / Goals / Settings on real data | 1.5 wk | ⬜ |
+| 3 | Reports + recurring engine | 1.5 wk | ⬜ |
+| 4 | Motion & premium polish | 1–1.5 wk | ⬜ |
+| 5 | Localization | 0.5–1 wk | ⬜ |
+| 6 | Hardening & release | 1.5–2 wk | ⬜ |
+| 7 | AI intelligence layer (free-tier Gemini via Firebase) | 2–2.5 wk | ⬜ |
+| 8 | Store polish & README screenshots | 0.5 wk | ⬜ |
+| | **Total** | **~12.5–15 weeks** | |
 
 > Phase 7.0 (Firebase AI Logic migration) can be pulled forward into Phase 6 — it is the
 > security fix for the embedded Gemini key. Phases 7.1/7.2 depend on Phases 1–3 data.

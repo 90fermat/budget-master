@@ -115,6 +115,9 @@
     <string name="settings_replay_onboarding">Revoir l\'intro</string>
     <string name="settings_sign_out">Se déconnecter</string>
 
+    <!-- Splash Strings -->
+    <string name="splash_credit_from">de</string>
+
     <!-- Navigation Strings -->
     <string name="nav_home">Accueil</string>
     <string name="nav_history">Historique</string>
