@@ -11,11 +11,7 @@ import kotlinx.browser.document
  */
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {
-    // Initialize Koin DI for Web
     initKoin()
-
-    // Render the Compose Multiplatform UI. Since CMP 1.10, ComposeViewport manages
-    // its own canvas inside the given container element (here: <body>).
     ComposeViewport(document.body!!) {
         App()
     }

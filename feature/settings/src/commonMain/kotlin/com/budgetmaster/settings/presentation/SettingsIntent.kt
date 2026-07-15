@@ -14,4 +14,7 @@ sealed class SettingsIntent {
 
     /** The user picked an application language. */
     data class LanguageSelected(val language: AppLanguage) : SettingsIntent()
+
+    /** The user asked to replay the onboarding intro. */
+    data object ReplayOnboarding : SettingsIntent()
 }

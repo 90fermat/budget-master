@@ -3,6 +3,7 @@ package com.budgetmaster.settings.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.budgetmaster.settings.domain.usecase.ObserveAppSettingsUseCase
+import com.budgetmaster.settings.domain.usecase.ResetOnboardingUseCase
 import com.budgetmaster.settings.domain.usecase.SetDarkModeUseCase
 import com.budgetmaster.settings.domain.usecase.SetLanguageUseCase
 import com.budgetmaster.settings.domain.usecase.SetPaletteUseCase
@@ -23,6 +24,7 @@ class SettingsViewModel(
     private val setPalette: SetPaletteUseCase,
     private val setDarkMode: SetDarkModeUseCase,
     private val setLanguage: SetLanguageUseCase,
+    private val resetOnboarding: ResetOnboardingUseCase,
 ) : ViewModel() {
 
     /** Observable UI state, collected by the Settings Composable. */
@@ -36,6 +38,7 @@ class SettingsViewModel(
             is SettingsIntent.PaletteSelected -> viewModelScope.launch { setPalette(intent.palette) }
             is SettingsIntent.DarkModeSelected -> viewModelScope.launch { setDarkMode(intent.darkMode) }
             is SettingsIntent.LanguageSelected -> viewModelScope.launch { setLanguage(intent.language) }
+            is SettingsIntent.ReplayOnboarding -> viewModelScope.launch { resetOnboarding() }
         }
     }
 }

@@ -5,6 +5,7 @@ import com.budgetmaster.core.designsystem.DarkModeSetting
 import com.budgetmaster.core.localization.AppLanguage
 import com.budgetmaster.core.prefs.AppSettings
 import com.budgetmaster.core.prefs.AppSettingsRepository
+import com.budgetmaster.core.prefs.OnboardingPreferences
 import kotlinx.coroutines.flow.Flow
 
 /** Streams the persisted [AppSettings] (palette, dark mode, language). */
@@ -25,4 +26,9 @@ class SetDarkModeUseCase(private val repository: AppSettingsRepository) {
 /** Persists the selected [AppLanguage]. */
 class SetLanguageUseCase(private val repository: AppSettingsRepository) {
     suspend operator fun invoke(language: AppLanguage) = repository.setLanguage(language)
+}
+
+/** Clears the onboarding-completed flag so the intro is shown again. */
+class ResetOnboardingUseCase(private val onboardingPreferences: OnboardingPreferences) {
+    suspend operator fun invoke() = onboardingPreferences.setCompleted(false)
 }

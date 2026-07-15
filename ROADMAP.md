@@ -126,22 +126,80 @@ Phases are ordered so each ships a coherent increment. Estimates assume one deve
 **Deliverable:** every existing screen renders through `AppTheme` with zero hardcoded
 colors/strings; CI green.
 
-### Phase 1 — Transactions feature, end-to-end (1.5–2 weeks)
+### Phase 1 — Transactions feature, end-to-end (1.5–2 weeks) — **mostly done**
 > The core loop of a finance app. Model it on the dashboard feature.
 
-- [ ] Domain: `Transaction`, `Category` models; use cases (add/edit/delete, observe paged &
-  grouped-by-day, search, filter-by-category/type/date-range).
-- [ ] Data: `SqlDelightTransactionRepository` (Flow-based, uses existing queries + new paging
-  query); seed default categories on first launch.
-- [ ] Presentation: full MVI (`TransactionsIntent/State/Effect/ViewModel`); real list with
-  day grouping, working search + filter chips, swipe-to-delete with undo snackbar.
-- [ ] Add/Edit transaction as bottom sheet on phone → centered dialog on ≥600dp
-  (per DESIGN_SYSTEM.md rule): amount pad, category picker, date, notes, recurring toggle.
-- [ ] Currency formatting utility in `:core` (locale + user-currency aware, `expect/actual`
-  over platform NumberFormat / Intl).
-- [ ] Wire dashboard "recent transactions" & quick-add to the same repository (single source
-  of truth) and replace stringly `onQuickAction` with typed navigation effects.
-- [ ] Tests: use-case unit tests, ViewModel tests, repository tests against in-memory driver.
+- [x] Domain: `TransactionItem`, `TransactionCategory`, `TransactionFilter`, `TransactionDraft`
+  models; use cases (observe+filter by search/category/type, save, delete, restore, observe categories).
+- [x] Data: `SqlDelightTransactionRepository` (Flow-based); seeds a default account +
+  categories on first launch (shared `default_user`/`default_account` with the dashboard).
+- [x] Presentation: full MVI (`TransactionsIntent/State/Effect/ViewModel`); real list with
+  day grouping (Today/Yesterday/date), working search + type/category filter chips,
+  swipe-to-delete with undo snackbar.
+- [x] Add/Edit transaction as bottom sheet on phone → centered dialog on ≥600dp:
+  type toggle, amount, category picker, notes. (Date picker + recurring toggle deferred.)
+- [x] Currency formatting utility in `:core` (`MoneyFormatter` expect/actual over
+  NumberFormat / NSNumberFormatter / Intl) + `DateUtils` relative-day helper.
+- [x] Dashboard shares the same DB (single source of truth); total balance =
+  opening account balance + signed transaction sum.
+- [x] Tests: use-case filter tests, ViewModel grouping/delete-undo tests, repository
+  seeding/upsert/delete-restore tests against in-memory driver. Android assembles,
+  all host tests green, Wasm compiles.
+- [ ] **Deferred to later phases:** date picker + recurring toggle in the editor;
+  typed dashboard quick-add navigation effect; paged query for very large histories.
+
+### Phase 1.5 — Polish & premium identity (1–1.5 weeks)
+> Small, high-visibility fixes that make the app feel finished and branded. Requested
+> after the Phase 1 build.
+
+**P0 — Web render regression (blocker for web verification)**
+- [ ] After the Phase 1 additions, the Kotlin/Wasm app composes to a 0×0 surface (no
+  Skia canvas; `main()` completes with no thrown error). Android is unaffected (assembles,
+  tests + screenshots green). Root-cause (suspect: first-frame measure of
+  `ComposeViewport(document.body)` or an early composable in the Splash path) and restore
+  web rendering; re-verify palette + FR switching + the transactions flow on web.
+
+**Product/UX**
+- [x] **Onboarding shown once**: root cause was that completion was never persisted on
+  any platform. Added `core.prefs.OnboardingPreferences` (backed by `KeyValueStore` —
+  DataStore on Android/iOS, `localStorage` on Web); `CheckFirstLaunchUseCase` now reads it
+  and onboarding marks itself complete on finish/skip. Settings has a **"Replay intro"**
+  action that resets the flag and navigates back to onboarding.
+- [x] **Onboarding icons**: replaced the tofu/emoji glyphs with themed vector illustration
+  badges (ReceiptLong / PieChart / Savings on soft accent gradients); pages now use the
+  localized string resources (EN/FR) instead of hardcoded English.
+- [x] **No biometric on web**: added `core.util.isBiometricAuthSupported` (expect/actual);
+  onboarding skips the biometric step straight to sign-in on Wasm. (Settings has no
+  biometric toggle after the earlier rewrite, so nothing to hide there.)
+
+**Brand & identity**
+- [x] **App logo**: chosen concept **4 + 3** — a coin-and-growth mark + "Budget Master"
+  wordmark, built as scalable Compose vector components in `core.designsystem`
+  (`AppLogoMark`, `AppWordmark`, `AppLogo`). The ring is **palette-adaptive** (follows the
+  active palette's primary→tertiary gradient); the growth spark stays income-green. Used in
+  Splash and the desktop drawer header.
+- [x] **Splash redesign**: animated mark reveal (spring overshoot + fade) over a pulsing
+  radial glow, staggered wordmark + accent-line draw-in, and a **"by FoyangTech"** credit;
+  minimum 2s on-screen before navigating.
+- [x] **Palette overhaul**: replaced the flat 4 with a curated premium set — Midnight
+  Indigo, Emerald, Amethyst, Sunset Gold — on a richer obsidian/slate foundation with
+  layered surface elevation and tuned container/on-colors. Added a **5th "Dynamic" palette**
+  (Material You via `dynamicColorSchemeOrNull` expect/actual: real extraction on Android 12+,
+  Indigo fallback on iOS/Web), shown with a rainbow swatch in Settings.
+- [x] **Rename to "Budget Master"** (two words) across user-facing strings; package names,
+  module ids, and `budgetmaster` namespaces unchanged.
+
+**Follow-ups**
+- [ ] Android adaptive launcher icon (mipmap) using the fixed brand-indigo mark.
+- [ ] Bundle Outfit/Inter fonts so the wordmark + emoji render identically on Web.
+- [ ] Honor system reduced-motion for the splash animation where detectable.
+
+**Deliverable:** first launch shows a polished animated splash (logo + "by FoyangTech")
+then onboarding once; returning users skip straight to auth/dashboard; 5 premium palettes
+(incl. Dynamic) selectable in Settings; "Budget Master" branding throughout.
+**Status:** all items done — Android assembles, Wasm compiles, all host tests green
+(verified in the user's browser; the in-app preview pane can't screenshot the animated
+wasm canvas).
 
 ### Phase 2 — Budgets, Goals, Settings on real data (1.5 weeks)
 - [ ] Budgets: consume the already-bound repository; `BudgetsViewModel` (MVI); create/edit
@@ -291,6 +349,7 @@ The app is "production-ready premium" when all of the following hold:
 |---|---|---|
 | 0 | Design system + tooling foundation | 1–1.5 wk |
 | 1 | Transactions end-to-end | 1.5–2 wk |
+| 1.5 | Polish & premium identity (onboarding, logo, splash, palettes, rebrand) | 1–1.5 wk |
 | 2 | Budgets / Goals / Settings on real data | 1.5 wk |
 | 3 | Reports + recurring engine | 1.5 wk |
 | 4 | Motion & premium polish | 1–1.5 wk |

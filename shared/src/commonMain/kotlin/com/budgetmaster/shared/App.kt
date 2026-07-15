@@ -36,15 +36,14 @@ import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import budgetmaster.core.generated.resources.Res
-import budgetmaster.core.generated.resources.login_brand_title
 import budgetmaster.core.generated.resources.nav_budgets
 import budgetmaster.core.generated.resources.nav_goals
 import budgetmaster.core.generated.resources.nav_history
@@ -65,6 +64,7 @@ import com.budgetmaster.auth.presentation.splash.SplashScreen
 import com.budgetmaster.auth.presentation.splash.SplashViewModel
 import com.budgetmaster.budgets.presentation.BudgetsScreen
 import com.budgetmaster.budgets.presentation.GoalsScreen
+import com.budgetmaster.core.designsystem.AppLogo
 import com.budgetmaster.core.designsystem.AppTheme
 import com.budgetmaster.core.designsystem.DarkModeSetting
 import com.budgetmaster.core.localization.LocalAppLocale
@@ -150,11 +150,9 @@ private fun AppShell() {
                                 .padding(16.dp)
                         ) {
                             Column {
-                                Text(
-                                    text = stringResource(Res.string.login_brand_title),
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary,
+                                AppLogo(
+                                    markSize = 30.dp,
+                                    wordmarkSize = 20.sp,
                                     modifier = Modifier.padding(bottom = 24.dp, start = 12.dp)
                                 )
                                 navigationItems.forEach { item ->
@@ -323,6 +321,11 @@ private fun MainNavGraph(navController: androidx.navigation.NavHostController) {
                     navController.navigate(AuthRoute.Biometric) {
                         popUpTo(AuthRoute.Onboarding) { inclusive = true }
                     }
+                },
+                onNavigateToLogin = {
+                    navController.navigate(AuthRoute.Login) {
+                        popUpTo(AuthRoute.Onboarding) { inclusive = true }
+                    }
                 }
             )
         }
@@ -412,6 +415,11 @@ private fun MainNavGraph(navController: androidx.navigation.NavHostController) {
             SettingsScreen(
                 onSignOut = {
                     navController.navigate(AuthRoute.Login) {
+                        popUpTo(AuthRoute.Dashboard) { inclusive = true }
+                    }
+                },
+                onReplayOnboarding = {
+                    navController.navigate(AuthRoute.Onboarding) {
                         popUpTo(AuthRoute.Dashboard) { inclusive = true }
                     }
                 }

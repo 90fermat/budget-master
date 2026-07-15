@@ -3,6 +3,7 @@ package com.budgetmaster.auth.di
 import com.budgetmaster.auth.domain.usecase.CheckAuthStatusUseCase
 import com.budgetmaster.auth.domain.usecase.CheckBiometricSupportUseCase
 import com.budgetmaster.auth.domain.usecase.CheckFirstLaunchUseCase
+import com.budgetmaster.auth.domain.usecase.CompleteOnboardingUseCase
 import com.budgetmaster.auth.domain.usecase.GetCurrentUserUseCase
 import com.budgetmaster.auth.domain.usecase.LoginUseCase
 import com.budgetmaster.auth.domain.usecase.ResetPasswordUseCase
@@ -39,10 +40,11 @@ val authModule = module {
     factory { LoginUseCase(get()) }
     factory { CheckAuthStatusUseCase(get()) }
     factory { CheckFirstLaunchUseCase(get()) }
+    factory { CompleteOnboardingUseCase(get()) }
 
     // ViewModels
     viewModel { SplashViewModel(get(), get()) }
-    viewModel { OnboardingViewModel() }
+    viewModel { OnboardingViewModel(get()) }
     viewModel { LoginViewModel(get(), get()) }
     viewModel { RegisterViewModel(get()) }
     viewModel { ForgotPasswordViewModel(get()) }
