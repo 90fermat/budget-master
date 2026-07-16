@@ -72,11 +72,15 @@ class SqlDelightDashboardRepository(
                     val nowMs = Clock.System.now().toEpochMilliseconds()
                     val thirtyDaysAgo = nowMs - 30L * 24 * 60 * 60 * 1000L
 
-                    val monthlyIncome = transactions
+                    // Transfers and balance adjustments move the user's own money between
+                    // their wallets — they are neither income nor spending.
+                    val flows = transactions.filter { it.transferGroupId == null }
+
+                    val monthlyIncome = flows
                         .filter { it.timestamp >= thirtyDaysAgo && it.amount > 0 }
                         .sumOf { it.amount }
 
-                    val monthlyExpenses = transactions
+                    val monthlyExpenses = flows
                         .filter { it.timestamp >= thirtyDaysAgo && it.amount < 0 }
                         .sumOf { kotlin.math.abs(it.amount) }
 

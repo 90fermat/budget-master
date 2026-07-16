@@ -2,6 +2,7 @@
 
 package com.budgetmaster.accounts.data
 
+import app.cash.sqldelight.async.coroutines.awaitAsList
 import com.budgetmaster.accounts.TestDatabaseHelper
 import com.budgetmaster.accounts.data.repository.SqlDelightAccountRepository
 import com.budgetmaster.accounts.domain.model.AccountDraft
@@ -14,6 +15,7 @@ import kotlinx.coroutines.test.runTest
 import kotlin.time.Clock
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class SqlDelightAccountRepositoryTest {
@@ -46,10 +48,10 @@ class SqlDelightAccountRepositoryTest {
 
         val now = Clock.System.now().toEpochMilliseconds()
         val queries = provider.getDatabase().budgetMasterDatabaseQueries
-        queries.insertTransaction("t1", id, "cat_salary", 50.0, "Pay", now, null, null, 0)
-        queries.insertTransaction("t2", id, "cat_food", -20.0, "Lunch", now, null, null, 0)
+        queries.insertTransaction("t1", id, "cat_salary", 50.0, "Pay", now, null, null, 0, null)
+        queries.insertTransaction("t2", id, "cat_food", -20.0, "Lunch", now, null, null, 0, null)
         // A transaction on another wallet must not affect this one's balance.
-        queries.insertTransaction("t3", otherId, "cat_food", -300.0, "Other", now, null, null, 0)
+        queries.insertTransaction("t3", otherId, "cat_food", -300.0, "Other", now, null, null, 0, null)
 
         val accounts = repo.observeAccounts().first()
         val checking = accounts.first { it.id == id }
@@ -87,6 +89,66 @@ class SqlDelightAccountRepositoryTest {
 
         repo.setArchived(id, false)
         assertTrue(!repo.observeAccounts().first().first { it.id == id }.isArchived)
+    }
+
+    @Test
+    fun transferMovesMoneyBetweenWalletsAndLeavesNetWorthUnchanged() = runTest {
+        val (repo, provider) = setup()
+        val from = repo.upsertAccount(
+            AccountDraft(name = "Checking", type = AccountType.CHECKING, openingBalance = 500.0, currency = "USD"),
+        )
+        val to = repo.upsertAccount(
+            AccountDraft(name = "Savings", type = AccountType.SAVINGS, openingBalance = 100.0, currency = "USD"),
+        )
+
+        repo.transfer(from, to, 200.0, Clock.System.now().toEpochMilliseconds())
+
+        val accounts = repo.observeAccounts().first()
+        assertEquals(300.0, accounts.first { it.id == from }.currentBalance)
+        assertEquals(300.0, accounts.first { it.id == to }.currentBalance)
+
+        // Both legs are tagged with one transfer id, so reports can exclude them.
+        val rows = provider.getDatabase().budgetMasterDatabaseQueries
+            .selectTransactionsByUser("default_user").awaitAsList()
+            .filter { it.transferGroupId != null }
+        assertEquals(2, rows.size)
+        assertEquals(1, rows.mapNotNull { it.transferGroupId }.distinct().size)
+        assertEquals(0.0, rows.sumOf { it.amount })
+    }
+
+    @Test
+    fun transferRejectsSameAccountAndNonPositiveAmounts() = runTest {
+        val (repo, _) = setup()
+        val a = repo.upsertAccount(
+            AccountDraft(name = "A", type = AccountType.CASH, openingBalance = 10.0, currency = "USD"),
+        )
+        val b = repo.upsertAccount(
+            AccountDraft(name = "B", type = AccountType.CASH, openingBalance = 10.0, currency = "USD"),
+        )
+        val now = Clock.System.now().toEpochMilliseconds()
+
+        assertFailsWith<IllegalArgumentException> { repo.transfer(a, a, 5.0, now) }
+        assertFailsWith<IllegalArgumentException> { repo.transfer(a, b, 0.0, now) }
+    }
+
+    @Test
+    fun reconcilePostsAnAdjustmentSoTheBalanceMatchesReality() = runTest {
+        val (repo, provider) = setup()
+        val id = repo.upsertAccount(
+            AccountDraft(name = "Wallet", type = AccountType.CASH, openingBalance = 100.0, currency = "USD"),
+        )
+        val now = Clock.System.now().toEpochMilliseconds()
+        provider.getDatabase().budgetMasterDatabaseQueries
+            .insertTransaction("t1", id, "cat_food", -30.0, "Lunch", now, null, null, 0, null)
+
+        // Derived balance is 70; the real wallet holds 65.
+        repo.reconcile(id, 65.0, now)
+
+        assertEquals(65.0, repo.observeAccounts().first().first { it.id == id }.currentBalance)
+        // The correction is an ordinary entry, excluded from income/expense.
+        val adjustment = provider.getDatabase().budgetMasterDatabaseQueries
+            .selectTransactionsByAccount(id).awaitAsList().first { it.transferGroupId != null }
+        assertEquals(-5.0, adjustment.amount)
     }
 
     @Test

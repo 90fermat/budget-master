@@ -111,6 +111,10 @@ CREATE TABLE TransactionEntity (
     notes TEXT,
     tags TEXT, -- Comma-separated list of tags
     isRecurring INTEGER NOT NULL DEFAULT 0, -- 0 = False, 1 = True
+    -- Links the two legs of a wallet-to-wallet transfer. Both rows share one id.
+    -- Non-null rows move money between the user's own wallets, so they are excluded
+    -- from income/expense totals and from budget spend.
+    transferGroupId TEXT,
     FOREIGN KEY(accountId) REFERENCES AccountEntity(id) ON DELETE CASCADE,
     FOREIGN KEY(categoryId) REFERENCES CategoryEntity(id) ON DELETE SET NULL
 );
@@ -121,8 +125,8 @@ CREATE INDEX idx_transaction_timestamp ON TransactionEntity(timestamp);
 
 -- Queries for TransactionEntity
 insertTransaction:
-INSERT OR REPLACE INTO TransactionEntity (id, accountId, categoryId, amount, description, timestamp, notes, tags, isRecurring)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT OR REPLACE INTO TransactionEntity (id, accountId, categoryId, amount, description, timestamp, notes, tags, isRecurring, transferGroupId)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 selectAllTransactions:
 SELECT * FROM TransactionEntity ORDER BY timestamp DESC;
@@ -143,6 +147,10 @@ SELECT * FROM TransactionEntity WHERE id = ?;
 
 deleteTransaction:
 DELETE FROM TransactionEntity WHERE id = ?;
+
+-- Deletes both legs of a transfer together.
+deleteTransferGroup:
+DELETE FROM TransactionEntity WHERE transferGroupId = ?;
 
 
 -- ==========================================

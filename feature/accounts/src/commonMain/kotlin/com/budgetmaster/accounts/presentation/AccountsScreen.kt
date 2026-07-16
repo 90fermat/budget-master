@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -38,10 +39,13 @@ import budgetmaster.core.generated.resources.accounts_empty
 import budgetmaster.core.generated.resources.accounts_net_worth
 import budgetmaster.core.generated.resources.accounts_multi_currency_note
 import budgetmaster.core.generated.resources.accounts_title
+import budgetmaster.core.generated.resources.accounts_transfer
 import budgetmaster.core.generated.resources.action_cancel
 import budgetmaster.core.generated.resources.action_delete
 import com.budgetmaster.accounts.presentation.components.AccountCard
 import com.budgetmaster.accounts.presentation.components.AddEditAccountForm
+import com.budgetmaster.accounts.presentation.components.ReconcileForm
+import com.budgetmaster.accounts.presentation.components.TransferForm
 import com.budgetmaster.core.util.MoneyFormatter
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -54,11 +58,22 @@ fun AccountsScreen(viewModel: AccountsViewModel = koinViewModel()) {
 
     Scaffold(
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = { viewModel.onIntent(AccountsIntent.OpenAdd) },
-                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                text = { Text(stringResource(Res.string.accounts_add)) },
-            )
+            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                // Transfers need at least two wallets to move money between.
+                if (state.activeAccounts.size > 1) {
+                    ExtendedFloatingActionButton(
+                        onClick = { viewModel.onIntent(AccountsIntent.OpenTransfer) },
+                        icon = { Icon(Icons.Filled.SwapHoriz, contentDescription = null) },
+                        text = { Text(stringResource(Res.string.accounts_transfer)) },
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    )
+                }
+                ExtendedFloatingActionButton(
+                    onClick = { viewModel.onIntent(AccountsIntent.OpenAdd) },
+                    icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                    text = { Text(stringResource(Res.string.accounts_add)) },
+                )
+            }
         },
     ) { padding ->
         val active = state.activeAccounts
@@ -93,6 +108,7 @@ fun AccountsScreen(viewModel: AccountsViewModel = koinViewModel()) {
                     account = account,
                     onEdit = { viewModel.onIntent(AccountsIntent.OpenEdit(account)) },
                     onArchiveToggle = { viewModel.onIntent(AccountsIntent.SetArchived(account.id, true)) },
+                    onReconcile = { viewModel.onIntent(AccountsIntent.OpenReconcile(account)) },
                     onDelete = { pendingDelete = account.id },
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -111,6 +127,7 @@ fun AccountsScreen(viewModel: AccountsViewModel = koinViewModel()) {
                         account = account,
                         onEdit = { viewModel.onIntent(AccountsIntent.OpenEdit(account)) },
                         onArchiveToggle = { viewModel.onIntent(AccountsIntent.SetArchived(account.id, false)) },
+                        onReconcile = { viewModel.onIntent(AccountsIntent.OpenReconcile(account)) },
                         onDelete = { pendingDelete = account.id },
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -124,6 +141,25 @@ fun AccountsScreen(viewModel: AccountsViewModel = koinViewModel()) {
             existing = state.editingAccount,
             onSubmit = { viewModel.onIntent(AccountsIntent.Submit(it)) },
             onDismiss = { viewModel.onIntent(AccountsIntent.DismissEditor) },
+        )
+    }
+
+    if (state.transferOpen) {
+        TransferForm(
+            accounts = state.activeAccounts,
+            initialFromId = state.activeAccountId,
+            onSubmit = { from, to, amount, timestamp ->
+                viewModel.onIntent(AccountsIntent.SubmitTransfer(from, to, amount, timestamp))
+            },
+            onDismiss = { viewModel.onIntent(AccountsIntent.DismissTransfer) },
+        )
+    }
+
+    state.reconcilingAccount?.let { account ->
+        ReconcileForm(
+            account = account,
+            onSubmit = { viewModel.onIntent(AccountsIntent.SubmitReconcile(account.id, it)) },
+            onDismiss = { viewModel.onIntent(AccountsIntent.DismissReconcile) },
         )
     }
 

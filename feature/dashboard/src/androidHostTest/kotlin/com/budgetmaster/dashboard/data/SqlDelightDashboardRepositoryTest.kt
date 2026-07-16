@@ -57,8 +57,8 @@ class SqlDelightDashboardRepositoryTest {
         queries.insertCategory(categoryId, userId, "Food", "🍔", "#FF0000", 1)
 
         // Insert transactions within the last 30 days
-        queries.insertTransaction("tx_1", accountId, categoryId, 500.0, "Salary", now, null, null, 0)
-        queries.insertTransaction("tx_2", accountId, categoryId, -200.0, "Groceries", now, null, null, 0)
+        queries.insertTransaction("tx_1", accountId, categoryId, 500.0, "Salary", now, null, null, 0, null)
+        queries.insertTransaction("tx_2", accountId, categoryId, -200.0, "Groceries", now, null, null, 0, null)
 
         val balanceSummary = repository.getBalanceSummary(Period.MONTH).first()
         // Opening account balance (1500) + signed transaction sum (+500 - 200) = 1800
@@ -112,7 +112,7 @@ class SqlDelightDashboardRepositoryTest {
         queries.insertAccount(accountId, userId, "Checking", "CHECKING", 1500.0, "USD", now, 0)
         queries.insertCategory(categoryId, userId, "Food", "🍔", "#FF0000", 1)
 
-        queries.insertTransaction("tx_to_delete", accountId, categoryId, -25.0, "Burger", now, null, null, 0)
+        queries.insertTransaction("tx_to_delete", accountId, categoryId, -25.0, "Burger", now, null, null, 0, null)
         
         // Verify insertion
         var txs = queries.selectAllTransactions().executeAsList()

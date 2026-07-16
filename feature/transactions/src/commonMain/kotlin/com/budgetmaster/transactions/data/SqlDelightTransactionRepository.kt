@@ -126,6 +126,7 @@ class SqlDelightTransactionRepository(
                 notes = draft.notes?.trim()?.ifBlank { null },
                 tags = null,
                 isRecurring = if (draft.isRecurring) 1 else 0,
+            transferGroupId = null,
             )
             val category = draft.categoryId?.let { catId ->
                 queries.selectCategoryById(catId).awaitAsList().firstOrNull()?.toDomain()
@@ -158,6 +159,7 @@ class SqlDelightTransactionRepository(
             notes = item.notes,
             tags = null,
             isRecurring = if (item.isRecurring) 1 else 0,
+            transferGroupId = null,
         )
     }
 

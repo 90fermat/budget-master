@@ -2,6 +2,8 @@
 
 package com.budgetmaster.accounts.data.repository
 
+import app.cash.sqldelight.async.coroutines.awaitAsList
+import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import com.budgetmaster.accounts.domain.model.Account
@@ -92,8 +94,84 @@ class SqlDelightAccountRepository(
             .setAccountArchived(isArchived = if (archived) 1 else 0, id = id)
     }
 
+    override suspend fun transfer(
+        fromAccountId: String,
+        toAccountId: String,
+        amount: Double,
+        timestamp: Long,
+        note: String?,
+    ): Unit = withContext(dispatcher) {
+        require(fromAccountId != toAccountId) { "Cannot transfer to the same account." }
+        require(amount > 0.0) { "Transfer amount must be greater than zero." }
+
+        val queries = databaseProvider.getDatabase().budgetMasterDatabaseQueries
+        val groupId = Uuid.random().toString()
+        val label = note?.trim()?.ifBlank { null } ?: TRANSFER_LABEL
+
+        // Both legs share transferGroupId so they can be recognised (and removed) as one move.
+        queries.transaction {
+            queries.insertTransaction(
+                id = Uuid.random().toString(),
+                accountId = fromAccountId,
+                categoryId = null,
+                amount = -amount,
+                description = label,
+                timestamp = timestamp,
+                notes = null,
+                tags = null,
+                isRecurring = 0,
+                transferGroupId = groupId,
+            )
+            queries.insertTransaction(
+                id = Uuid.random().toString(),
+                accountId = toAccountId,
+                categoryId = null,
+                amount = amount,
+                description = label,
+                timestamp = timestamp,
+                notes = null,
+                tags = null,
+                isRecurring = 0,
+                transferGroupId = groupId,
+            )
+        }
+    }
+
+    override suspend fun reconcile(
+        accountId: String,
+        actualBalance: Double,
+        timestamp: Long,
+    ): Unit = withContext(dispatcher) {
+        val queries = databaseProvider.getDatabase().budgetMasterDatabaseQueries
+        val account = queries.selectAccountById(accountId).awaitAsOneOrNull() ?: return@withContext
+        val movement = queries.selectTransactionsByAccount(accountId).awaitAsList().sumOf { it.amount }
+        val currentBalance = account.balance + movement
+        val delta = actualBalance - currentBalance
+        if (delta == 0.0) return@withContext
+
+        // Post the difference as a normal entry so the balance math stays derived, never patched.
+        queries.insertTransaction(
+            id = Uuid.random().toString(),
+            accountId = accountId,
+            categoryId = null,
+            amount = delta,
+            description = RECONCILE_LABEL,
+            timestamp = timestamp,
+            notes = null,
+            tags = null,
+            isRecurring = 0,
+            // Excluded from income/expense: an adjustment is neither earning nor spending.
+            transferGroupId = "reconcile_${Uuid.random()}",
+        )
+    }
+
     override suspend fun deleteAccount(id: String): Unit = withContext(dispatcher) {
         databaseProvider.getDatabase().budgetMasterDatabaseQueries.deleteAccount(id)
+    }
+
+    private companion object {
+        const val TRANSFER_LABEL = "Transfer"
+        const val RECONCILE_LABEL = "Balance adjustment"
     }
 }
 

@@ -203,4 +203,14 @@
     <string name="account_type_savings">Savings</string>
     <string name="account_type_credit_card">Credit card</string>
     <string name="account_type_investment">Investment</string>
+    <string name="accounts_transfer">Transfer</string>
+    <string name="accounts_transfer_from">From</string>
+    <string name="accounts_transfer_to">To</string>
+    <string name="accounts_transfer_amount">Amount</string>
+    <string name="accounts_transfer_same_account">Choose two different accounts.</string>
+    <string name="accounts_transfer_note">Transfers move your own money between wallets, so they don\'t count as income or spending.</string>
+    <string name="accounts_reconcile">Reconcile</string>
+    <string name="accounts_reconcile_title">Set real balance</string>
+    <string name="accounts_reconcile_hint">We\'ll post an adjustment for the difference.</string>
+    <string name="accounts_reconcile_actual">Actual balance</string>
 </resources>

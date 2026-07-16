@@ -31,6 +31,24 @@ class DeleteAccountUseCase(
     }
 }
 
+/** Moves money between two of the user's wallets. */
+class TransferBetweenAccountsUseCase(private val repository: AccountRepository) {
+    /** @throws IllegalArgumentException if the wallets match or the amount is not positive. */
+    suspend operator fun invoke(
+        fromAccountId: String,
+        toAccountId: String,
+        amount: Double,
+        timestamp: Long,
+        note: String? = null,
+    ) = repository.transfer(fromAccountId, toAccountId, amount, timestamp, note)
+}
+
+/** Corrects a wallet to its real-world balance by posting an adjustment entry. */
+class ReconcileAccountUseCase(private val repository: AccountRepository) {
+    suspend operator fun invoke(accountId: String, actualBalance: Double, timestamp: Long) =
+        repository.reconcile(accountId, actualBalance, timestamp)
+}
+
 /** Observes the active-account selection (`null` = "All accounts"). */
 class ObserveActiveAccountUseCase(private val activeAccountStore: ActiveAccountStore) {
     operator fun invoke(): Flow<String?> = activeAccountStore.activeAccountId

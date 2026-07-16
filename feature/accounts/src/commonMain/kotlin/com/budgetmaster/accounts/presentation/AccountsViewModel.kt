@@ -1,3 +1,5 @@
+@file:OptIn(kotlin.time.ExperimentalTime::class)
+
 package com.budgetmaster.accounts.presentation
 
 import androidx.lifecycle.ViewModel
@@ -6,14 +8,17 @@ import com.budgetmaster.accounts.domain.usecase.ArchiveAccountUseCase
 import com.budgetmaster.accounts.domain.usecase.DeleteAccountUseCase
 import com.budgetmaster.accounts.domain.usecase.ObserveAccountsUseCase
 import com.budgetmaster.accounts.domain.usecase.ObserveActiveAccountUseCase
+import com.budgetmaster.accounts.domain.usecase.ReconcileAccountUseCase
 import com.budgetmaster.accounts.domain.usecase.SaveAccountUseCase
 import com.budgetmaster.accounts.domain.usecase.SelectActiveAccountUseCase
+import com.budgetmaster.accounts.domain.usecase.TransferBetweenAccountsUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.time.Clock
 
 /**
  * MVI ViewModel for the Accounts screen and the shared account switcher.
@@ -25,6 +30,8 @@ class AccountsViewModel(
     private val archiveAccount: ArchiveAccountUseCase,
     private val deleteAccount: DeleteAccountUseCase,
     private val selectActiveAccount: SelectActiveAccountUseCase,
+    private val transferBetweenAccounts: TransferBetweenAccountsUseCase,
+    private val reconcileAccount: ReconcileAccountUseCase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AccountsState())
@@ -63,6 +70,31 @@ class AccountsViewModel(
             }
             is AccountsIntent.SelectActive -> viewModelScope.launch {
                 selectActiveAccount(intent.id)
+            }
+            AccountsIntent.OpenTransfer -> _state.update { it.copy(transferOpen = true, errorMessage = null) }
+            AccountsIntent.DismissTransfer -> _state.update { it.copy(transferOpen = false, errorMessage = null) }
+            is AccountsIntent.SubmitTransfer -> viewModelScope.launch {
+                try {
+                    transferBetweenAccounts(
+                        fromAccountId = intent.fromAccountId,
+                        toAccountId = intent.toAccountId,
+                        amount = intent.amount,
+                        timestamp = intent.timestamp,
+                    )
+                    _state.update { it.copy(transferOpen = false, errorMessage = null) }
+                } catch (e: IllegalArgumentException) {
+                    _state.update { it.copy(errorMessage = e.message) }
+                }
+            }
+            is AccountsIntent.OpenReconcile -> _state.update { it.copy(reconcilingAccount = intent.account) }
+            AccountsIntent.DismissReconcile -> _state.update { it.copy(reconcilingAccount = null) }
+            is AccountsIntent.SubmitReconcile -> viewModelScope.launch {
+                reconcileAccount(
+                    accountId = intent.accountId,
+                    actualBalance = intent.actualBalance,
+                    timestamp = Clock.System.now().toEpochMilliseconds(),
+                )
+                _state.update { it.copy(reconcilingAccount = null) }
             }
         }
     }

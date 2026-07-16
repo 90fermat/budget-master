@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Rule
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -32,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import budgetmaster.core.generated.resources.Res
 import budgetmaster.core.generated.resources.accounts_archive
 import budgetmaster.core.generated.resources.accounts_edit
+import budgetmaster.core.generated.resources.accounts_reconcile
 import budgetmaster.core.generated.resources.accounts_restore
 import budgetmaster.core.generated.resources.action_delete
 import com.budgetmaster.accounts.domain.model.Account
@@ -48,6 +50,7 @@ fun AccountCard(
     account: Account,
     onEdit: () -> Unit,
     onArchiveToggle: () -> Unit,
+    onReconcile: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -111,6 +114,13 @@ fun AccountCard(
                         leadingIcon = { Icon(Icons.Filled.Edit, contentDescription = null) },
                         onClick = { menuOpen = false; onEdit() },
                     )
+                    if (!account.isArchived) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(Res.string.accounts_reconcile)) },
+                            leadingIcon = { Icon(Icons.Filled.Rule, contentDescription = null) },
+                            onClick = { menuOpen = false; onReconcile() },
+                        )
+                    }
                     DropdownMenuItem(
                         text = {
                             Text(

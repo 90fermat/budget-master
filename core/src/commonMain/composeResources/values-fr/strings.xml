@@ -203,4 +203,14 @@
     <string name="account_type_savings">Épargne</string>
     <string name="account_type_credit_card">Carte de crédit</string>
     <string name="account_type_investment">Investissement</string>
+    <string name="accounts_transfer">Virement</string>
+    <string name="accounts_transfer_from">Depuis</string>
+    <string name="accounts_transfer_to">Vers</string>
+    <string name="accounts_transfer_amount">Montant</string>
+    <string name="accounts_transfer_same_account">Choisissez deux comptes différents.</string>
+    <string name="accounts_transfer_note">Un virement déplace votre argent entre vos comptes : il ne compte ni comme revenu ni comme dépense.</string>
+    <string name="accounts_reconcile">Rapprocher</string>
+    <string name="accounts_reconcile_title">Définir le solde réel</string>
+    <string name="accounts_reconcile_hint">Nous enregistrerons un ajustement pour la différence.</string>
+    <string name="accounts_reconcile_actual">Solde réel</string>
 </resources>

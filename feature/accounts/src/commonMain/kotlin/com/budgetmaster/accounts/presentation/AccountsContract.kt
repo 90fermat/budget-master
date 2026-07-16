@@ -10,6 +10,9 @@ data class AccountsState(
     val isLoading: Boolean = true,
     val editorOpen: Boolean = false,
     val editingAccount: Account? = null,
+    val transferOpen: Boolean = false,
+    val reconcilingAccount: Account? = null,
+    val errorMessage: String? = null,
 ) {
     /** The active accounts (archived excluded) used for the overview total. */
     val activeAccounts: List<Account> = accounts.filter { !it.isArchived }
@@ -33,4 +36,17 @@ sealed interface AccountsIntent {
     data class SetArchived(val id: String, val archived: Boolean) : AccountsIntent
     data class Delete(val id: String) : AccountsIntent
     data class SelectActive(val id: String?) : AccountsIntent
+
+    data object OpenTransfer : AccountsIntent
+    data object DismissTransfer : AccountsIntent
+    data class SubmitTransfer(
+        val fromAccountId: String,
+        val toAccountId: String,
+        val amount: Double,
+        val timestamp: Long,
+    ) : AccountsIntent
+
+    data class OpenReconcile(val account: Account) : AccountsIntent
+    data object DismissReconcile : AccountsIntent
+    data class SubmitReconcile(val accountId: String, val actualBalance: Double) : AccountsIntent
 }

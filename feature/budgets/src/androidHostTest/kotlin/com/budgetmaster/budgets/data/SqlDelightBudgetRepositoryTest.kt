@@ -36,10 +36,10 @@ class SqlDelightBudgetRepositoryTest {
 
         val queries = provider.getDatabase().budgetMasterDatabaseQueries
         // Two food expenses in period + one income + one other-category expense.
-        queries.insertTransaction("t1", "default_account", "cat_food", -120.0, "Dinner", now, null, null, 0)
-        queries.insertTransaction("t2", "default_account", "cat_food", -30.0, "Snack", now, null, null, 0)
-        queries.insertTransaction("t3", "default_account", "cat_food", 2000.0, "Refund", now, null, null, 0)
-        queries.insertTransaction("t4", "default_account", "cat_travel", -50.0, "Taxi", now, null, null, 0)
+        queries.insertTransaction("t1", "default_account", "cat_food", -120.0, "Dinner", now, null, null, 0, null)
+        queries.insertTransaction("t2", "default_account", "cat_food", -30.0, "Snack", now, null, null, 0, null)
+        queries.insertTransaction("t3", "default_account", "cat_food", 2000.0, "Refund", now, null, null, 0, null)
+        queries.insertTransaction("t4", "default_account", "cat_travel", -50.0, "Taxi", now, null, null, 0, null)
 
         val budgets = repo.observeBudgets().first()
         assertEquals(1, budgets.size)
@@ -57,7 +57,7 @@ class SqlDelightBudgetRepositoryTest {
         repo.upsertBudget(BudgetDraft(categoryId = "cat_food", limit = 100.0, periodStart = now - 1_000, periodEnd = now + 10_000_000))
 
         val queries = provider.getDatabase().budgetMasterDatabaseQueries
-        queries.insertTransaction("t1", "default_account", "cat_food", -130.0, "Big dinner", now, null, null, 0)
+        queries.insertTransaction("t1", "default_account", "cat_food", -130.0, "Big dinner", now, null, null, 0, null)
 
         val food = repo.observeBudgets().first().first()
         assertEquals(130.0, food.spent)

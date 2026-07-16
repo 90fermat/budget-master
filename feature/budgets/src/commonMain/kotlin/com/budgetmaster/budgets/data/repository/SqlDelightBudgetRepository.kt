@@ -67,6 +67,8 @@ class SqlDelightBudgetRepository(
                                 .filter {
                                     it.categoryId == budget.categoryId &&
                                         it.amount < 0 &&
+                                        // Transfers between the user's own wallets aren't spend.
+                                        it.transferGroupId == null &&
                                         it.timestamp in budget.startDate..budget.endDate
                                 }
                                 .sumOf { abs(it.amount) }
