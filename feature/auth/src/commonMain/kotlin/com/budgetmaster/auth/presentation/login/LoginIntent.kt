@@ -22,6 +22,12 @@ sealed interface LoginIntent {
     /** Triggered when the user toggles password visibility. */
     data object TogglePasswordVisibility : LoginIntent
 
+    /** The platform Google flow returned an ID token; exchange it for a session. */
+    data class GoogleIdTokenReceived(val idToken: String) : LoginIntent
+
+    /** The platform Google flow failed or was cancelled. */
+    data class GoogleSignInFailed(val error: com.budgetmaster.auth.domain.model.AuthError) : LoginIntent
+
     /** Triggered when the user clicks the biometric login option. */
     data object BiometricLoginClicked : LoginIntent
 

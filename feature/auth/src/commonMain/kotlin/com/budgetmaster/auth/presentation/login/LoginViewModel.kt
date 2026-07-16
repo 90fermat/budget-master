@@ -6,6 +6,7 @@ import com.budgetmaster.auth.domain.model.AuthError
 import com.budgetmaster.auth.domain.model.AuthException
 import com.budgetmaster.auth.domain.usecase.CheckBiometricSupportUseCase
 import com.budgetmaster.auth.domain.usecase.LoginUseCase
+import com.budgetmaster.auth.domain.usecase.SignInWithGoogleUseCase
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -20,10 +21,12 @@ import kotlinx.coroutines.launch
  *
  * @param loginUseCase Validates credentials and performs authentication.
  * @param checkBiometricSupportUseCase Verifies if biometric login is configured.
+ * @param signInWithGoogleUseCase Exchanges a Google ID token for a Firebase session.
  */
 class LoginViewModel(
     private val loginUseCase: LoginUseCase,
-    private val checkBiometricSupportUseCase: CheckBiometricSupportUseCase
+    private val checkBiometricSupportUseCase: CheckBiometricSupportUseCase,
+    private val signInWithGoogleUseCase: SignInWithGoogleUseCase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(LoginState())
@@ -49,8 +52,31 @@ class LoginViewModel(
                 _state.update { it.copy(isPasswordVisible = !it.isPasswordVisible) }
             is LoginIntent.LoginClicked -> performLogin()
             is LoginIntent.BiometricLoginClicked -> handleBiometricLogin()
+            is LoginIntent.GoogleIdTokenReceived -> performGoogleSignIn(intent.idToken)
+            is LoginIntent.GoogleSignInFailed ->
+                // A cancelled sheet is not an error worth shouting about.
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        error = intent.error.takeUnless { e -> e == AuthError.GoogleCancelled },
+                    )
+                }
             is LoginIntent.NavigateToRegister -> emitEffect(LoginEffect.NavigateToRegister)
             is LoginIntent.NavigateToForgotPassword -> emitEffect(LoginEffect.NavigateToForgotPassword)
+        }
+    }
+
+    private fun performGoogleSignIn(idToken: String) {
+        _state.update { it.copy(isLoading = true, error = null) }
+        viewModelScope.launch {
+            try {
+                signInWithGoogleUseCase(idToken)
+                emitEffect(LoginEffect.NavigateToHome)
+            } catch (e: AuthException) {
+                _state.update { it.copy(isLoading = false, error = e.error) }
+            } catch (e: Exception) {
+                _state.update { it.copy(isLoading = false, error = AuthError.Unknown) }
+            }
         }
     }
 

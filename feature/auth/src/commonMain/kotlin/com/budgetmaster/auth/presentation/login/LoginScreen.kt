@@ -49,11 +49,16 @@ import budgetmaster.core.generated.resources.login_biometric_btn_text
 import budgetmaster.core.generated.resources.login_btn_text
 import budgetmaster.core.generated.resources.login_email_label
 import budgetmaster.core.generated.resources.login_forgot_password_link
+import budgetmaster.core.generated.resources.login_google_btn_text
 import budgetmaster.core.generated.resources.login_password_label
 import budgetmaster.core.generated.resources.login_register_link
 import budgetmaster.core.generated.resources.login_subtitle
 import budgetmaster.core.generated.resources.login_title
+import com.budgetmaster.auth.domain.isGoogleSignInSupported
+import com.budgetmaster.auth.domain.model.AuthError
+import com.budgetmaster.auth.domain.model.AuthException
 import com.budgetmaster.auth.presentation.localizedMessage
+import com.budgetmaster.auth.presentation.rememberGoogleSignInLauncher
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -73,6 +78,16 @@ fun LoginScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val keyboardController = LocalSoftwareKeyboardController.current
+
+    val launchGoogleSignIn = rememberGoogleSignInLauncher { result ->
+        result.fold(
+            onSuccess = { viewModel.onIntent(LoginIntent.GoogleIdTokenReceived(it)) },
+            onFailure = { throwable ->
+                val error = (throwable as? AuthException)?.error ?: AuthError.Unknown
+                viewModel.onIntent(LoginIntent.GoogleSignInFailed(error))
+            },
+        )
+    }
 
     LaunchedEffect(Unit) {
         viewModel.effects.collect { effect ->
@@ -179,6 +194,17 @@ fun LoginScreen(
                     CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
                 } else {
                     Text(stringResource(Res.string.login_btn_text))
+                }
+            }
+
+            if (isGoogleSignInSupported) {
+                OutlinedButton(
+                    onClick = { launchGoogleSignIn() },
+                    enabled = !state.isLoading,
+                    modifier = Modifier.fillMaxWidth().height(50.dp)
+                        .semantics { contentDescription = "Google sign in button" },
+                ) {
+                    Text(text = stringResource(Res.string.login_google_btn_text))
                 }
             }
 

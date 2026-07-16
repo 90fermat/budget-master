@@ -35,6 +35,15 @@ enum class AuthError {
     /** The request could not reach the backend. */
     Network,
 
+    /** The user dismissed the Google sign-in sheet; not a real failure. */
+    GoogleCancelled,
+
+    /**
+     * Google sign-in could not run: no Google account / Play services on the device, or the
+     * app's signing certificate (SHA-1) is not registered in the Firebase project.
+     */
+    GoogleUnavailable,
+
     /** Any failure that does not map to a more specific case. */
     Unknown,
 }

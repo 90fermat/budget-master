@@ -21,6 +21,7 @@ class RegisterUseCaseTest {
         override fun getAuthStatus(): Flow<AuthStatus> = flowOf(AuthStatus.Unauthenticated)
         override suspend fun signIn(email: String, password: String): User = fakeUser
         override suspend fun signUp(email: String, password: String): User = fakeUser
+        override suspend fun signInWithGoogle(idToken: String): User = fakeUser
         override suspend fun signOut() {}
         override suspend fun sendPasswordReset(email: String) {}
         override fun isOnboardingCompleted(): Flow<Boolean> = flowOf(false)
@@ -43,6 +44,7 @@ class RegisterUseCaseTest {
             override fun getAuthStatus(): Flow<AuthStatus> = flowOf(AuthStatus.Unauthenticated)
             override suspend fun signIn(email: String, password: String): User = throw RuntimeException("Auth error")
             override suspend fun signUp(email: String, password: String): User = throw RuntimeException("Registration failed")
+            override suspend fun signInWithGoogle(idToken: String): User = fakeUser
             override suspend fun signOut() {}
             override suspend fun sendPasswordReset(email: String) {}
             override fun isOnboardingCompleted(): Flow<Boolean> = flowOf(false)

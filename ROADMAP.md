@@ -41,8 +41,9 @@ typed `AuthError` mapped to localized EN/FR copy; the password-visibility toggle
 **Remaining for auth:** (1) **iOS** needs, on macOS/Xcode, the Firebase iOS SDK added
 (SPM/Pods) and `FirebaseApp.configure()` called in `iOSApp.init()` before `initKoinIos()`
 — can't be built from the current Windows host. (2) The Firebase console must have the
-**Email/Password** provider enabled. (3) **Google sign-in** — next up, after the accounts
-foundation (Android/iOS only; Web stays local-only).
+**Email/Password** provider enabled. (3) **Google sign-in** is implemented for Android
+(Phase 2.6) but needs the **Google provider enabled** and the app's **SHA-1 registered** in
+the console before it will work; iOS needs `GIDSignIn` from Xcode.
 
 Per-account data scoping — previously deferred here — is **done** in Phase 2.5 below: the
 signed-in uid is now the data owner.
@@ -335,6 +336,36 @@ wasm canvas).
   the **dashboard** to the active wallet (it is user-scoped but still consolidated);
   reconciliation ("set real balance" → adjustment entry).
 
+### Phase 2.6 — Google sign-in (0.5 week) — **code done, blocked on console setup**
+
+- [x] `AuthRepository.signInWithGoogle(idToken)` implemented on Android/iOS via gitlive
+  `GoogleAuthProvider.credential(idToken)` → `signInWithCredential`.
+- [x] **Android flow**: Credential Manager (`androidx.credentials` 1.6.0 +
+  `googleid` 1.1.1) behind an `expect/actual` `rememberGoogleSignInLauncher`, using the OAuth
+  **web client id** (`default_web_client_id`, generated from `google-services.json`) as the
+  server client id — resolved at runtime so `:feature:auth` needs no `R` dependency.
+- [x] **Capability gate**: `expect val isGoogleSignInSupported` — true on Android, false on
+  Web (local-only mode) and, for now, iOS. The Login screen only renders the Google button
+  where it's true, so there is no dead or throwing path.
+- [x] Typed `AuthError.GoogleCancelled` / `GoogleUnavailable` with localized EN/FR copy; a
+  cancelled sheet is deliberately **not** surfaced as an error.
+- [x] Tests: 5 new `LoginViewModel` cases (token → NavigateToHome, backend failure, blank
+  token, cancellation is silent, real error surfaces).
+
+**⚠️ Prerequisites — only you can do these; the flow will fail at runtime until then:**
+1. **Enable the Google provider**: Firebase console → Authentication → Sign-in method → Google.
+2. **Register the app's SHA-1** on the Android app in the Firebase console. The current
+   config has a web OAuth client but **no Android client / certificate hash**, which makes
+   Credential Manager return `NoCredentialException` (surfaced as `GoogleUnavailable`).
+   Debug SHA-1 for this machine:
+   `0A:80:35:0D:EE:D8:B4:47:6E:12:57:46:B9:55:76:54:AC:67:71:F2`
+   (re-run `./gradlew :composeApp:signingReport` elsewhere; add the **release** SHA-1 too
+   before shipping). Then **re-download `google-services.json`**.
+- [ ] **iOS**: add the Google Sign-In SDK (`GIDSignIn`) + reversed-client-id URL scheme in
+  Xcode and flip `isGoogleSignInSupported` to true — needs macOS.
+- [ ] **Verify on a real device** once the console setup above is done (not verifiable from
+  the current Windows host / without the SHA-1 registered).
+
 ### Phase 3 — Reports & recurring engine (1.5 weeks)
 - [ ] Reports: `ReportsViewModel`; monthly income/expense trends, category ring chart,
   period comparison — Vico on Android/iOS, existing Canvas fallback on Wasm; tabular
@@ -485,7 +516,7 @@ The app is "production-ready premium" when all of the following hold:
 | 1.6 | Real authentication (Firebase wiring) | 1–1.5 wk | ✅ done (iOS init + Google sign-in pending) |
 | 2 | Budgets / Goals / Settings on real data | 1.5 wk | ✅ done |
 | 2.5 | Accounts foundation / multi-wallet (uid binding, switcher, net worth) | 1 wk | ✅ done |
-| 2.6 | Google sign-in (Android/iOS) | 0.5 wk | ⬜ next |
+| 2.6 | Google sign-in (Android) | 0.5 wk | ✅ code done — needs SHA-1 + Google provider in console |
 | 3 | Reports + recurring engine | 1.5 wk | ⬜ |
 | 4 | Motion & premium polish | 1–1.5 wk | ⬜ |
 | 5 | Localization | 0.5–1 wk | ⬜ |

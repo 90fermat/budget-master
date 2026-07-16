@@ -7,6 +7,7 @@ import com.budgetmaster.auth.domain.model.User
 import com.budgetmaster.auth.domain.repository.AuthRepository
 import com.budgetmaster.auth.domain.usecase.CheckBiometricSupportUseCase
 import com.budgetmaster.auth.domain.usecase.LoginUseCase
+import com.budgetmaster.auth.domain.usecase.SignInWithGoogleUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -46,6 +47,7 @@ class LoginViewModelTest {
         override fun getAuthStatus(): Flow<AuthStatus> = flowOf(AuthStatus.Unauthenticated)
         override suspend fun signIn(email: String, password: String): User = fakeUser
         override suspend fun signUp(email: String, password: String): User = fakeUser
+        override suspend fun signInWithGoogle(idToken: String): User = fakeUser
         override suspend fun signOut() {}
         override suspend fun sendPasswordReset(email: String) {}
         override fun isOnboardingCompleted(): Flow<Boolean> = flowOf(true)
@@ -58,6 +60,7 @@ class LoginViewModelTest {
         override fun getAuthStatus(): Flow<AuthStatus> = flowOf(AuthStatus.Unauthenticated)
         override suspend fun signIn(email: String, password: String): User = throw RuntimeException("Invalid credentials")
         override suspend fun signUp(email: String, password: String): User = throw RuntimeException("Registration failed")
+        override suspend fun signInWithGoogle(idToken: String): User = throw RuntimeException("Google failed")
         override suspend fun signOut() {}
         override suspend fun sendPasswordReset(email: String) {}
         override fun isOnboardingCompleted(): Flow<Boolean> = flowOf(false)
@@ -78,7 +81,7 @@ class LoginViewModelTest {
 
     @Test
     fun `initial state has empty email and password`() = runTest {
-        val vm = LoginViewModel(LoginUseCase(successRepo), CheckBiometricSupportUseCase(successRepo))
+        val vm = LoginViewModel(LoginUseCase(successRepo), CheckBiometricSupportUseCase(successRepo), SignInWithGoogleUseCase(successRepo))
         val state = vm.state.value
         assertEquals("", state.email)
         assertEquals("", state.password)
@@ -88,21 +91,21 @@ class LoginViewModelTest {
 
     @Test
     fun `EmailChanged intent updates email in state`() = runTest {
-        val vm = LoginViewModel(LoginUseCase(successRepo), CheckBiometricSupportUseCase(successRepo))
+        val vm = LoginViewModel(LoginUseCase(successRepo), CheckBiometricSupportUseCase(successRepo), SignInWithGoogleUseCase(successRepo))
         vm.onIntent(LoginIntent.EmailChanged("hello@test.com"))
         assertEquals("hello@test.com", vm.state.value.email)
     }
 
     @Test
     fun `PasswordChanged intent updates password in state`() = runTest {
-        val vm = LoginViewModel(LoginUseCase(successRepo), CheckBiometricSupportUseCase(successRepo))
+        val vm = LoginViewModel(LoginUseCase(successRepo), CheckBiometricSupportUseCase(successRepo), SignInWithGoogleUseCase(successRepo))
         vm.onIntent(LoginIntent.PasswordChanged("secret123"))
         assertEquals("secret123", vm.state.value.password)
     }
 
     @Test
     fun `LoginClicked with valid credentials emits NavigateToHome effect`() = runTest {
-        val vm = LoginViewModel(LoginUseCase(successRepo), CheckBiometricSupportUseCase(successRepo))
+        val vm = LoginViewModel(LoginUseCase(successRepo), CheckBiometricSupportUseCase(successRepo), SignInWithGoogleUseCase(successRepo))
         val effects = mutableListOf<LoginEffect>()
         val job = launch { vm.effects.toList(effects) }
 
@@ -117,7 +120,7 @@ class LoginViewModelTest {
 
     @Test
     fun `LoginClicked with invalid email sets errorMessage in state`() = runTest {
-        val vm = LoginViewModel(LoginUseCase(successRepo), CheckBiometricSupportUseCase(successRepo))
+        val vm = LoginViewModel(LoginUseCase(successRepo), CheckBiometricSupportUseCase(successRepo), SignInWithGoogleUseCase(successRepo))
         vm.onIntent(LoginIntent.EmailChanged("not-an-email"))
         vm.onIntent(LoginIntent.PasswordChanged("password123"))
         vm.onIntent(LoginIntent.LoginClicked)
@@ -129,7 +132,7 @@ class LoginViewModelTest {
 
     @Test
     fun `LoginClicked with server error sets Unknown error in state`() = runTest {
-        val vm = LoginViewModel(LoginUseCase(failureRepo), CheckBiometricSupportUseCase(failureRepo))
+        val vm = LoginViewModel(LoginUseCase(failureRepo), CheckBiometricSupportUseCase(failureRepo), SignInWithGoogleUseCase(failureRepo))
         vm.onIntent(LoginIntent.EmailChanged("user@example.com"))
         vm.onIntent(LoginIntent.PasswordChanged("password123"))
         vm.onIntent(LoginIntent.LoginClicked)
@@ -146,6 +149,7 @@ class LoginViewModelTest {
             override suspend fun signIn(email: String, password: String): User =
                 throw AuthException(AuthError.InvalidCredentials)
             override suspend fun signUp(email: String, password: String): User = fakeUser
+            override suspend fun signInWithGoogle(idToken: String): User = fakeUser
             override suspend fun signOut() {}
             override suspend fun sendPasswordReset(email: String) {}
             override fun isOnboardingCompleted(): Flow<Boolean> = flowOf(false)
@@ -153,7 +157,7 @@ class LoginViewModelTest {
             override fun isBiometricEnabled(): Flow<Boolean> = flowOf(false)
             override suspend fun setBiometricEnabled(enabled: Boolean) {}
         }
-        val vm = LoginViewModel(LoginUseCase(invalidCredsRepo), CheckBiometricSupportUseCase(invalidCredsRepo))
+        val vm = LoginViewModel(LoginUseCase(invalidCredsRepo), CheckBiometricSupportUseCase(invalidCredsRepo), SignInWithGoogleUseCase(invalidCredsRepo))
         vm.onIntent(LoginIntent.EmailChanged("user@example.com"))
         vm.onIntent(LoginIntent.PasswordChanged("password123"))
         vm.onIntent(LoginIntent.LoginClicked)
@@ -163,8 +167,60 @@ class LoginViewModelTest {
     }
 
     @Test
+    fun `GoogleIdTokenReceived signs in and emits NavigateToHome`() = runTest {
+        val vm = LoginViewModel(LoginUseCase(successRepo), CheckBiometricSupportUseCase(successRepo), SignInWithGoogleUseCase(successRepo))
+        val effects = mutableListOf<LoginEffect>()
+        val job = launch { vm.effects.toList(effects) }
+
+        vm.onIntent(LoginIntent.GoogleIdTokenReceived("a-google-id-token"))
+        advanceUntilIdle()
+
+        assertTrue(effects.any { it is LoginEffect.NavigateToHome })
+        assertNull(vm.state.value.error)
+        job.cancel()
+    }
+
+    @Test
+    fun `GoogleIdTokenReceived surfaces backend failure as Unknown`() = runTest {
+        val vm = LoginViewModel(LoginUseCase(failureRepo), CheckBiometricSupportUseCase(failureRepo), SignInWithGoogleUseCase(failureRepo))
+        vm.onIntent(LoginIntent.GoogleIdTokenReceived("a-google-id-token"))
+        advanceUntilIdle()
+
+        assertEquals(AuthError.Unknown, vm.state.value.error)
+        assertFalse(vm.state.value.isLoading)
+    }
+
+    @Test
+    fun `GoogleIdTokenReceived with a blank token reports GoogleUnavailable`() = runTest {
+        val vm = LoginViewModel(LoginUseCase(successRepo), CheckBiometricSupportUseCase(successRepo), SignInWithGoogleUseCase(successRepo))
+        vm.onIntent(LoginIntent.GoogleIdTokenReceived("  "))
+        advanceUntilIdle()
+
+        assertEquals(AuthError.GoogleUnavailable, vm.state.value.error)
+    }
+
+    @Test
+    fun `GoogleSignInFailed with cancellation is not surfaced as an error`() = runTest {
+        val vm = LoginViewModel(LoginUseCase(successRepo), CheckBiometricSupportUseCase(successRepo), SignInWithGoogleUseCase(successRepo))
+        vm.onIntent(LoginIntent.GoogleSignInFailed(AuthError.GoogleCancelled))
+        advanceUntilIdle()
+
+        assertNull(vm.state.value.error)
+        assertFalse(vm.state.value.isLoading)
+    }
+
+    @Test
+    fun `GoogleSignInFailed with a real error is surfaced`() = runTest {
+        val vm = LoginViewModel(LoginUseCase(successRepo), CheckBiometricSupportUseCase(successRepo), SignInWithGoogleUseCase(successRepo))
+        vm.onIntent(LoginIntent.GoogleSignInFailed(AuthError.GoogleUnavailable))
+        advanceUntilIdle()
+
+        assertEquals(AuthError.GoogleUnavailable, vm.state.value.error)
+    }
+
+    @Test
     fun `TogglePasswordVisibility flips the flag`() = runTest {
-        val vm = LoginViewModel(LoginUseCase(successRepo), CheckBiometricSupportUseCase(successRepo))
+        val vm = LoginViewModel(LoginUseCase(successRepo), CheckBiometricSupportUseCase(successRepo), SignInWithGoogleUseCase(successRepo))
         assertFalse(vm.state.value.isPasswordVisible)
         vm.onIntent(LoginIntent.TogglePasswordVisibility)
         assertTrue(vm.state.value.isPasswordVisible)
@@ -174,7 +230,7 @@ class LoginViewModelTest {
 
     @Test
     fun `NavigateToRegister intent emits NavigateToRegister effect`() = runTest {
-        val vm = LoginViewModel(LoginUseCase(successRepo), CheckBiometricSupportUseCase(successRepo))
+        val vm = LoginViewModel(LoginUseCase(successRepo), CheckBiometricSupportUseCase(successRepo), SignInWithGoogleUseCase(successRepo))
         val effects = mutableListOf<LoginEffect>()
         val job = launch { vm.effects.toList(effects) }
 
@@ -187,7 +243,7 @@ class LoginViewModelTest {
 
     @Test
     fun `NavigateToForgotPassword intent emits NavigateToForgotPassword effect`() = runTest {
-        val vm = LoginViewModel(LoginUseCase(successRepo), CheckBiometricSupportUseCase(successRepo))
+        val vm = LoginViewModel(LoginUseCase(successRepo), CheckBiometricSupportUseCase(successRepo), SignInWithGoogleUseCase(successRepo))
         val effects = mutableListOf<LoginEffect>()
         val job = launch { vm.effects.toList(effects) }
 

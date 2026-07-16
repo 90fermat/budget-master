@@ -24,6 +24,12 @@ interface AuthRepository {
     suspend fun signUp(email: String, password: String): User
 
     /**
+     * Exchanges a Google ID token (obtained from the platform sign-in flow) for a Firebase
+     * session. Only reachable where [com.budgetmaster.auth.domain.isGoogleSignInSupported].
+     */
+    suspend fun signInWithGoogle(idToken: String): User
+
+    /**
      * Signs out the currently authenticated user.
      */
     suspend fun signOut()

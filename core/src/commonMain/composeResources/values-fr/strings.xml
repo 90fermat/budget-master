@@ -27,6 +27,8 @@
     <string name="auth_error_email_in_use">Un compte existe déjà pour cet e-mail.</string>
     <string name="auth_error_too_many_requests">Trop de tentatives. Réessayez plus tard.</string>
     <string name="auth_error_network">Erreur réseau. Vérifiez votre connexion et réessayez.</string>
+    <string name="auth_error_google_cancelled">Connexion Google annulée.</string>
+    <string name="auth_error_google_unavailable">La connexion Google n\'est pas disponible sur cet appareil pour le moment.</string>
     <string name="auth_error_unknown">Une erreur s\'est produite. Veuillez réessayer.</string>
 
     <!-- Biometric Setup Screen Strings -->

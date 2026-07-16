@@ -1,5 +1,7 @@
 package com.budgetmaster.auth.data.repository
 
+import com.budgetmaster.auth.domain.model.AuthError
+import com.budgetmaster.auth.domain.model.AuthException
 import com.budgetmaster.auth.domain.model.AuthStatus
 import com.budgetmaster.auth.domain.model.User
 import com.budgetmaster.auth.domain.repository.AuthRepository
@@ -31,6 +33,13 @@ class WasmAuthRepository(
     override suspend fun signIn(email: String, password: String): User = persist(email)
 
     override suspend fun signUp(email: String, password: String): User = persist(email)
+
+    /**
+     * Unreachable: `isGoogleSignInSupported` is false on Web, so the Login screen never
+     * offers the Google button. Reported as a typed error rather than a raw throw.
+     */
+    override suspend fun signInWithGoogle(idToken: String): User =
+        throw AuthException(AuthError.GoogleUnavailable)
 
     override suspend fun signOut() {
         store.remove(KEY_EMAIL)

@@ -8,6 +8,7 @@ import com.budgetmaster.auth.domain.usecase.GetCurrentUserUseCase
 import com.budgetmaster.auth.domain.usecase.LoginUseCase
 import com.budgetmaster.auth.domain.usecase.ResetPasswordUseCase
 import com.budgetmaster.auth.domain.usecase.SignInUseCase
+import com.budgetmaster.auth.domain.usecase.SignInWithGoogleUseCase
 import com.budgetmaster.auth.domain.usecase.SignOutUseCase
 import com.budgetmaster.auth.domain.usecase.SignUpUseCase
 import com.budgetmaster.auth.domain.usecase.ToggleBiometricUseCase
@@ -38,6 +39,7 @@ val authModule = module {
     factory { CheckBiometricSupportUseCase(get()) }
     factory { ToggleBiometricUseCase(get()) }
     factory { LoginUseCase(get()) }
+    factory { SignInWithGoogleUseCase(get()) }
     factory { CheckAuthStatusUseCase(get()) }
     factory { CheckFirstLaunchUseCase(get()) }
     factory { CompleteOnboardingUseCase(get()) }
@@ -45,7 +47,7 @@ val authModule = module {
     // ViewModels
     viewModel { SplashViewModel(get(), get()) }
     viewModel { OnboardingViewModel(get()) }
-    viewModel { LoginViewModel(get(), get()) }
+    viewModel { LoginViewModel(get(), get(), get()) }
     viewModel { RegisterViewModel(get()) }
     viewModel { ForgotPasswordViewModel(get()) }
     viewModel { BiometricViewModel(get(), get(), get()) }

@@ -11,6 +11,7 @@ import dev.gitlive.firebase.auth.FirebaseAuthInvalidUserException
 import dev.gitlive.firebase.auth.FirebaseAuthUserCollisionException
 import dev.gitlive.firebase.auth.FirebaseAuthWeakPasswordException
 import dev.gitlive.firebase.auth.FirebaseUser
+import dev.gitlive.firebase.auth.GoogleAuthProvider
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -40,6 +41,12 @@ class FirebaseAuthRepository(
     override suspend fun signUp(email: String, password: String): User = runMapping {
         val result = firebaseAuth.createUserWithEmailAndPassword(email, password)
         (result.user ?: throw AuthException(AuthError.Unknown)).toUser()
+    }
+
+    override suspend fun signInWithGoogle(idToken: String): User = runMapping {
+        val credential = GoogleAuthProvider.credential(idToken = idToken, accessToken = null)
+        val result = firebaseAuth.signInWithCredential(credential)
+        (result.user ?: throw AuthException(AuthError.GoogleUnavailable)).toUser()
     }
 
     override suspend fun signOut() = runMapping { firebaseAuth.signOut() }

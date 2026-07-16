@@ -74,6 +74,11 @@ kotlin {
             
             // Android Biometrics support
             implementation(libs.androidx.biometric)
+
+            // Google sign-in via Credential Manager
+            implementation(libs.androidx.credentials)
+            implementation(libs.androidx.credentials.play.services.auth)
+            implementation(libs.google.identity.googleid)
         }
         
         iosMain.dependencies {
