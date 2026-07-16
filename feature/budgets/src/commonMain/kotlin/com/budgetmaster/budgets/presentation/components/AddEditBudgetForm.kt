@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -131,13 +132,13 @@ internal fun AddEditBudgetForm(
             OutlinedButton(
                 onClick = onCancel,
                 shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.weight(1f).height(52.dp),
+                modifier = Modifier.weight(1f).heightIn(min = 52.dp),
             ) { Text(stringResource(Res.string.action_cancel)) }
             Button(
                 onClick = { onSave(categoryId!!, limit ?: 0.0) },
                 enabled = canSave,
                 shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.weight(1f).height(52.dp),
+                modifier = Modifier.weight(1f).heightIn(min = 52.dp),
             ) { Text(stringResource(Res.string.action_save), fontWeight = FontWeight.Bold) }
         }
         Spacer(Modifier.height(Spacing.small))

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -223,7 +224,7 @@ internal fun AddEditTransactionForm(
         OutlinedButton(
             onClick = { showDatePicker = true },
             shape = RoundedCornerShape(14.dp),
-            modifier = Modifier.fillMaxWidth().height(52.dp),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
         ) {
             Text(DateUtils.toLocalDate(timestamp).toString())
         }
@@ -256,7 +257,7 @@ internal fun AddEditTransactionForm(
             OutlinedButton(
                 onClick = onCancel,
                 shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.weight(1f).height(52.dp),
+                modifier = Modifier.weight(1f).heightIn(min = 52.dp),
             ) {
                 Text(stringResource(Res.string.transactions_cancel))
             }
@@ -281,7 +282,7 @@ internal fun AddEditTransactionForm(
                 },
                 enabled = canSave,
                 shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.weight(1f).height(52.dp).pressScale(saveInteraction),
+                modifier = Modifier.weight(1f).heightIn(min = 52.dp).pressScale(saveInteraction),
             ) {
                 Text(stringResource(Res.string.transactions_save), fontWeight = FontWeight.Bold)
             }

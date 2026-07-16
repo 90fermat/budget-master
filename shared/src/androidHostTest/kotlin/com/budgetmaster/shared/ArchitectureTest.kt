@@ -51,6 +51,27 @@ class ArchitectureTest {
             .assertFalse { file -> file.text.contains(Regex("""Color\(0x""")) }
     }
 
+    /**
+     * Borders and surfaces must not be faded below usability.
+     *
+     * The dashboard drew 1dp borders at `outline.copy(alpha = 0.05f)` — mathematically present
+     * and visually nothing — and tinted card containers at 15–20% `surfaceVariant`. The design
+     * system already has the right tokens (`outlineVariant`, `surface`), which the newer
+     * features use. This pins that: fading `outline` or `surfaceVariant` below 30% means
+     * reaching for a token that already exists.
+     *
+     * Skeletons are exempt: a loading placeholder is deliberately low-contrast, and is not
+     * content anyone needs to read.
+     */
+    @Test
+    fun `features do not fade borders or surfaces below usability`() {
+        val lowAlpha = Regex("""colorScheme\.(outline|surfaceVariant)\.copy\(alpha = 0\.[0-2]\d*f\)""")
+        Konsist.scopeFromProduction()
+            .files
+            .filter { it.featureModule() != null && !it.name.contains("Skeleton") }
+            .assertFalse { file -> file.text.contains(lowAlpha) }
+    }
+
     /** MVI: ViewModels live in a feature's `presentation` package and are named `*ViewModel`. */
     @Test
     fun `view models live in presentation packages`() {

@@ -32,14 +32,14 @@ actual fun SpendingChart(
 
     Card(
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
+            containerColor = MaterialTheme.colorScheme.surface
         ),
         shape = RoundedCornerShape(24.dp),
         modifier = modifier
             .fillMaxWidth()
             .border(
                 width = 1.dp,
-                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f),
+                color = MaterialTheme.colorScheme.outlineVariant,
                 shape = RoundedCornerShape(24.dp)
             )
     ) {
@@ -94,7 +94,9 @@ actual fun SpendingChart(
                 if (chartData.isNotEmpty()) {
                     val primaryColor = MaterialTheme.colorScheme.primary
                     val secondaryColor = MaterialTheme.colorScheme.secondary
-                    val outlineColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                    // outlineVariant is the token for subtle rules like gridlines; a faded
+                    // outline was reinventing it at a contrast nobody could see.
+                    val outlineColor = MaterialTheme.colorScheme.outlineVariant
 
                     Canvas(modifier = Modifier.fillMaxSize()) {
                         val width = size.width

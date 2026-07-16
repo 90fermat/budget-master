@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -155,7 +156,7 @@ fun RegisterScreen(
             Button(
                 onClick = { viewModel.onIntent(RegisterIntent.RegisterClicked) },
                 enabled = !state.isLoading,
-                modifier = Modifier.fillMaxWidth().height(50.dp).semantics { contentDescription = "Register button" },
+                modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp).semantics { contentDescription = "Register button" },
             ) {
                 if (state.isLoading) {
                     CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)

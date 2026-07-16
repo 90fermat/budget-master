@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -188,7 +189,7 @@ fun LoginScreen(
                     viewModel.onIntent(LoginIntent.LoginClicked)
                 },
                 enabled = !state.isLoading,
-                modifier = Modifier.fillMaxWidth().height(50.dp).semantics { contentDescription = "Login button" },
+                modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp).semantics { contentDescription = "Login button" },
             ) {
                 if (state.isLoading) {
                     CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
@@ -201,7 +202,7 @@ fun LoginScreen(
                 OutlinedButton(
                     onClick = { launchGoogleSignIn() },
                     enabled = !state.isLoading,
-                    modifier = Modifier.fillMaxWidth().height(50.dp)
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp)
                         .semantics { contentDescription = "Google sign in button" },
                 ) {
                     Text(text = stringResource(Res.string.login_google_btn_text))
@@ -210,7 +211,7 @@ fun LoginScreen(
 
             OutlinedButton(
                 onClick = { viewModel.onIntent(LoginIntent.BiometricLoginClicked) },
-                modifier = Modifier.fillMaxWidth().height(50.dp)
+                modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp)
                     .semantics { contentDescription = "Biometric login button" },
             ) {
                 Icon(imageVector = Icons.Default.Fingerprint, contentDescription = null)

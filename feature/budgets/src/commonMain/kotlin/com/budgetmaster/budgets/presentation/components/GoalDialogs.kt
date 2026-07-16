@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -151,7 +152,7 @@ internal fun AddEditGoalForm(
         OutlinedButton(
             onClick = { showDatePicker = true },
             shape = RoundedCornerShape(14.dp),
-            modifier = Modifier.fillMaxWidth().height(52.dp),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
         ) {
             Text(DateUtils.toLocalDate(targetDate).toString())
         }
@@ -160,10 +161,10 @@ internal fun AddEditGoalForm(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(Spacing.medium),
         ) {
-            OutlinedButton(onClick = onCancel, shape = RoundedCornerShape(14.dp), modifier = Modifier.weight(1f).height(52.dp)) {
+            OutlinedButton(onClick = onCancel, shape = RoundedCornerShape(14.dp), modifier = Modifier.weight(1f).heightIn(min = 52.dp)) {
                 Text(stringResource(Res.string.action_cancel))
             }
-            Button(onClick = { onSave(name, target ?: 0.0, targetDate) }, enabled = canSave, shape = RoundedCornerShape(14.dp), modifier = Modifier.weight(1f).height(52.dp)) {
+            Button(onClick = { onSave(name, target ?: 0.0, targetDate) }, enabled = canSave, shape = RoundedCornerShape(14.dp), modifier = Modifier.weight(1f).heightIn(min = 52.dp)) {
                 Text(stringResource(Res.string.action_save), fontWeight = FontWeight.Bold)
             }
         }
@@ -206,10 +207,10 @@ internal fun ContributeForm(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(Spacing.medium),
         ) {
-            OutlinedButton(onClick = onCancel, shape = RoundedCornerShape(14.dp), modifier = Modifier.weight(1f).height(52.dp)) {
+            OutlinedButton(onClick = onCancel, shape = RoundedCornerShape(14.dp), modifier = Modifier.weight(1f).heightIn(min = 52.dp)) {
                 Text(stringResource(Res.string.action_cancel))
             }
-            Button(onClick = { onSubmit(amount ?: 0.0) }, enabled = canSubmit, shape = RoundedCornerShape(14.dp), modifier = Modifier.weight(1f).height(52.dp)) {
+            Button(onClick = { onSubmit(amount ?: 0.0) }, enabled = canSubmit, shape = RoundedCornerShape(14.dp), modifier = Modifier.weight(1f).heightIn(min = 52.dp)) {
                 Text(stringResource(Res.string.goals_add_funds), fontWeight = FontWeight.Bold)
             }
         }
@@ -262,10 +263,10 @@ internal fun WithdrawForm(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(Spacing.medium),
         ) {
-            OutlinedButton(onClick = onCancel, shape = RoundedCornerShape(14.dp), modifier = Modifier.weight(1f).height(52.dp)) {
+            OutlinedButton(onClick = onCancel, shape = RoundedCornerShape(14.dp), modifier = Modifier.weight(1f).heightIn(min = 52.dp)) {
                 Text(stringResource(Res.string.action_cancel))
             }
-            Button(onClick = { onSubmit(amount ?: 0.0) }, enabled = canSubmit, shape = RoundedCornerShape(14.dp), modifier = Modifier.weight(1f).height(52.dp)) {
+            Button(onClick = { onSubmit(amount ?: 0.0) }, enabled = canSubmit, shape = RoundedCornerShape(14.dp), modifier = Modifier.weight(1f).heightIn(min = 52.dp)) {
                 Text(stringResource(Res.string.goals_withdraw), fontWeight = FontWeight.Bold)
             }
         }

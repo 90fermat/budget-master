@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -108,7 +109,7 @@ fun ForgotPasswordScreen(
             Button(
                 onClick = { viewModel.onIntent(ForgotPasswordIntent.SendResetClicked) },
                 enabled = !state.isLoading && !state.isSuccess,
-                modifier = Modifier.fillMaxWidth().height(50.dp).semantics { contentDescription = "Send reset button" },
+                modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp).semantics { contentDescription = "Send reset button" },
             ) {
                 if (state.isLoading) {
                     CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
