@@ -443,6 +443,51 @@ networking) and **OS-level notification delivery** (rides with the Phase 3 recur
 - [ ] Font-scale 200% + small-screen audit; 48dp touch-target audit; contrast check
   (the 0.05f-alpha borders and 0.1f surface tints will need revisiting).
 
+### Phase 4.5 — In-app guidance: explain every screen (1 week)
+
+> The app has grown features that aren't self-evident — the account switcher re-scopes the
+> whole app, swipe-to-delete has undo, transfers are deliberately excluded from income, a
+> budget's `spent` is computed live, goals project a completion date. Onboarding covers the
+> pitch, not the mechanics. This phase makes every screen explain itself **in the app**.
+
+**Approach — a per-screen guide sheet (chosen).** Each screen gets a `?` in its header that
+opens a sheet listing that screen's features: icon + name + one line each. It shows itself
+once automatically on a screen's first visit, then stays available on demand.
+
+*Rejected: coach-mark/spotlight overlays.* They point at exact pixels, which means anchoring
+to layout — and this app has three adaptive layouts (bottom bar / rail / drawer), five
+palettes, and a Wasm target. That's a lot of fragility, it fights reduced-motion, and it
+interrupts rather than answers. The sheet is layout-independent, replayable, screen-reader
+friendly, and cheap to keep truthful as screens change. *Also rejected: hints in empty states
+only* — they vanish exactly when the screen has data and the questions start.
+
+- [ ] **`:core` `guidance` package** (content is strings, and strings already live in `:core`,
+  so no feature→feature edge): `GuidanceKey` per screen (dashboard, transactions, budgets,
+  goals, accounts, reports, settings); `ScreenGuide` = title + intro + `List<FeatureNote>`
+  (icon, title, body); a `GuidanceRegistry` mapping key → guide so Settings can enumerate all
+  guides without touching feature modules.
+- [ ] **`GuidancePreferences`** over `KeyValueStore`, mirroring `OnboardingPreferences`:
+  per-screen "seen" flags + a global **"Show tips"** toggle. First visit auto-opens once;
+  never again unless replayed.
+- [ ] **Shared UI**: `GuidanceSheet` (bottom sheet on phone, dialog ≥600dp — the same
+  `AdaptiveContainer` pattern the editors use) and a `HelpIconButton` for screen headers.
+- [ ] **Wire all 7 screens**, each note written against what the screen actually does
+  (including the non-obvious ones listed above).
+- [ ] **Settings → "Help & tips"**: browse every guide on demand + **"Reset tips"**, next to
+  the existing "Replay intro" row.
+- [ ] **Localized EN/FR** as authored (not retrofitted), and included in Phase 5's
+  pseudo-locale/truncation audit — guide bodies are the longest copy in the app.
+- [ ] **A11y + motion**: notes are real text (screen-reader friendly, no image-only content);
+  honours `isReducedMotionEnabled()`; every `?` has a content description.
+- [ ] Tests: registry covers every `GuidanceKey`; auto-show fires once then stops; "Reset
+  tips" restores it; ViewModel tests for the toggle.
+
+**Deliverable:** every screen answers "what can I do here?" without leaving the app; tips
+appear once, never nag, and can be replayed from Settings; fully EN/FR.
+**Placement:** after Phase 4 so the UI is settled (explanations of a moving target rot), and
+before Phase 5 so the localization audit covers this copy. The guides also make good
+Phase 8 screenshots.
+
 ### Phase 5 — Localization (0.5–1 week)
 - [ ] Extract remaining strings; add **French** (`values-fr/strings.xml`) as second locale —
   CMP resources handle runtime locale switching.
@@ -576,11 +621,12 @@ The app is "production-ready premium" when all of the following hold:
 | — | Deferred-item sweep (Phases 1 / 1.5 / 2 / 2.5 + architecture drift) | — | ✅ done |
 | 3 | Reports + recurring engine | 1.5 wk | ⬜ |
 | 4 | Motion & premium polish | 1–1.5 wk | ⬜ |
+| 4.5 | In-app guidance — every screen explains its features | 1 wk | ⬜ |
 | 5 | Localization | 0.5–1 wk | ⬜ |
 | 6 | Hardening & release | 1.5–2 wk | ⬜ |
 | 7 | AI intelligence layer (free-tier Gemini via Firebase) | 2–2.5 wk | ⬜ |
 | 8 | Store polish & README screenshots | 0.5 wk | ⬜ |
-| | **Total** | **~12.5–15 weeks** | |
+| | **Total** | **~14–17 weeks** | |
 
 > Phase 7.0 (Firebase AI Logic migration) can be pulled forward into Phase 6 — it is the
 > security fix for the embedded Gemini key. Phases 7.1/7.2 depend on Phases 1–3 data.
