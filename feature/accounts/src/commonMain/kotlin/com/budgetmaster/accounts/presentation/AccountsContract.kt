@@ -2,6 +2,7 @@ package com.budgetmaster.accounts.presentation
 
 import com.budgetmaster.accounts.domain.model.Account
 import com.budgetmaster.accounts.domain.model.AccountDraft
+import com.budgetmaster.accounts.domain.model.NetWorth
 
 /** UI state for the Accounts screen and the account switcher. */
 data class AccountsState(
@@ -13,18 +14,27 @@ data class AccountsState(
     val transferOpen: Boolean = false,
     val reconcilingAccount: Account? = null,
     val errorMessage: String? = null,
+    /**
+     * Net worth converted into [primaryCurrency] using cached exchange rates. Null until the
+     * first calculation completes; the card falls back to the raw sum meanwhile.
+     */
+    val netWorthConverted: NetWorth? = null,
 ) {
     /** The active accounts (archived excluded) used for the overview total. */
     val activeAccounts: List<Account> = accounts.filter { !it.isArchived }
-
-    /** Net worth across active accounts (assets − liabilities). */
-    val netWorth: Double = activeAccounts.sumOf { it.currentBalance }
 
     /** Currency to label the overview with (the most common among active accounts). */
     val primaryCurrency: String =
         activeAccounts.groupingBy { it.currency }.eachCount().maxByOrNull { it.value }?.key ?: "USD"
 
+    /** Net worth (assets − liabilities), converted when rates allow. */
+    val netWorth: Double = netWorthConverted?.total ?: activeAccounts.sumOf { it.currentBalance }
+
     val isMultiCurrency: Boolean = activeAccounts.map { it.currency }.distinct().size > 1
+
+    /** True when currencies are mixed and at least one had no rate, so the total is fuzzy. */
+    val isNetWorthApproximate: Boolean =
+        isMultiCurrency && (netWorthConverted?.hasUnconvertedAccounts ?: true)
 }
 
 /** User actions from the Accounts screen / switcher. */

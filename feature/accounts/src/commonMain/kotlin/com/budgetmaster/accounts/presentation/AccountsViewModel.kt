@@ -5,6 +5,7 @@ package com.budgetmaster.accounts.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.budgetmaster.accounts.domain.usecase.ArchiveAccountUseCase
+import com.budgetmaster.accounts.domain.usecase.CalculateNetWorthUseCase
 import com.budgetmaster.accounts.domain.usecase.DeleteAccountUseCase
 import com.budgetmaster.accounts.domain.usecase.ObserveAccountsUseCase
 import com.budgetmaster.accounts.domain.usecase.ObserveActiveAccountUseCase
@@ -32,6 +33,7 @@ class AccountsViewModel(
     private val selectActiveAccount: SelectActiveAccountUseCase,
     private val transferBetweenAccounts: TransferBetweenAccountsUseCase,
     private val reconcileAccount: ReconcileAccountUseCase,
+    private val calculateNetWorth: CalculateNetWorthUseCase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AccountsState())
@@ -45,6 +47,10 @@ class AccountsViewModel(
                 _state.update {
                     it.copy(accounts = accounts, activeAccountId = activeId, isLoading = false)
                 }
+                // Convert net worth once the wallets are known; rates come from the local cache.
+                val current = _state.value
+                val netWorth = calculateNetWorth(current.activeAccounts, current.primaryCurrency)
+                _state.update { it.copy(netWorthConverted = netWorth) }
             }
         }
     }

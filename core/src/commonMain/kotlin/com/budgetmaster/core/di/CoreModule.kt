@@ -3,6 +3,8 @@ package com.budgetmaster.core.di
 import com.budgetmaster.core.db.AppDataSeeder
 import com.budgetmaster.core.db.DatabaseDriverFactory
 import com.budgetmaster.core.db.DatabaseProvider
+import com.budgetmaster.core.currency.ExchangeRateRepository
+import com.budgetmaster.core.notifications.NotificationRepository
 import com.budgetmaster.core.prefs.AppSettingsRepository
 import com.budgetmaster.core.prefs.OnboardingPreferences
 import com.budgetmaster.core.session.ActiveAccountStore
@@ -21,6 +23,8 @@ val coreModule = module {
     single { OnboardingPreferences(get()) }
     single { SessionStore() }
     single { ActiveAccountStore(get()) }
+    single { ExchangeRateRepository(get()) }
+    single { NotificationRepository(get(), get()) }
 }
 
 /**

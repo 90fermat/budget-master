@@ -38,6 +38,18 @@ data class AccountDraft(
     val currency: String,
 )
 
+/**
+ * Net worth across a user's wallets, expressed in one currency.
+ *
+ * @property hasUnconvertedAccounts true when at least one wallet's currency had no known
+ * rate and was added at face value — the total is then approximate.
+ */
+data class NetWorth(
+    val total: Double,
+    val currency: String,
+    val hasUnconvertedAccounts: Boolean,
+)
+
 /** Aggregate across a user's active accounts (net worth = assets − liabilities). */
 data class AccountsOverview(
     val accounts: List<Account>,

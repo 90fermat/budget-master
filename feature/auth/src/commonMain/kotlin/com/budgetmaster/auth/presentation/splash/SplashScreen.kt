@@ -43,6 +43,7 @@ import budgetmaster.core.generated.resources.splash_credit_from
 import com.budgetmaster.core.designsystem.AppLogoMark
 import com.budgetmaster.core.designsystem.AppWordmark
 import com.budgetmaster.core.designsystem.financialColors
+import com.budgetmaster.core.util.isReducedMotionEnabled
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
@@ -67,31 +68,38 @@ fun SplashScreen(
     onNavigateToLogin: () -> Unit,
     onNavigateToDashboard: () -> Unit,
 ) {
-    val markScale = remember { Animatable(0.7f) }
-    val contentAlpha = remember { Animatable(0f) }
-    val wordmarkAlpha = remember { Animatable(0f) }
-    val accentScale = remember { Animatable(0f) }
-    val creditAlpha = remember { Animatable(0f) }
+    // Respect the OS "reduce motion" setting: start fully revealed and skip the staggered
+    // reveal entirely rather than animating to the same place.
+    val reducedMotion = isReducedMotionEnabled()
 
-    // Gentle infinite glow pulse behind the mark.
-    val glow by rememberInfiniteTransition(label = "glow").animateFloatValue()
+    val markScale = remember(reducedMotion) { Animatable(if (reducedMotion) 1f else 0.7f) }
+    val contentAlpha = remember(reducedMotion) { Animatable(if (reducedMotion) 1f else 0f) }
+    val wordmarkAlpha = remember(reducedMotion) { Animatable(if (reducedMotion) 1f else 0f) }
+    val accentScale = remember(reducedMotion) { Animatable(if (reducedMotion) 1f else 0f) }
+    val creditAlpha = remember(reducedMotion) { Animatable(if (reducedMotion) 1f else 0f) }
 
-    LaunchedEffect(Unit) {
-        launch {
-            markScale.animateTo(1f, spring(dampingRatio = 0.55f, stiffness = Spring.StiffnessLow))
-        }
-        launch { contentAlpha.animateTo(1f, tween(600, easing = EaseOutCubic)) }
-        launch {
-            delay(280)
-            wordmarkAlpha.animateTo(1f, tween(500, easing = EaseOutCubic))
-        }
-        launch {
-            delay(520)
-            accentScale.animateTo(1f, tween(500, easing = EaseOutCubic))
-        }
-        launch {
-            delay(820)
-            creditAlpha.animateTo(1f, tween(500))
+    // Gentle infinite glow pulse behind the mark; held steady under reduced motion.
+    val animatedGlow by rememberInfiniteTransition(label = "glow").animateFloatValue()
+    val glow = if (reducedMotion) 1f else animatedGlow
+
+    LaunchedEffect(reducedMotion) {
+        if (!reducedMotion) {
+            launch {
+                markScale.animateTo(1f, spring(dampingRatio = 0.55f, stiffness = Spring.StiffnessLow))
+            }
+            launch { contentAlpha.animateTo(1f, tween(600, easing = EaseOutCubic)) }
+            launch {
+                delay(280)
+                wordmarkAlpha.animateTo(1f, tween(500, easing = EaseOutCubic))
+            }
+            launch {
+                delay(520)
+                accentScale.animateTo(1f, tween(500, easing = EaseOutCubic))
+            }
+            launch {
+                delay(820)
+                creditAlpha.animateTo(1f, tween(500))
+            }
         }
 
         delay(MIN_SPLASH_MILLIS)

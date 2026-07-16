@@ -29,6 +29,8 @@ google-services = "4.5.0"
 # Google sign-in on Android: Credential Manager + the Google ID option helper.
 androidx-credentials = "1.6.0"
 googleid = "1.1.1"
+# Architecture assertions (module graph, MVI naming, no hardcoded colors).
+konsist = "0.17.3"
 androidx-lifecycle = "2.11.0"
 kotlinx-datetime = "0.8.0"
 kotlinx-coroutines = "1.11.0"
@@ -75,6 +77,9 @@ firebase-auth = { module = "dev.gitlive:firebase-auth", version.ref = "firebase-
 androidx-credentials = { module = "androidx.credentials:credentials", version.ref = "androidx-credentials" }
 androidx-credentials-play-services-auth = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "androidx-credentials" }
 google-identity-googleid = { module = "com.google.android.libraries.identity.googleid:googleid", version.ref = "googleid" }
+
+# Architecture tests
+konsist = { module = "com.lemonappdev:konsist", version.ref = "konsist" }
 
 # Kotest
 kotest-assertions-core = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }

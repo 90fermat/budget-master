@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.budgetmaster.budgets.domain.model.BudgetDraft
 import com.budgetmaster.budgets.domain.usecase.DeleteBudgetUseCase
+import com.budgetmaster.budgets.domain.usecase.NotifyBudgetThresholdsUseCase
 import com.budgetmaster.budgets.domain.usecase.ObserveBudgetCategoriesUseCase
 import com.budgetmaster.budgets.domain.usecase.ObserveBudgetsUseCase
 import com.budgetmaster.budgets.domain.usecase.SaveBudgetUseCase
@@ -35,6 +36,7 @@ class BudgetsViewModel(
     observeCategories: ObserveBudgetCategoriesUseCase,
     private val saveBudget: SaveBudgetUseCase,
     private val deleteBudget: DeleteBudgetUseCase,
+    private val notifyBudgetThresholds: NotifyBudgetThresholdsUseCase,
     settingsRepository: AppSettingsRepository,
 ) : ViewModel() {
 
@@ -52,6 +54,8 @@ class BudgetsViewModel(
             .catch { e -> emitEffect(BudgetsEffect.ShowError(e.message ?: "Failed to load budgets.")) }
             .onEach { (budgets, currency) ->
                 _state.update { it.copy(isLoading = false, budgets = budgets, currencyCode = currency) }
+                // Idempotent: each (budget, period, threshold) alert is written at most once.
+                notifyBudgetThresholds(budgets)
             }
             .launchIn(viewModelScope)
 

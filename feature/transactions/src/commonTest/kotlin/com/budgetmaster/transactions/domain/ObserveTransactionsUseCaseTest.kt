@@ -27,7 +27,7 @@ class ObserveTransactionsUseCaseTest {
     )
 
     private val repository = object : TransactionRepository {
-        override fun observeTransactions(): Flow<List<TransactionItem>> = flowOf(items)
+        override fun observeTransactions(limit: Long): Flow<List<TransactionItem>> = flowOf(items)
         override fun observeCategories() = flowOf(listOf(food, salary))
         override fun observeAccounts() = flowOf(emptyList<TransactionAccount>())
         override suspend fun upsertTransaction(draft: TransactionDraft) = error("unused")

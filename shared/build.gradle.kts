@@ -98,6 +98,15 @@ kotlin {
             implementation(libs.kotest.assertions.core)
             implementation(libs.kotest.framework.engine)
         }
+
+        // Konsist asserts architecture rules by scanning sources; it is JVM-only, so the
+        // checks live in the Android host-test source set and cover the whole project.
+        val androidHostTest by getting {
+            dependencies {
+                implementation(kotlin("test"))
+                implementation(libs.konsist)
+            }
+        }
     }
 }
 

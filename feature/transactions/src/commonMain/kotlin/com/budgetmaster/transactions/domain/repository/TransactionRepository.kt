@@ -3,6 +3,7 @@ package com.budgetmaster.transactions.domain.repository
 import com.budgetmaster.transactions.domain.model.TransactionAccount
 import com.budgetmaster.transactions.domain.model.TransactionCategory
 import com.budgetmaster.transactions.domain.model.TransactionDraft
+import com.budgetmaster.transactions.domain.model.TransactionFilter
 import com.budgetmaster.transactions.domain.model.TransactionItem
 import kotlinx.coroutines.flow.Flow
 
@@ -13,8 +14,12 @@ import kotlinx.coroutines.flow.Flow
  * categories so that inserts always satisfy the schema's foreign keys.
  */
 interface TransactionRepository {
-    /** Observes all transactions (newest first) with their category resolved. */
-    fun observeTransactions(): Flow<List<TransactionItem>>
+    /**
+     * Observes transactions (newest first) with their category resolved.
+     *
+     * @param limit maximum rows to load; pass [TransactionFilter.NO_LIMIT] for all of them.
+     */
+    fun observeTransactions(limit: Long = TransactionFilter.NO_LIMIT): Flow<List<TransactionItem>>
 
     /** Observes the available categories (default + user-defined). */
     fun observeCategories(): Flow<List<TransactionCategory>>

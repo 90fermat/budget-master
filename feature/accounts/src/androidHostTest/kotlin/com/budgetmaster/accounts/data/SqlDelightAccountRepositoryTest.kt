@@ -7,6 +7,8 @@ import com.budgetmaster.accounts.TestDatabaseHelper
 import com.budgetmaster.accounts.data.repository.SqlDelightAccountRepository
 import com.budgetmaster.accounts.domain.model.AccountDraft
 import com.budgetmaster.accounts.domain.model.AccountType
+import com.budgetmaster.accounts.domain.usecase.CalculateNetWorthUseCase
+import com.budgetmaster.core.currency.ExchangeRateRepository
 import com.budgetmaster.core.db.AppDataSeeder
 import com.budgetmaster.core.db.DatabaseProvider
 import com.budgetmaster.core.session.SessionStore
@@ -149,6 +151,35 @@ class SqlDelightAccountRepositoryTest {
         val adjustment = provider.getDatabase().budgetMasterDatabaseQueries
             .selectTransactionsByAccount(id).awaitAsList().first { it.transferGroupId != null }
         assertEquals(-5.0, adjustment.amount)
+    }
+
+    @Test
+    fun netWorthConvertsWalletsIntoOneCurrencyAndFlagsMissingRates() = runTest {
+        val (repo, provider) = setup()
+        val rates = ExchangeRateRepository(provider)
+        val netWorthOf = CalculateNetWorthUseCase(rates)
+
+        repo.upsertAccount(
+            AccountDraft(name = "US", type = AccountType.CASH, openingBalance = 100.0, currency = "USD"),
+        )
+        repo.upsertAccount(
+            AccountDraft(name = "EU", type = AccountType.CASH, openingBalance = 50.0, currency = "EUR"),
+        )
+        val accounts = repo.observeAccounts().first().filter { it.currency != "USD" || it.name == "US" }
+
+        // No rate yet: the EUR wallet is added at face value and the total is flagged.
+        val before = netWorthOf(accounts, "USD")
+        assertTrue(before.hasUnconvertedAccounts)
+
+        // 1 EUR = 1.10 USD -> 100 + (50 * 1.10) = 155
+        rates.putRate("EUR", "USD", 1.10)
+        val after = netWorthOf(accounts, "USD")
+        assertEquals(155.0, after.total)
+        assertTrue(!after.hasUnconvertedAccounts)
+
+        // The reverse direction is derived from the stored pair's reciprocal.
+        assertEquals(1.10, rates.rate("EUR", "USD"))
+        assertEquals(1.0, rates.rate("USD", "USD"))
     }
 
     @Test

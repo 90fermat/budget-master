@@ -101,6 +101,12 @@ class TransactionsViewModel(
                 _state.update { it.copy(typeFilter = intent.type) }
                 filter.update { it.copy(type = intent.type) }
             }
+            is TransactionsIntent.LoadMore -> {
+                // Only meaningful while browsing: a filtered query is already unbounded.
+                if (filter.value.isEmpty) {
+                    filter.update { it.copy(limit = it.limit + TransactionFilter.DEFAULT_PAGE_SIZE) }
+                }
+            }
             is TransactionsIntent.DeleteRequested -> delete(intent.id)
             is TransactionsIntent.UndoDelete -> undoDelete()
             is TransactionsIntent.SaveTransaction -> save(intent)

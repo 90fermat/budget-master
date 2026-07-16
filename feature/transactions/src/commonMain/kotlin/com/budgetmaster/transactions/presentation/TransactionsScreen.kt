@@ -36,6 +36,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -203,7 +204,11 @@ private fun TransactionList(state: TransactionsState, viewModel: TransactionsVie
                 )
             }
         }
-        item { Spacer(Modifier.height(80.dp)) }
+        // Reaching the tail widens the page window (no-op once everything is loaded).
+        item {
+            LaunchedEffect(state.groups.size) { viewModel.onIntent(TransactionsIntent.LoadMore) }
+            Spacer(Modifier.height(80.dp))
+        }
     }
 }
 

@@ -9,12 +9,16 @@ import kotlinx.coroutines.flow.map
 
 /**
  * Observes transactions with the given [TransactionFilter] applied (search, category, type).
- * Filtering is done in-memory over the observed list — appropriate for the local,
- * single-user data volume of a personal-finance app.
+ *
+ * Filtering is in-memory, so the database window must contain every candidate row: while
+ * browsing unfiltered the list is paged ([TransactionFilter.limit]), but as soon as a filter
+ * is active the query is unbounded — otherwise a match older than the window would be
+ * invisible, which would look like data loss.
  */
 class ObserveTransactionsUseCase(private val repository: TransactionRepository) {
     operator fun invoke(filter: TransactionFilter): Flow<List<TransactionItem>> =
-        repository.observeTransactions().map { items -> items.filter { it.matches(filter) } }
+        repository.observeTransactions(limit = filter.effectiveLimit)
+            .map { items -> items.filter { it.matches(filter) } }
 
     private fun TransactionItem.matches(filter: TransactionFilter): Boolean {
         if (filter.categoryId != null && category?.id != filter.categoryId) return false

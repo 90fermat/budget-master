@@ -202,7 +202,7 @@ private fun NetWorthCard(state: AccountsState) {
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
-            if (state.isMultiCurrency) {
+            if (state.isNetWorthApproximate) {
                 Text(
                     stringResource(Res.string.accounts_multi_currency_note),
                     style = MaterialTheme.typography.bodySmall,

@@ -17,7 +17,7 @@
 | **Settings** | ✅ 6 use cases | ✅ DataStore/localStorage prefs | ✅ Full MVI | ✅ Theme/palette/language/currency, replay-intro | ➖ | **~85% (was ~20%)** |
 | **Budgets** | ✅ models, repo, 4 use cases | ✅ SqlDelight, **live spent** from transactions | ✅ Full MVI | ✅ Gauges, summary, create/edit/delete | ✅ repo | **~85% (was ~25%)** |
 | **Goals** | ✅ models, repo, 4 use cases | ✅ SqlDelight over SavingsGoalEntity | ✅ Full MVI | ✅ Progress cards, contribute, create/edit/delete | ✅ repo | **~85% (was ~10%)** |
-| **Accounts** | ✅ models, repo, 6 use cases | ✅ SqlDelight, **live balance** = opening + own transactions | ✅ Full MVI | ✅ Wallet list, net worth, global switcher, create/edit/archive/delete | ✅ repo (5) | **~85% (new)** |
+| **Accounts** | ✅ models, repo, 9 use cases | ✅ SqlDelight, **live balance** = opening + own transactions; transfers, reconcile, FX conversion | ✅ Full MVI | ✅ Wallet list, net worth, global switcher, CRUD/archive, transfer, reconcile | ✅ repo (9) | **~90%** |
 | **Reports** | ❌ | ❌ | ❌ | ⚠️ Static mockup | ❌ | **~15%** |
 
 **Design system:** ✅ done — `AppTheme` with **5 palettes** (incl. Material You Dynamic),
@@ -63,16 +63,26 @@ signed-in uid is now the data owner.
 - detekt + ktlint (via `detekt-formatting`) wired into the build and CI (reporting mode).
 
 **Remaining drift ❌**
-1. `budgetsModule` binds `SqlDelightBudgetRepository` that nothing injects (dead DI wiring).
-2. Budgets/Goals/Reports screens are static mockups with hardcoded strings/data.
+1. ~~`budgetsModule` binds a repository nothing injects~~ — **fixed** (Phase 2): the Budgets
+   and Goals repositories are real and injected.
+2. ~~Budgets/Goals screens are static mockups~~ — **fixed** (Phase 2); **Reports** is still a
+   mockup and is Phase 3's job.
 3. ~~Login/Register/ForgotPassword screens use hardcoded English strings~~ — **fixed**
    (Phase 1.6): all three now use `StringResources` (EN/FR), including typed error copy.
-4. Dashboard→Settings navigation uses stringly-typed `onQuickAction("Settings")` magic strings
-   instead of a typed Effect.
-5. Konsist tests do not yet enforce the module-dependency / no-hardcoded-color rules
-   automatically (detekt covers style/formatting, not architecture).
+4. ~~Dashboard→Settings uses stringly-typed `onQuickAction("Settings")`~~ — **fixed**: a
+   `NotificationsClicked` intent → `NavigateToSettings` effect, type-checked end to end.
+5. ~~Konsist does not enforce architecture rules~~ — **fixed**: `:shared` androidHostTest runs
+   4 Konsist rules (no feature→feature imports; no hardcoded colors outside the design
+   system; ViewModels in `presentation`; Repository interfaces in `domain`).
+6. **Hardcoded colors — partially open.** An earlier entry claimed these were gone from
+   features; that was inaccurate. The dashboard's semantic colors now use
+   `MaterialTheme.financialColors`, and the Konsist rule enforces the rest, but four files
+   are explicitly allow-listed with reasons: the two `ColorHex` parsers (literal fallback for
+   malformed stored hex), `ReportsScreen` (Phase 3 rewrite), `TopTransactionsList` +
+   `AiInsightsWidget` (category/accent palettes pending the shared component library,
+   Phase 4). Shrinking that allowlist is Phase 4 work.
 
-6. **Security (open)**: Gemini is still called directly from the client with an embedded
+7. **Security (open)**: Gemini is still called directly from the client with an embedded
    API key — extractable from any APK/wasm bundle. Must move behind Firebase AI Logic /
    a proxy before release (Phase 6/7).
 
@@ -174,8 +184,13 @@ colors/strings; CI green.
 - [x] Tests: use-case filter tests, ViewModel grouping/delete-undo tests, repository
   seeding/upsert/delete-restore tests against in-memory driver. Android assembles,
   all host tests green, Wasm compiles.
-- [ ] **Deferred to later phases:** date picker + recurring toggle in the editor;
-  typed dashboard quick-add navigation effect; paged query for very large histories.
+- [x] **Editor completions**: date picker (M3 `DatePickerDialog`) and a "repeats" toggle
+  (`TransactionEntity.isRecurring`; the materializing engine is Phase 3).
+- [x] **Typed dashboard navigation**: `onQuickAction("Settings")` magic strings replaced by a
+  `NotificationsClicked` intent → `NavigateToSettings` effect (also architecture drift #4).
+- [x] **Paged history**: `selectTransactionsByUser/AccountPaged` with a growing window
+  (100 rows, `LoadMore` at the list tail). Filtering is in-memory, so a filtered query runs
+  **unbounded** — otherwise a match older than the window would silently vanish.
 
 ### Phase 1.5 — Polish & premium identity (1–1.5 weeks)
 > Small, high-visibility fixes that make the app feel finished and branded. Requested
@@ -233,9 +248,14 @@ colors/strings; CI green.
 **Follow-ups**
 - [x] Android adaptive launcher icon (mipmap) using the fixed brand-indigo mark.
 - [x] Bundle Outfit/Inter fonts and apply them in the typography scale.
-- [ ] Colored-emoji font for Web (category avatars render as tofu on Wasm); needs a
-  bundled color-emoji font (~large) — deferred.
-- [ ] Honor system reduced-motion for the splash animation where detectable.
+- [x] **Category icons on Web**: emoji rendered as tofu on Wasm (no color-emoji font).
+  Rather than bundle one, `core.designsystem.categoryIconFor()` maps each category to a
+  Material vector used on every platform — zero bundle cost, consistent everywhere. The
+  emoji stays in the database as data.
+- [x] Honor system reduced-motion: `core.util.isReducedMotionEnabled()` (expect/actual —
+  animator scale on Android, `UIAccessibilityIsReduceMotionEnabled` on iOS,
+  `prefers-reduced-motion` on Web); the splash starts fully revealed and skips the
+  staggered reveal and glow pulse when set.
 
 **Deliverable:** first launch shows a polished animated splash (logo + "by FoyangTech")
 then onboarding once; returning users skip straight to auth/dashboard; 5 premium palettes
@@ -271,12 +291,11 @@ wasm canvas).
   routing to Login (previously navigation-only, which left the session active).
 - [x] Tests: `AuthError` validation in `LoginUseCase`/`SignUpUseCase`; `LoginViewModel`
   success/typed-error/toggle flows.
-- [ ] **Deferred — per-account data scoping**: still runs on the shared `default_user` seed;
-  binding the signed-in uid as the data owner (and migrating local rows) is a larger change
-  tracked separately to avoid destabilizing the local-first model.
-- [ ] **Deferred — Google sign-in** button (optional) via gitlive.
-- [ ] **Console prerequisite**: Email/Password provider must be enabled in the Firebase
-  console for the project; otherwise Android/iOS sign-in returns an error.
+- [x] **Per-account data scoping** — done in Phase 2.5: `SessionStore` binds the signed-in
+  uid as the data owner and every feature repository scopes to it.
+- [x] **Google sign-in** — done in Phase 2.6 (Android; iOS pending macOS).
+- [x] **Console prerequisite**: the Firebase project has Email/Password enabled and the
+  app's SHA-1 registered (added by the project owner; `google-services.json` refreshed).
 
 ### Phase 2 — Budgets, Goals, Settings on real data (1.5 weeks) — **mostly done**
 - [x] **Shared seeding**: extracted default user/account/categories into a single
@@ -294,9 +313,20 @@ wasm canvas).
 - [x] **Settings currency**: added `currency` to `AppSettings` (persisted) with a picker in
   Settings; budgets/goals format amounts with it. Also wired the **"Replay intro"** row that
   had been left unhooked. (Settings MVI, theme/palette/language, sign-out already done.)
-- [ ] **Deferred:** withdraw from goals; goal date picker + projected completion date;
-  thread the currency into the transactions/dashboard screens (still default USD there);
-  Notifications groundwork (budget-threshold → `NotificationEntity` + platform notify).
+- [x] **Goals — withdraw**: `withdraw` + `WithdrawFromGoalUseCase`, a dialog capped at the
+  saved balance, and a repository clamp at zero.
+- [x] **Goals — target date + projection**: the date is now user-chosen (the ViewModel used
+  to hardcode a one-year horizon and ignore the date on edit); `projectedCompletionAt()`
+  extrapolates from the saving rate and the card shows "on track" vs "behind".
+- [x] **Currency threaded** into transactions and dashboard. The dashboard had its own
+  `formatCurrency` hardcoding a `$` prefix — it now uses the shared `MoneyFormatter`, so the
+  setting is honoured everywhere.
+- [x] **Notifications groundwork**: `core.notifications.NotificationRepository` over
+  `NotificationEntity` (observe/unread-count/mark-read/delete, user-scoped) +
+  `NotifyBudgetThresholdsUseCase` raising warning/exceeded alerts from the budgets stream.
+  Ids are keyed by (budget, period, threshold) so repeat emissions can't spam the inbox.
+  **Delivery to the OS notification shade is still pending** — it rides with the Phase 3
+  recurring engine; today this backs an in-app inbox/badge.
 
 ### Phase 2.5 — Accounts foundation / multi-wallet (1 week) — **done**
 > One Firebase user owns **many** financial accounts (wallets), each with its own
@@ -329,12 +359,22 @@ wasm canvas).
   `selectTransactionsByUser` join for per-user scoping.
 - [x] **Tests**: 5 account repository tests (seeded first wallet, live balance incl. isolation
   between wallets, edit, archive/restore, delete). All existing suites still green.
-- [ ] **Deferred follow-ups:** per-entry account picker in the transaction editor (entries
-  currently land on the active wallet); **transfers** between wallets (linked pair, excluded
-  from income/expense); **multi-currency conversion** for net worth via the unused
-  `ExchangeRateEntity` (the overview flags mixed currencies as approximate today); scoping
-  the **dashboard** to the active wallet (it is user-scoped but still consolidated);
-  reconciliation ("set real balance" → adjustment entry).
+- [x] **Per-entry account picker** in the transaction editor; undo restores an entry to its
+  original wallet rather than the active one.
+- [x] **Dashboard scoped to the active wallet** (balance, chart, recent — opening balance
+  included), consolidated across wallets under "All accounts". Budget progress stays
+  cross-account by design.
+- [x] **Transfers**: a linked pair sharing `TransactionEntity.transferGroupId`, written in one
+  DB transaction, excluded from income/expense **and** budget spend; net worth unaffected.
+- [x] **Reconciliation**: "set real balance" posts the difference as an adjustment entry
+  rather than overwriting the balance, keeping the total derived and auditable.
+- [x] **Multi-currency net worth**: `core.currency.ExchangeRateRepository` over the
+  previously-unused `ExchangeRateEntity` (cached pairs, reciprocal fallback, 1:1 for
+  identical codes) + `CalculateNetWorthUseCase`. Wallets with no known rate are added at face
+  value and the total is labelled approximate rather than silently mixing currencies.
+- [ ] **Rate source**: rates are read from the local cache; nothing populates it yet. A
+  fetcher (free FX endpoint, refreshed daily) is needed before multi-currency totals are
+  meaningful in the wild — tracked with Phase 6 networking/hardening.
 
 ### Phase 2.6 — Google sign-in (0.5 week) — **code done, blocked on console setup**
 
@@ -365,6 +405,22 @@ wasm canvas).
   Xcode and flip `isGoogleSignInSupported` to true — needs macOS.
 - [ ] **Verify on a real device** once the console setup above is done (not verifiable from
   the current Windows host / without the SHA-1 registered).
+
+### Status: Phase 3 is the next phase
+
+Every deferred item from Phases 1, 1.5, 2, 2.5, and 2.6 is closed, and the architecture
+drift list is resolved or explicitly scoped. **Three items remain open and cannot be closed
+from a Windows host — they are not Phase 3 blockers:**
+
+1. **iOS Firebase init** — add the Firebase iOS SDK (SPM/Pods) and call
+   `FirebaseApp.configure()` in `iOSApp.init()` before `initKoinIos()`. Needs macOS/Xcode.
+2. **iOS Google sign-in** — add `GIDSignIn` + the reversed-client-id URL scheme, then flip
+   `isGoogleSignInSupported` to true on iOS. Needs macOS/Xcode.
+3. **On-device verification of Google sign-in** — the SHA-1 is registered and the code is in
+   place, but the flow has not been exercised on real hardware.
+
+Two smaller follow-ups are parked in their natural phases: an **FX rate fetcher** (Phase 6
+networking) and **OS-level notification delivery** (rides with the Phase 3 recurring engine).
 
 ### Phase 3 — Reports & recurring engine (1.5 weeks)
 - [ ] Reports: `ReportsViewModel`; monthly income/expense trends, category ring chart,
@@ -515,8 +571,9 @@ The app is "production-ready premium" when all of the following hold:
 | 1.5 | Polish & premium identity (onboarding, logo, splash, palettes, rebrand) | 1–1.5 wk | ✅ done |
 | 1.6 | Real authentication (Firebase wiring) | 1–1.5 wk | ✅ done (iOS init + Google sign-in pending) |
 | 2 | Budgets / Goals / Settings on real data | 1.5 wk | ✅ done |
-| 2.5 | Accounts foundation / multi-wallet (uid binding, switcher, net worth) | 1 wk | ✅ done |
-| 2.6 | Google sign-in (Android) | 0.5 wk | ✅ code done — needs SHA-1 + Google provider in console |
+| 2.5 | Accounts foundation / multi-wallet (uid binding, switcher, net worth, transfers, reconcile, FX) | 1 wk | ✅ done |
+| 2.6 | Google sign-in (Android) | 0.5 wk | ✅ done — SHA-1 registered; needs on-device verification |
+| — | Deferred-item sweep (Phases 1 / 1.5 / 2 / 2.5 + architecture drift) | — | ✅ done |
 | 3 | Reports + recurring engine | 1.5 wk | ⬜ |
 | 4 | Motion & premium polish | 1–1.5 wk | ⬜ |
 | 5 | Localization | 0.5–1 wk | ⬜ |

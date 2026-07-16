@@ -45,7 +45,7 @@ class SqlDelightTransactionRepository(
     private val dispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) : TransactionRepository {
 
-    override fun observeTransactions(): Flow<List<TransactionItem>> =
+    override fun observeTransactions(limit: Long): Flow<List<TransactionItem>> =
         combine(sessionStore.currentUserId, activeAccountStore.activeAccountId) { uid, acc -> uid to acc }
             .flatMapLatest { (uid, activeAccount) ->
                 val userId = uid ?: DefaultData.DEFAULT_USER_ID
@@ -55,9 +55,9 @@ class SqlDelightTransactionRepository(
                     val categoriesFlow = queries.selectCategoriesByUserId(userId)
                         .asFlow().mapToList(dispatcher)
                     val transactionsQuery = if (activeAccount != null) {
-                        queries.selectTransactionsByAccount(activeAccount)
+                        queries.selectTransactionsByAccountPaged(activeAccount, limit)
                     } else {
-                        queries.selectTransactionsByUser(userId)
+                        queries.selectTransactionsByUserPaged(userId, limit)
                     }
                     val transactionsFlow = transactionsQuery.asFlow().mapToList(dispatcher)
                     emitAll(

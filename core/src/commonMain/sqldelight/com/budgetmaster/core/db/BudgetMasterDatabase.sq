@@ -139,6 +139,17 @@ WHERE AccountEntity.userId = ? ORDER BY TransactionEntity.timestamp DESC;
 selectTransactionsByAccount:
 SELECT * FROM TransactionEntity WHERE accountId = ? ORDER BY timestamp DESC;
 
+-- Windowed variants for the history list. Pass -1 as the limit for "no limit"
+-- (SQLite's convention), which the list uses whenever a search/filter is active so
+-- matches are never hidden by the page window.
+selectTransactionsByUserPaged:
+SELECT TransactionEntity.* FROM TransactionEntity
+JOIN AccountEntity ON TransactionEntity.accountId = AccountEntity.id
+WHERE AccountEntity.userId = ? ORDER BY TransactionEntity.timestamp DESC LIMIT ?;
+
+selectTransactionsByAccountPaged:
+SELECT * FROM TransactionEntity WHERE accountId = ? ORDER BY timestamp DESC LIMIT ?;
+
 selectTransactionsByCategory:
 SELECT * FROM TransactionEntity WHERE categoryId = ? ORDER BY timestamp DESC;
 

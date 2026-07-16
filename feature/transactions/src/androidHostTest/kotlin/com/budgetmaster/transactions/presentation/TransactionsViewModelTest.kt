@@ -45,7 +45,7 @@ class TransactionsViewModelTest {
     )
 
     private val repository = object : TransactionRepository {
-        override fun observeTransactions(): Flow<List<TransactionItem>> = transactions
+        override fun observeTransactions(limit: Long): Flow<List<TransactionItem>> = transactions
         override fun observeCategories() = flowOf(listOf(food))
         override fun observeAccounts() = flowOf(listOf(TransactionAccount("acc1", "Cash", "USD")))
         var deleted: String? = null

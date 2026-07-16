@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.budgetmaster.core.designsystem.categoryIconFor
+import com.budgetmaster.core.designsystem.financialColors
 import com.budgetmaster.dashboard.domain.model.BudgetProgress
 import com.budgetmaster.dashboard.domain.model.BudgetStatus
 
@@ -110,7 +111,7 @@ fun BudgetProgressItem(
     val progressColor = if (isOverBudget) {
         MaterialTheme.colorScheme.error
     } else if (budget.percentage >= 0.8) {
-        Color(0xFFF59E0B) // Warning color (Amber)
+        MaterialTheme.financialColors.warning
     } else {
         MaterialTheme.colorScheme.primary
     }

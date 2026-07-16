@@ -17,6 +17,9 @@ sealed interface TransactionsIntent {
     data object UndoDelete : TransactionsIntent
     data class SaveTransaction(val draft: TransactionDraft) : TransactionsIntent
     data object AddClicked : TransactionsIntent
+
+    /** The list reached its end; widen the page window. */
+    data object LoadMore : TransactionsIntent
     data class EditClicked(val item: TransactionItem) : TransactionsIntent
     data object EditorDismissed : TransactionsIntent
 }

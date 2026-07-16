@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.budgetmaster.core.designsystem.financialColors
 import com.budgetmaster.core.util.MoneyFormatter
 import com.budgetmaster.dashboard.domain.model.BalanceSummary
 import com.budgetmaster.dashboard.domain.model.BalanceTrend
@@ -103,7 +104,7 @@ fun BalanceCard(
                 Icon(
                     imageVector = if (isPositive) Icons.Default.TrendingUp else Icons.Default.TrendingDown,
                     contentDescription = if (isPositive) "Positive Trend" else "Negative Trend",
-                    tint = if (isPositive) Color(0xFF10B981) else Color(0xFFF87171),
+                    tint = if (isPositive) MaterialTheme.financialColors.income else MaterialTheme.financialColors.expense,
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(4.dp))
@@ -111,7 +112,7 @@ fun BalanceCard(
                     text = "${if (balanceSummary.trendPercentage >= 0) "+" else ""}${balanceSummary.trendPercentage}%",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (isPositive) Color(0xFF10B981) else Color(0xFFF87171)
+                    color = if (isPositive) MaterialTheme.financialColors.income else MaterialTheme.financialColors.expense
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
@@ -141,7 +142,7 @@ fun BalanceCard(
                         text = formatCurrency(balanceSummary.monthlyIncome, currencyCode),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF10B981)
+                        color = MaterialTheme.financialColors.income
                     )
                 }
 
@@ -156,7 +157,7 @@ fun BalanceCard(
                         text = formatCurrency(balanceSummary.monthlyExpenses, currencyCode),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFFF87171)
+                        color = MaterialTheme.financialColors.expense
                     )
                 }
             }

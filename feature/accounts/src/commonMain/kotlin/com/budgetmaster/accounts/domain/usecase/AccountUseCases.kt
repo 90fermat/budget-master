@@ -2,13 +2,39 @@ package com.budgetmaster.accounts.domain.usecase
 
 import com.budgetmaster.accounts.domain.model.Account
 import com.budgetmaster.accounts.domain.model.AccountDraft
+import com.budgetmaster.accounts.domain.model.NetWorth
 import com.budgetmaster.accounts.domain.repository.AccountRepository
+import com.budgetmaster.core.currency.ExchangeRateRepository
 import com.budgetmaster.core.session.ActiveAccountStore
 import kotlinx.coroutines.flow.Flow
 
 /** Observes the current user's accounts with live balances. */
 class ObserveAccountsUseCase(private val repository: AccountRepository) {
     operator fun invoke(): Flow<List<Account>> = repository.observeAccounts()
+}
+
+/**
+ * Computes net worth across wallets, converting each into [target] using cached rates.
+ *
+ * Wallets whose currency has no known rate are summed unconverted and reported via
+ * [NetWorth.hasUnconvertedAccounts], so the UI can label the total approximate rather than
+ * silently mixing currencies.
+ */
+class CalculateNetWorthUseCase(private val exchangeRates: ExchangeRateRepository) {
+    suspend operator fun invoke(accounts: List<Account>, target: String): NetWorth {
+        var total = 0.0
+        var unconverted = false
+        accounts.forEach { account ->
+            val converted = exchangeRates.convert(account.currentBalance, account.currency, target)
+            if (converted == null) {
+                unconverted = true
+                total += account.currentBalance
+            } else {
+                total += converted
+            }
+        }
+        return NetWorth(total = total, currency = target, hasUnconvertedAccounts = unconverted)
+    }
 }
 
 /** Creates or updates an account. */
