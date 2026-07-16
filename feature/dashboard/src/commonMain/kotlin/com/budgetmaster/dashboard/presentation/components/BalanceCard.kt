@@ -1,8 +1,5 @@
 package com.budgetmaster.dashboard.presentation.components
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.EaseOutCubic
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.TrendingDown
@@ -14,31 +11,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.budgetmaster.core.designsystem.animateCounter
 import com.budgetmaster.core.designsystem.financialColors
 import com.budgetmaster.core.util.MoneyFormatter
 import com.budgetmaster.dashboard.domain.model.BalanceSummary
 import com.budgetmaster.dashboard.domain.model.BalanceTrend
-
-/**
- * Animated counter state helper that interpolates a Double value over 800ms using EaseOutCubic easing.
- *
- * @param targetValue The end target numeric value to count up/down to.
- * @return A [State] containing the animated numeric value.
- */
-@Composable
-fun animateCounterAsState(targetValue: Double): State<Double> {
-    val animatable = remember { Animatable(0f) }
-    LaunchedEffect(targetValue) {
-        animatable.animateTo(
-            targetValue = targetValue.toFloat(),
-            animationSpec = tween(
-                durationMillis = 800,
-                easing = EaseOutCubic
-            )
-        )
-    }
-    return remember { derivedStateOf { animatable.value.toDouble() } }
-}
 
 /**
  * Formats a dashboard amount in the user's selected currency.
@@ -66,7 +43,7 @@ fun BalanceCard(
     currencyCode: String,
     modifier: Modifier = Modifier
 ) {
-    val animatedBalance by animateCounterAsState(balanceSummary.totalBalance)
+    val animatedBalance by animateCounter(balanceSummary.totalBalance)
     val isPositive = balanceSummary.balanceTrend == BalanceTrend.POSITIVE
 
     ElevatedCard(

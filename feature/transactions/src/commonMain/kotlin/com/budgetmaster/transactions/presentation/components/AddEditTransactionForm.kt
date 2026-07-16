@@ -2,6 +2,7 @@
 
 package com.budgetmaster.transactions.presentation.components
 
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -56,7 +57,9 @@ import budgetmaster.core.generated.resources.transactions_type_expense
 import budgetmaster.core.generated.resources.transactions_type_income
 import com.budgetmaster.core.designsystem.Spacing
 import com.budgetmaster.core.designsystem.categoryIconFor
+import com.budgetmaster.core.designsystem.pressScale
 import com.budgetmaster.core.util.DateUtils
+import com.budgetmaster.core.util.rememberHaptics
 import com.budgetmaster.transactions.domain.model.TransactionAccount
 import com.budgetmaster.transactions.domain.model.TransactionCategory
 import com.budgetmaster.transactions.domain.model.TransactionDraft
@@ -98,6 +101,7 @@ internal fun AddEditTransactionForm(
         mutableStateOf(editing?.accountId?.ifBlank { null } ?: activeAccountId ?: accounts.firstOrNull()?.id)
     }
     var showDatePicker by remember { mutableStateOf(false) }
+    val haptics = rememberHaptics()
 
     val amount = amountText.replace(',', '.').toDoubleOrNull()
     val canSave = amount != null && amount > 0.0 && description.isNotBlank()
@@ -256,8 +260,11 @@ internal fun AddEditTransactionForm(
             ) {
                 Text(stringResource(Res.string.transactions_cancel))
             }
+            val saveInteraction = remember { MutableInteractionSource() }
             Button(
+                interactionSource = saveInteraction,
                 onClick = {
+                    haptics.confirm()
                     onSave(
                         TransactionDraft(
                             id = editing?.id,
@@ -274,7 +281,7 @@ internal fun AddEditTransactionForm(
                 },
                 enabled = canSave,
                 shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.weight(1f).height(52.dp),
+                modifier = Modifier.weight(1f).height(52.dp).pressScale(saveInteraction),
             ) {
                 Text(stringResource(Res.string.transactions_save), fontWeight = FontWeight.Bold)
             }

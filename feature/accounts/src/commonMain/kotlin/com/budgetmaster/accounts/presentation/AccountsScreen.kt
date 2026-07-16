@@ -46,6 +46,7 @@ import com.budgetmaster.accounts.presentation.components.AccountCard
 import com.budgetmaster.accounts.presentation.components.AddEditAccountForm
 import com.budgetmaster.accounts.presentation.components.ReconcileForm
 import com.budgetmaster.accounts.presentation.components.TransferForm
+import com.budgetmaster.core.designsystem.animateCounter
 import com.budgetmaster.core.util.MoneyFormatter
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -196,8 +197,9 @@ private fun NetWorthCard(state: AccountsState) {
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
+            val animatedNetWorth by animateCounter(state.netWorth)
             Text(
-                MoneyFormatter.format(state.netWorth, state.primaryCurrency),
+                MoneyFormatter.format(animatedNetWorth, state.primaryCurrency),
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,

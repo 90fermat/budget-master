@@ -14,11 +14,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -524,8 +524,8 @@ private data class NavigationItem(
 private val navigationItems: List<NavigationItem> = listOf(
     NavigationItem(Res.string.nav_home, Icons.Default.Home, AuthRoute.Dashboard),
     NavigationItem(Res.string.nav_history, Icons.AutoMirrored.Filled.List, AuthRoute.Transactions),
-    NavigationItem(Res.string.nav_budgets, Icons.Default.Info, AuthRoute.Budgets),
-    NavigationItem(Res.string.nav_goals, Icons.Default.Star, AuthRoute.Goals),
-    NavigationItem(Res.string.nav_reports, Icons.Default.Favorite, AuthRoute.Reports),
+    NavigationItem(Res.string.nav_budgets, Icons.Default.PieChart, AuthRoute.Budgets),
+    NavigationItem(Res.string.nav_goals, Icons.Default.Flag, AuthRoute.Goals),
+    NavigationItem(Res.string.nav_reports, Icons.Default.BarChart, AuthRoute.Reports),
     NavigationItem(Res.string.nav_settings, Icons.Default.Settings, AuthRoute.Settings)
 )

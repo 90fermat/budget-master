@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.budgetmaster.core.model.Transaction
+import com.budgetmaster.core.util.rememberHaptics
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.ExperimentalTime
@@ -169,9 +170,12 @@ fun DismissibleTransactionItem(
     onSwiped: (String) -> Unit
 ) {
     val currentOnSwiped by rememberUpdatedState(onSwiped)
+    val haptics = rememberHaptics()
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { dismissValue ->
             if (dismissValue == SwipeToDismissBoxValue.EndToStart) {
+                // Confirm the destructive gesture in the hand before the row disappears.
+                haptics.longPress()
                 currentOnSwiped(transaction.id)
                 true
             } else {
