@@ -14,10 +14,10 @@
 | **Auth** | ✅ 12 use cases | ⚠️ **stubbed** (Firebase not wired — throws) | ✅ 6 ViewModels | ✅ 6 screens (illustrated onboarding, animated splash) | ✅ | **Flow/UI ~75%, but sign-in is NON-FUNCTIONAL** |
 | **Dashboard** | ✅ 5 use cases, 6 models | ✅ SQLDelight + Gemini AI | ✅ Full MVI | ✅ Premium components + skeleton | ✅ Unit + Roborazzi | **~90% — reference implementation** |
 | **Transactions** | ✅ models, repo, 5 use cases | ✅ SqlDelight repo + first-launch seeding | ✅ Full MVI | ✅ Day-grouped list, search, filters, swipe+undo, editor | ✅ use-case/VM/repo | **~90% (was ~15%)** |
-| **Settings** | ✅ 5 use cases | ✅ DataStore/localStorage prefs | ✅ Full MVI | ✅ Theme/palette/language, replay-intro | ➖ | **~80% (was ~20%)** |
-| **Budgets** | ⚠️ Repo interface only | ⚠️ Repo bound in DI but **unused** | ❌ | ⚠️ Static mockup | ❌ | **~25%** |
+| **Settings** | ✅ 6 use cases | ✅ DataStore/localStorage prefs | ✅ Full MVI | ✅ Theme/palette/language/currency, replay-intro | ➖ | **~85% (was ~20%)** |
+| **Budgets** | ✅ models, repo, 4 use cases | ✅ SqlDelight, **live spent** from transactions | ✅ Full MVI | ✅ Gauges, summary, create/edit/delete | ✅ repo | **~85% (was ~25%)** |
+| **Goals** | ✅ models, repo, 4 use cases | ✅ SqlDelight over SavingsGoalEntity | ✅ Full MVI | ✅ Progress cards, contribute, create/edit/delete | ✅ repo | **~85% (was ~10%)** |
 | **Reports** | ❌ | ❌ | ❌ | ⚠️ Static mockup | ❌ | **~15%** |
-| **Goals** | ❌ | ❌ | ❌ | ⚠️ Static mockup | ❌ | **~10%** |
 
 **Design system:** ✅ done — `AppTheme` with **5 palettes** (incl. Material You Dynamic),
 bundled **Outfit + Inter** fonts, adaptive brand **logo**, `Spacing`/`Motion` tokens, and
@@ -258,17 +258,25 @@ wasm canvas).
 - [ ] **Localize** the login/register/forgot-password screens (EN/FR) — still hardcoded English.
 - [ ] Tests: repository tests with a fake Firebase, ViewModel tests for success/error flows.
 
-### Phase 2 — Budgets, Goals, Settings on real data (1.5 weeks)
-- [ ] Budgets: consume the already-bound repository; `BudgetsViewModel` (MVI); create/edit
-  budget per category & period; live `spent` computed from transactions (SQL join, not the
-  denormalized column — or keep `spent` updated by a trigger/use case).
-- [ ] Goals: repository over `SavingsGoalEntity`; contribute/withdraw flows; projected
-  completion date.
-- [ ] Settings: `SettingsViewModel` + DataStore-backed preferences (theme mode, dynamic color,
-  currency, biometric toggle reusing auth use cases); real profile from `GetCurrentUserUseCase`;
-  working sign-out via `SignOutUseCase`.
-- [ ] Notifications groundwork: budget-threshold events written to `NotificationEntity`;
-  platform notification `expect/actual` (Android first).
+### Phase 2 — Budgets, Goals, Settings on real data (1.5 weeks) — **mostly done**
+- [x] **Shared seeding**: extracted default user/account/categories into a single
+  `core.db.AppDataSeeder` (+ `DefaultData`) used by transactions, budgets, goals, and run
+  at app startup — replaces the per-repo duplicated seed logic.
+- [x] **Budgets**: real `BudgetRepository` + `SqlDelightBudgetRepository` with `spent`
+  computed **live** from expense transactions in the category/period (denormalized column
+  ignored); `BudgetsViewModel` (MVI); rewritten screen with a monthly summary header,
+  status-colored gauges (OK/warning/exceeded), and a create/edit/delete editor
+  (bottom sheet on phone, dialog on wide). Repository tests cover live-spent + status.
+- [x] **Goals**: `GoalRepository` + `SqlDelightGoalRepository` over `SavingsGoalEntity`;
+  `GoalsViewModel` (MVI); rewritten screen with progress cards, create/edit/delete, and an
+  **Add funds** contribution dialog (edit preserves the saved amount). Repository tests
+  cover contribute/complete/edit/delete.
+- [x] **Settings currency**: added `currency` to `AppSettings` (persisted) with a picker in
+  Settings; budgets/goals format amounts with it. Also wired the **"Replay intro"** row that
+  had been left unhooked. (Settings MVI, theme/palette/language, sign-out already done.)
+- [ ] **Deferred:** withdraw from goals; goal date picker + projected completion date;
+  thread the currency into the transactions/dashboard screens (still default USD there);
+  Notifications groundwork (budget-threshold → `NotificationEntity` + platform notify).
 
 ### Phase 3 — Reports & recurring engine (1.5 weeks)
 - [ ] Reports: `ReportsViewModel`; monthly income/expense trends, category ring chart,
@@ -417,8 +425,8 @@ The app is "production-ready premium" when all of the following hold:
 | 0 | Design system + tooling foundation | 1–1.5 wk | ✅ done |
 | 1 | Transactions end-to-end | 1.5–2 wk | ✅ done |
 | 1.5 | Polish & premium identity (onboarding, logo, splash, palettes, rebrand) | 1–1.5 wk | ✅ done |
-| 1.6 | Real authentication (Firebase wiring) | 1–1.5 wk | ⬜ next |
-| 2 | Budgets / Goals / Settings on real data | 1.5 wk | ⬜ |
+| 1.6 | Real authentication (Firebase wiring) | 1–1.5 wk | ⬜ needs your Firebase config |
+| 2 | Budgets / Goals / Settings on real data | 1.5 wk | ✅ done |
 | 3 | Reports + recurring engine | 1.5 wk | ⬜ |
 | 4 | Motion & premium polish | 1–1.5 wk | ⬜ |
 | 5 | Localization | 0.5–1 wk | ⬜ |

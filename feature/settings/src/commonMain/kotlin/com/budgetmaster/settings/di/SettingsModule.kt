@@ -2,6 +2,7 @@ package com.budgetmaster.settings.di
 
 import com.budgetmaster.settings.domain.usecase.ObserveAppSettingsUseCase
 import com.budgetmaster.settings.domain.usecase.ResetOnboardingUseCase
+import com.budgetmaster.settings.domain.usecase.SetCurrencyUseCase
 import com.budgetmaster.settings.domain.usecase.SetDarkModeUseCase
 import com.budgetmaster.settings.domain.usecase.SetLanguageUseCase
 import com.budgetmaster.settings.domain.usecase.SetPaletteUseCase
@@ -18,8 +19,9 @@ val settingsModule = module {
     factory { SetPaletteUseCase(get()) }
     factory { SetDarkModeUseCase(get()) }
     factory { SetLanguageUseCase(get()) }
+    factory { SetCurrencyUseCase(get()) }
     factory { ResetOnboardingUseCase(get()) }
 
     // ViewModels
-    viewModel { SettingsViewModel(get(), get(), get(), get(), get()) }
+    viewModel { SettingsViewModel(get(), get(), get(), get(), get(), get()) }
 }

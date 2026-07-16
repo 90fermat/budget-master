@@ -28,6 +28,11 @@ class SetLanguageUseCase(private val repository: AppSettingsRepository) {
     suspend operator fun invoke(language: AppLanguage) = repository.setLanguage(language)
 }
 
+/** Persists the selected primary currency (ISO-4217 code). */
+class SetCurrencyUseCase(private val repository: AppSettingsRepository) {
+    suspend operator fun invoke(currencyCode: String) = repository.setCurrency(currencyCode)
+}
+
 /** Clears the onboarding-completed flag so the intro is shown again. */
 class ResetOnboardingUseCase(private val onboardingPreferences: OnboardingPreferences) {
     suspend operator fun invoke() = onboardingPreferences.setCompleted(false)

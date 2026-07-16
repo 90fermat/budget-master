@@ -12,11 +12,13 @@ import kotlinx.coroutines.flow.combine
  * @property palette Selected brand palette.
  * @property darkMode Dark mode behavior.
  * @property language Selected application language.
+ * @property currency ISO-4217 currency code used to format amounts app-wide.
  */
 data class AppSettings(
     val palette: AppPalette = AppPalette.Default,
     val darkMode: DarkModeSetting = DarkModeSetting.Default,
     val language: AppLanguage = AppLanguage.Default,
+    val currency: String = "USD",
 )
 
 /**
@@ -33,11 +35,13 @@ class AppSettingsRepository(private val store: KeyValueStore) {
         store.observeString(KEY_PALETTE),
         store.observeString(KEY_DARK_MODE),
         store.observeString(KEY_LANGUAGE),
-    ) { palette, darkMode, language ->
+        store.observeString(KEY_CURRENCY),
+    ) { palette, darkMode, language, currency ->
         AppSettings(
             palette = AppPalette.fromId(palette),
             darkMode = DarkModeSetting.fromId(darkMode),
             language = AppLanguage.fromId(language),
+            currency = currency ?: "USD",
         )
     }
 
@@ -47,9 +51,12 @@ class AppSettingsRepository(private val store: KeyValueStore) {
 
     suspend fun setLanguage(language: AppLanguage) = store.putString(KEY_LANGUAGE, language.id)
 
+    suspend fun setCurrency(currencyCode: String) = store.putString(KEY_CURRENCY, currencyCode)
+
     private companion object {
         const val KEY_PALETTE = "app.palette"
         const val KEY_DARK_MODE = "app.dark_mode"
         const val KEY_LANGUAGE = "app.language"
+        const val KEY_CURRENCY = "app.currency"
     }
 }

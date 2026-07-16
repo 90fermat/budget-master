@@ -52,6 +52,7 @@ import budgetmaster.core.generated.resources.settings_currency
 import budgetmaster.core.generated.resources.settings_language
 import budgetmaster.core.generated.resources.settings_palette
 import budgetmaster.core.generated.resources.settings_preferences
+import budgetmaster.core.generated.resources.settings_replay_onboarding
 import budgetmaster.core.generated.resources.settings_sign_out
 import budgetmaster.core.generated.resources.settings_theme_mode
 import budgetmaster.core.generated.resources.settings_title
@@ -67,6 +68,9 @@ import com.budgetmaster.core.localization.AppLanguage
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+
+/** Currency codes offered in the picker. */
+private val CURRENCIES = listOf("USD", "EUR", "GBP", "XAF", "CAD", "NGN")
 
 /**
  * Settings screen: appearance (theme mode, brand palette, language), preferences,
@@ -171,7 +175,34 @@ fun SettingsScreen(
         // ── Preferences ──────────────────────────────────────────────────────
         SectionHeader(text = stringResource(Res.string.settings_preferences))
 
-        SettingRowLink(label = stringResource(Res.string.settings_currency), value = "USD")
+        SettingsCard {
+            Text(
+                text = stringResource(Res.string.settings_currency),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Spacer(modifier = Modifier.height(Spacing.small))
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.small)) {
+                CURRENCIES.forEach { code ->
+                    FilterChip(
+                        selected = state.currency == code,
+                        onClick = { viewModel.onIntent(SettingsIntent.CurrencySelected(code)) },
+                        label = { Text(code) },
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(Spacing.small))
+
+        SettingRowAction(
+            label = stringResource(Res.string.settings_replay_onboarding),
+            onClick = {
+                viewModel.onIntent(SettingsIntent.ReplayOnboarding)
+                onReplayOnboarding()
+            },
+        )
 
         Spacer(modifier = Modifier.height(Spacing.huge))
 
