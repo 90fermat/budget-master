@@ -84,11 +84,37 @@
     <string name="transactions_cancel">Cancel</string>
     <string name="transactions_uncategorized">Uncategorized</string>
 
+    <!-- Generic actions -->
+    <string name="action_save">Save</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_delete">Delete</string>
+
     <!-- Budgets Strings -->
     <string name="budgets_title">Budgets</string>
+    <string name="budgets_empty_title">No budgets yet</string>
+    <string name="budgets_empty_subtitle">Tap + to set a monthly limit for a category.</string>
+    <string name="budgets_new">New Budget</string>
+    <string name="budgets_edit">Edit Budget</string>
+    <string name="budgets_limit_label">Monthly limit</string>
+    <string name="budgets_category_label">Category</string>
+    <string name="budgets_this_month">This month</string>
+    <string name="budgets_left">%1$s left</string>
+    <string name="budgets_over">%1$s over</string>
+    <string name="budgets_spent_of">%1$s of %2$s</string>
 
     <!-- Goals Strings -->
     <string name="goals_title">Savings Goals</string>
+    <string name="goals_empty_title">No savings goals yet</string>
+    <string name="goals_empty_subtitle">Tap + to set a goal and track your progress.</string>
+    <string name="goals_new">New Goal</string>
+    <string name="goals_edit">Edit Goal</string>
+    <string name="goals_name_label">Goal name</string>
+    <string name="goals_target_label">Target amount</string>
+    <string name="goals_saved_of">%1$s of %2$s saved</string>
+    <string name="goals_add_funds">Add funds</string>
+    <string name="goals_contribute">Contribute</string>
+    <string name="goals_amount_label">Amount</string>
+    <string name="goals_completed">Completed 🎉</string>
 
     <!-- Reports Strings -->
     <string name="reports_title">Reports</string>

@@ -84,11 +84,37 @@
     <string name="transactions_cancel">Annuler</string>
     <string name="transactions_uncategorized">Non catégorisé</string>
 
+    <!-- Generic actions -->
+    <string name="action_save">Enregistrer</string>
+    <string name="action_cancel">Annuler</string>
+    <string name="action_delete">Supprimer</string>
+
     <!-- Budgets Strings -->
     <string name="budgets_title">Budgets</string>
+    <string name="budgets_empty_title">Aucun budget</string>
+    <string name="budgets_empty_subtitle">Appuyez sur + pour définir une limite mensuelle par catégorie.</string>
+    <string name="budgets_new">Nouveau budget</string>
+    <string name="budgets_edit">Modifier le budget</string>
+    <string name="budgets_limit_label">Limite mensuelle</string>
+    <string name="budgets_category_label">Catégorie</string>
+    <string name="budgets_this_month">Ce mois-ci</string>
+    <string name="budgets_left">%1$s restants</string>
+    <string name="budgets_over">%1$s de dépassement</string>
+    <string name="budgets_spent_of">%1$s sur %2$s</string>
 
     <!-- Goals Strings -->
     <string name="goals_title">Objectifs d\'épargne</string>
+    <string name="goals_empty_title">Aucun objectif d\'épargne</string>
+    <string name="goals_empty_subtitle">Appuyez sur + pour définir un objectif et suivre votre progression.</string>
+    <string name="goals_new">Nouvel objectif</string>
+    <string name="goals_edit">Modifier l\'objectif</string>
+    <string name="goals_name_label">Nom de l\'objectif</string>
+    <string name="goals_target_label">Montant cible</string>
+    <string name="goals_saved_of">%1$s sur %2$s épargnés</string>
+    <string name="goals_add_funds">Ajouter des fonds</string>
+    <string name="goals_contribute">Contribuer</string>
+    <string name="goals_amount_label">Montant</string>
+    <string name="goals_completed">Atteint 🎉</string>
 
     <!-- Reports Strings -->
     <string name="reports_title">Rapports</string>

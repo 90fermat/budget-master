@@ -16,8 +16,10 @@ kotlin {
         androidResources {
             enable = true
         }
+        withHostTest {
+        }
     }
-    
+
     listOf(
         iosArm64(),
         iosSimulatorArm64()
@@ -38,36 +40,47 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(project(":core"))
-            
+            implementation(libs.kotlinx.datetime)
+            implementation(libs.kotlinx.coroutines.core)
+
             // SQLDelight extensions
             implementation(libs.sqldelight.runtime)
             implementation(libs.sqldelight.coroutines)
-            
+
             // Compose Multiplatform Core
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
+            implementation(compose.materialIconsExtended)
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
-            
+
             // Koin DI
             implementation(libs.koin.core)
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.viewmodel)
-            
+
             // Navigation
             implementation(libs.navigation.compose)
-            
-            // Coroutines
-            implementation(libs.kotlinx.coroutines.core)
         }
-        
+
         androidMain.dependencies {
             implementation(compose.uiTooling)
             implementation(libs.koin.android)
         }
-        
+
         iosMain.dependencies {}
+
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+            implementation(libs.kotlinx.coroutines.test)
+        }
+
+        val androidHostTest by getting {
+            dependencies {
+                implementation(libs.sqldelight.driver.sqlite)
+            }
+        }
     }
 }
 

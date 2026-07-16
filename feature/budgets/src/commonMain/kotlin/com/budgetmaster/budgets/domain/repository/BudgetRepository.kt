@@ -1,24 +1,23 @@
 package com.budgetmaster.budgets.domain.repository
 
-import com.budgetmaster.core.model.Transaction
+import com.budgetmaster.budgets.domain.model.BudgetCategory
+import com.budgetmaster.budgets.domain.model.BudgetDraft
+import com.budgetmaster.budgets.domain.model.BudgetItem
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Repository interface for managing budget and transaction data.
+ * Data source for category budgets. `spent` is computed live from transactions.
  */
 interface BudgetRepository {
-    /**
-     * Retrieves all transactions as a Flow.
-     */
-    fun getTransactions(): Flow<List<Transaction>>
+    /** Observes the budgets active in the current period, with live spent amounts. */
+    fun observeBudgets(): Flow<List<BudgetItem>>
 
-    /**
-     * Inserts or updates a transaction.
-     */
-    suspend fun insertTransaction(transaction: Transaction)
+    /** Observes all categories (for the create/edit picker). */
+    fun observeCategories(): Flow<List<BudgetCategory>>
 
-    /**
-     * Deletes a transaction by its unique ID.
-     */
-    suspend fun deleteTransaction(id: String)
+    /** Inserts or updates a budget from [draft]. */
+    suspend fun upsertBudget(draft: BudgetDraft)
+
+    /** Deletes the budget with [id]. */
+    suspend fun deleteBudget(id: String)
 }

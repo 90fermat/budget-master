@@ -1,127 +1,181 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.budgetmaster.budgets.presentation
 
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import budgetmaster.core.generated.resources.Res
+import budgetmaster.core.generated.resources.goals_empty_subtitle
+import budgetmaster.core.generated.resources.goals_empty_title
+import budgetmaster.core.generated.resources.goals_new
 import budgetmaster.core.generated.resources.goals_title
+import com.budgetmaster.budgets.presentation.components.AddEditGoalForm
+import com.budgetmaster.budgets.presentation.components.ContributeForm
+import com.budgetmaster.budgets.presentation.components.GoalCard
+import com.budgetmaster.core.designsystem.Spacing
 import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.viewmodel.koinViewModel
 
 /**
- * Composable screen representing Savings Goals.
+ * Savings Goals screen on live data: progress cards, create/edit editor, delete, and
+ * an "Add funds" contribution dialog.
  */
 @Composable
-fun GoalsScreen() {
-    val scrollState = rememberScrollState()
+fun GoalsScreen(viewModel: GoalsViewModel = koinViewModel()) {
+    val state by viewModel.state.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(scrollState)
-            .padding(16.dp)
-    ) {
-        Text(
-            text = stringResource(Res.string.goals_title),
-            style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground
-        )
+    LaunchedEffect(Unit) {
+        viewModel.effects.collect { effect ->
+            when (effect) {
+                is GoalsEffect.ShowError -> snackbarHostState.showSnackbar(effect.message)
+            }
+        }
+    }
 
-        Spacer(modifier = Modifier.height(24.dp))
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = MaterialTheme.colorScheme.background,
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { viewModel.onIntent(GoalsIntent.AddClicked) },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+            ) { Icon(Icons.Default.Add, contentDescription = stringResource(Res.string.goals_new)) }
+        },
+    ) { padding ->
+        Column(
+            modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = Spacing.medium),
+        ) {
+            Spacer(Modifier.height(Spacing.medium))
+            Text(
+                text = stringResource(Res.string.goals_title),
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+            Spacer(Modifier.height(Spacing.medium))
 
-        // Tesla savings goal
-        GoalProgressCard(
-            name = "New Tesla Model 3",
-            targetAmount = 45000f,
-            currentAmount = 13500f,
-            targetDate = "Dec 2027"
-        )
+            when {
+                state.isEmpty -> EmptyState()
+                else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(Spacing.small)) {
+                    items(state.goals, key = { it.id }) { item ->
+                        GoalCard(
+                            item = item,
+                            currencyCode = state.currencyCode,
+                            onClick = { viewModel.onIntent(GoalsIntent.EditClicked(item)) },
+                            onContribute = { viewModel.onIntent(GoalsIntent.ContributeClicked(item)) },
+                        )
+                    }
+                    item { Spacer(Modifier.height(80.dp)) }
+                }
+            }
+        }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        if (state.editor.visible) GoalEditor(state, viewModel)
+        if (state.contribute.visible) ContributeDialog(state, viewModel)
+    }
+}
 
-        // Emergency Fund savings goal
-        GoalProgressCard(
-            name = "Emergency Fund",
-            targetAmount = 10000f,
-            currentAmount = 9000f,
-            targetDate = "Dec 2026"
+@Composable
+private fun EmptyState() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("🏆", style = MaterialTheme.typography.displaySmall)
+            Spacer(Modifier.height(Spacing.medium))
+            Text(
+                text = stringResource(Res.string.goals_empty_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+            Spacer(Modifier.height(Spacing.small))
+            Text(
+                text = stringResource(Res.string.goals_empty_subtitle),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun GoalEditor(state: GoalsState, viewModel: GoalsViewModel) {
+    AdaptiveContainer(onDismiss = { viewModel.onIntent(GoalsIntent.EditorDismissed) }) {
+        AddEditGoalForm(
+            editing = state.editor.editing,
+            onSave = { name, target ->
+                viewModel.onIntent(GoalsIntent.SaveGoal(name, target, state.editor.editing?.id))
+            },
+            onDelete = { id -> viewModel.onIntent(GoalsIntent.DeleteRequested(id)) },
+            onCancel = { viewModel.onIntent(GoalsIntent.EditorDismissed) },
         )
     }
 }
 
 @Composable
-private fun GoalProgressCard(
-    name: String,
-    targetAmount: Float,
-    currentAmount: Float,
-    targetDate: String
-) {
-    val progress = (currentAmount / targetAmount).coerceIn(0f, 1f)
+private fun ContributeDialog(state: GoalsState, viewModel: GoalsViewModel) {
+    val goal = state.contribute.goal ?: return
+    AdaptiveContainer(onDismiss = { viewModel.onIntent(GoalsIntent.ContributeDismissed) }) {
+        ContributeForm(
+            goalName = goal.name,
+            onSubmit = { amount -> viewModel.onIntent(GoalsIntent.SubmitContribution(goal.id, amount)) },
+            onCancel = { viewModel.onIntent(GoalsIntent.ContributeDismissed) },
+        )
+    }
+}
 
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f)
-        ),
-        shape = RoundedCornerShape(20.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.05f), RoundedCornerShape(20.dp))
-            .padding(16.dp)
-    ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Text(
-                        text = name,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Text(
-                        text = "Target: $$targetAmount ($targetDate)",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-                    )
-                }
-                Text(
-                    text = "${(progress * 100).toInt()}%",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontFeatureSettings = "tnum"
-                    ),
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
+/** Bottom sheet on phones, centered dialog on wide layouts. */
+@Composable
+private fun AdaptiveContainer(onDismiss: () -> Unit, content: @Composable () -> Unit) {
+    BoxWithConstraints {
+        if (maxWidth < 600.dp) {
+            ModalBottomSheet(
+                onDismissRequest = onDismiss,
+                sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+                containerColor = MaterialTheme.colorScheme.surface,
+            ) { content() }
+        } else {
+            Dialog(onDismissRequest = onDismiss) {
+                Surface(
+                    shape = RoundedCornerShape(24.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    modifier = Modifier.width(480.dp),
+                ) { content() }
             }
-            Spacer(modifier = Modifier.height(12.dp))
-            LinearProgressIndicator(
-                progress = { progress },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp)
-                    .clip(RoundedCornerShape(4.dp)),
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Saved $${currentAmount.toInt()} of $${targetAmount.toInt()}",
-                style = MaterialTheme.typography.bodySmall.copy(
-                    fontFeatureSettings = "tnum"
-                ),
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-            )
         }
     }
 }
