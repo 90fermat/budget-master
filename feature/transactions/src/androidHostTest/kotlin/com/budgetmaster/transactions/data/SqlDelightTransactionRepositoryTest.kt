@@ -2,6 +2,9 @@ package com.budgetmaster.transactions.data
 
 import com.budgetmaster.core.db.AppDataSeeder
 import com.budgetmaster.core.db.DefaultData
+import com.budgetmaster.core.session.ActiveAccountStore
+import com.budgetmaster.core.session.SessionStore
+import com.budgetmaster.transactions.InMemoryKeyValueStore
 import com.budgetmaster.transactions.TestDatabaseHelper
 import com.budgetmaster.transactions.domain.model.TransactionDraft
 import kotlinx.coroutines.flow.first
@@ -15,7 +18,12 @@ class SqlDelightTransactionRepositoryTest {
 
     private fun repository(): SqlDelightTransactionRepository {
         val provider = TestDatabaseHelper.createProvider()
-        return SqlDelightTransactionRepository(provider, AppDataSeeder(provider))
+        return SqlDelightTransactionRepository(
+            provider,
+            AppDataSeeder(provider),
+            SessionStore(),
+            ActiveAccountStore(InMemoryKeyValueStore()),
+        )
     }
 
     @Test

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
@@ -63,11 +64,19 @@ import com.budgetmaster.auth.presentation.onboarding.OnboardingScreen
 import com.budgetmaster.auth.presentation.onboarding.OnboardingViewModel
 import com.budgetmaster.auth.presentation.register.RegisterScreen
 import com.budgetmaster.auth.presentation.register.RegisterViewModel
+import com.budgetmaster.auth.domain.model.AuthStatus
+import com.budgetmaster.auth.domain.usecase.CheckAuthStatusUseCase
 import com.budgetmaster.auth.domain.usecase.SignOutUseCase
 import com.budgetmaster.auth.presentation.splash.SplashScreen
 import com.budgetmaster.auth.presentation.splash.SplashViewModel
+import com.budgetmaster.accounts.presentation.AccountsIntent
+import com.budgetmaster.accounts.presentation.AccountsScreen
+import com.budgetmaster.accounts.presentation.AccountsViewModel
+import com.budgetmaster.accounts.presentation.components.AccountSwitcher
 import com.budgetmaster.budgets.presentation.BudgetsScreen
 import com.budgetmaster.budgets.presentation.GoalsScreen
+import com.budgetmaster.core.db.DefaultData
+import com.budgetmaster.core.session.SessionStore
 import com.budgetmaster.core.designsystem.AppLogo
 import com.budgetmaster.core.designsystem.AppTheme
 import com.budgetmaster.core.designsystem.DarkModeSetting
@@ -100,9 +109,23 @@ fun App() {
     val settingsRepository = koinInject<AppSettingsRepository>()
     val settings by settingsRepository.settings.collectAsState(initial = AppSettings())
 
-    // Seed default account + categories once so every feature has data from the start.
+    // Bind the signed-in user as the data owner and seed their user row + first wallet.
+    // Feature repositories read SessionStore.currentUserId to scope their data per account.
     val seeder = koinInject<AppDataSeeder>()
-    LaunchedEffect(Unit) { seeder.seedIfNeeded() }
+    val sessionStore = koinInject<SessionStore>()
+    val checkAuthStatus = koinInject<CheckAuthStatusUseCase>()
+    LaunchedEffect(Unit) {
+        checkAuthStatus().collect { status ->
+            if (status is AuthStatus.Authenticated) {
+                sessionStore.setCurrentUser(status.user.id)
+                seeder.seedForUser(status.user.id, status.user.email)
+            } else {
+                // Not signed in: fall back to the local default user so the app stays usable.
+                sessionStore.setCurrentUser(null)
+                seeder.seedForUser(DefaultData.DEFAULT_USER_ID)
+            }
+        }
+    }
 
     val darkTheme = when (settings.darkMode) {
         DarkModeSetting.SYSTEM -> isSystemInDarkTheme()
@@ -145,7 +168,8 @@ private fun AppShell() {
         AuthRoute.Budgets::class.qualifiedName,
         AuthRoute.Goals::class.qualifiedName,
         AuthRoute.Reports::class.qualifiedName,
-        AuthRoute.Settings::class.qualifiedName
+        AuthRoute.Settings::class.qualifiedName,
+        AuthRoute.Accounts::class.qualifiedName
     )
 
     val isTabDestination = currentRoute in mainDestinations
@@ -205,7 +229,8 @@ private fun AppShell() {
                             .background(MaterialTheme.colorScheme.background),
                         contentAlignment = Alignment.TopCenter
                     ) {
-                        Box(modifier = Modifier.width(1200.dp)) {
+                        Column(modifier = Modifier.width(1200.dp)) {
+                            AccountScopeBar(navController)
                             MainNavGraph(navController = navController)
                         }
                     }
@@ -242,18 +267,20 @@ private fun AppShell() {
                         }
                         Spacer(modifier = Modifier.weight(1f))
                     }
-                    Box(
+                    Column(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
                             .background(MaterialTheme.colorScheme.background)
                     ) {
+                        AccountScopeBar(navController)
                         MainNavGraph(navController = navController)
                     }
                 }
             } else {
                 // Mobile Layout: Scaffold Content + Bottom Navigation Bar
                 Scaffold(
+                    topBar = { AccountScopeBar(navController) },
                     bottomBar = {
                         NavigationBar(
                             containerColor = MaterialTheme.colorScheme.surface
@@ -429,6 +456,10 @@ private fun MainNavGraph(navController: androidx.navigation.NavHostController) {
             ReportsScreen()
         }
 
+        composable<AuthRoute.Accounts> {
+            AccountsScreen()
+        }
+
         composable<AuthRoute.Settings> {
             val signOutUseCase = koinInject<SignOutUseCase>()
             val signOutScope = rememberCoroutineScope()
@@ -449,6 +480,28 @@ private fun MainNavGraph(navController: androidx.navigation.NavHostController) {
                         popUpTo(AuthRoute.Dashboard) { inclusive = true }
                     }
                 }
+            )
+        }
+    }
+}
+
+/**
+ * A slim bar hosting the global [AccountSwitcher], shown above the tab content on every
+ * form factor so switching the active wallet re-scopes the dashboard/transactions/reports.
+ */
+@Composable
+private fun AccountScopeBar(navController: androidx.navigation.NavHostController) {
+    val accountsViewModel: AccountsViewModel = koinViewModel()
+    val accountsState by accountsViewModel.state.collectAsState()
+    Surface(color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            AccountSwitcher(
+                state = accountsState,
+                onSelect = { accountsViewModel.onIntent(AccountsIntent.SelectActive(it)) },
+                onManage = { navController.navigate(AuthRoute.Accounts) },
             )
         }
     }

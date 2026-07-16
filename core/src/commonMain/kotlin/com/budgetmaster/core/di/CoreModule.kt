@@ -5,6 +5,8 @@ import com.budgetmaster.core.db.DatabaseDriverFactory
 import com.budgetmaster.core.db.DatabaseProvider
 import com.budgetmaster.core.prefs.AppSettingsRepository
 import com.budgetmaster.core.prefs.OnboardingPreferences
+import com.budgetmaster.core.session.ActiveAccountStore
+import com.budgetmaster.core.session.SessionStore
 import org.koin.core.module.Module
 import org.koin.dsl.module
 
@@ -17,6 +19,8 @@ val coreModule = module {
     single { AppDataSeeder(get()) }
     single { AppSettingsRepository(get()) }
     single { OnboardingPreferences(get()) }
+    single { SessionStore() }
+    single { ActiveAccountStore(get()) }
 }
 
 /**

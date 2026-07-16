@@ -18,7 +18,7 @@ import org.koin.dsl.module
 val dashboardModule = module {
     // Data & Service Layer
     single { GeminiInsightsService(get()) }
-    single<DashboardRepository> { SqlDelightDashboardRepository(get(), get()) }
+    single<DashboardRepository> { SqlDelightDashboardRepository(get(), get(), get()) }
 
     // Domain Use Cases — stateless, factory scoped
     factory { GetBalanceSummaryUseCase(get()) }

@@ -22,8 +22,8 @@ import org.koin.dsl.module
  * Koin module for the Budgets and Savings Goals feature.
  */
 val budgetsModule = module {
-    single { SqlDelightBudgetRepository(get(), get()) } bind BudgetRepository::class
-    single { SqlDelightGoalRepository(get(), get()) } bind GoalRepository::class
+    single { SqlDelightBudgetRepository(get(), get(), get()) } bind BudgetRepository::class
+    single { SqlDelightGoalRepository(get(), get(), get()) } bind GoalRepository::class
 
     // Budgets use cases
     factory { ObserveBudgetsUseCase(get()) }

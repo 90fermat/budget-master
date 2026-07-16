@@ -11,12 +11,13 @@
 
 | Feature | Domain | Data | MVI ViewModel | UI | Tests | Verdict |
 |---|---|---|---|---|---|---|
-| **Auth** | ✅ 12 use cases, typed `AuthError` | ✅ GitLive Firebase (Android/iOS) + Web local-only; `authStateChanged` | ✅ 6 ViewModels | ✅ 6 screens, **localized** EN/FR, animated splash | ✅ | **~90% — functional; per-account data scoping deferred** |
+| **Auth** | ✅ 12 use cases, typed `AuthError` | ✅ GitLive Firebase (Android/iOS) + Web local-only; `authStateChanged` | ✅ 6 ViewModels | ✅ 6 screens, **localized** EN/FR, animated splash | ✅ | **~90% — functional, data scoped to the signed-in uid; Google sign-in pending** |
 | **Dashboard** | ✅ 5 use cases, 6 models | ✅ SQLDelight + Gemini AI | ✅ Full MVI | ✅ Premium components + skeleton | ✅ Unit + Roborazzi | **~90% — reference implementation** |
 | **Transactions** | ✅ models, repo, 5 use cases | ✅ SqlDelight repo + first-launch seeding | ✅ Full MVI | ✅ Day-grouped list, search, filters, swipe+undo, editor | ✅ use-case/VM/repo | **~90% (was ~15%)** |
 | **Settings** | ✅ 6 use cases | ✅ DataStore/localStorage prefs | ✅ Full MVI | ✅ Theme/palette/language/currency, replay-intro | ➖ | **~85% (was ~20%)** |
 | **Budgets** | ✅ models, repo, 4 use cases | ✅ SqlDelight, **live spent** from transactions | ✅ Full MVI | ✅ Gauges, summary, create/edit/delete | ✅ repo | **~85% (was ~25%)** |
 | **Goals** | ✅ models, repo, 4 use cases | ✅ SqlDelight over SavingsGoalEntity | ✅ Full MVI | ✅ Progress cards, contribute, create/edit/delete | ✅ repo | **~85% (was ~10%)** |
+| **Accounts** | ✅ models, repo, 6 use cases | ✅ SqlDelight, **live balance** = opening + own transactions | ✅ Full MVI | ✅ Wallet list, net worth, global switcher, create/edit/archive/delete | ✅ repo (5) | **~85% (new)** |
 | **Reports** | ❌ | ❌ | ❌ | ⚠️ Static mockup | ❌ | **~15%** |
 
 **Design system:** ✅ done — `AppTheme` with **5 palettes** (incl. Material You Dynamic),
@@ -25,8 +26,9 @@ palette-independent `FinancialColors`. **Localization:** EN/FR across the shell,
 settings, and onboarding; the login/register/forgot screens are **now localized** too (EN/FR).
 **Auth backend:** ✅ **implemented** (Phase 1.6) — see §Authentication below.
 
-The SQLDelight schema (10 entities) still has unused tables (budgets, goals, recurring,
-exchange rates, notifications) — the next features consume them.
+The SQLDelight schema (10 entities) now has unused tables only for **recurring, exchange
+rates, and notifications** — the next features consume them. (`AccountEntity` gained an
+`isArchived` column in Phase 2.5.)
 
 ### Authentication status ✅ (Phase 1.6)
 
@@ -39,9 +41,11 @@ typed `AuthError` mapped to localized EN/FR copy; the password-visibility toggle
 **Remaining for auth:** (1) **iOS** needs, on macOS/Xcode, the Firebase iOS SDK added
 (SPM/Pods) and `FirebaseApp.configure()` called in `iOSApp.init()` before `initKoinIos()`
 — can't be built from the current Windows host. (2) The Firebase console must have the
-**Email/Password** provider enabled. (3) **Per-account data scoping** is deferred: the app
-still reads/writes the shared `default_user` seed regardless of who signs in; binding the
-signed-in uid as the data owner is tracked as a follow-up. (4) Google sign-in is optional/deferred.
+**Email/Password** provider enabled. (3) **Google sign-in** — next up, after the accounts
+foundation (Android/iOS only; Web stays local-only).
+
+Per-account data scoping — previously deferred here — is **done** in Phase 2.5 below: the
+signed-in uid is now the data owner.
 
 ### Architecture conformance (vs ARCHITECTURE.md)
 
@@ -293,6 +297,44 @@ wasm canvas).
   thread the currency into the transactions/dashboard screens (still default USD there);
   Notifications groundwork (budget-threshold → `NotificationEntity` + platform notify).
 
+### Phase 2.5 — Accounts foundation / multi-wallet (1 week) — **done**
+> One Firebase user owns **many** financial accounts (wallets), each with its own
+> income/expense, plus a consolidated view. The schema already modelled this
+> (`AccountEntity.userId` + `TransactionEntity.accountId`); this phase surfaces it and makes
+> the signed-in uid the data owner.
+
+- [x] **Identity binding** (closes the Phase 1.6 deferral): `AppDataSeeder.seedForUser(uid)`
+  is idempotent per user — creates the `UserEntity` row and a first **"Cash"** wallet. The
+  shared default categories stay global (`isDefault = 1`) under a system user. The
+  composition root observes auth state and seeds/binds on sign-in.
+- [x] **Session propagation**: new `core.session.SessionStore` exposes
+  `currentUserId: StateFlow<String?>`, written by the app root from the auth state and read
+  by every feature repository — so `:core` carries identity with no feature→feature edge.
+  Transactions/budgets/goals/dashboard now scope to the signed-in uid (falling back to the
+  local default user), re-querying reactively via `flatMapLatest` when the user changes.
+- [x] **Active-account scope**: new `core.session.ActiveAccountStore` persists the selected
+  wallet (`null` = **All accounts**) via `KeyValueStore`. Transactions observe the selected
+  wallet or all of the user's wallets, and new transactions are written to the active wallet.
+- [x] **`:feature:accounts` module**: `Account`/`AccountType`(CASH, CHECKING, SAVINGS,
+  CREDIT_CARD, INVESTMENT)/`AccountDraft`, `AccountRepository` + `SqlDelightAccountRepository`,
+  6 use cases, `AccountsViewModel` (MVI), and an Accounts screen with a **net-worth** header,
+  wallet cards, and create/edit/**archive**/delete (delete is behind a confirm dialog since it
+  cascades transactions). **Balance is derived** — `opening + Σ own transactions` — never
+  stored, so it can't drift (same rule as budgets' live `spent`).
+- [x] **Global switcher**: `AccountSwitcher` in a slim bar above the tab content on all three
+  form factors (mobile/tablet/desktop) — pick "All accounts", a wallet, or "Manage accounts".
+- [x] **Schema**: `AccountEntity.isArchived` column + `updateAccount` / `setAccountArchived` /
+  `selectActiveAccountsByUserId` / `countAccountsByUserId` queries, and a
+  `selectTransactionsByUser` join for per-user scoping.
+- [x] **Tests**: 5 account repository tests (seeded first wallet, live balance incl. isolation
+  between wallets, edit, archive/restore, delete). All existing suites still green.
+- [ ] **Deferred follow-ups:** per-entry account picker in the transaction editor (entries
+  currently land on the active wallet); **transfers** between wallets (linked pair, excluded
+  from income/expense); **multi-currency conversion** for net worth via the unused
+  `ExchangeRateEntity` (the overview flags mixed currencies as approximate today); scoping
+  the **dashboard** to the active wallet (it is user-scoped but still consolidated);
+  reconciliation ("set real balance" → adjustment entry).
+
 ### Phase 3 — Reports & recurring engine (1.5 weeks)
 - [ ] Reports: `ReportsViewModel`; monthly income/expense trends, category ring chart,
   period comparison — Vico on Android/iOS, existing Canvas fallback on Wasm; tabular
@@ -440,8 +482,10 @@ The app is "production-ready premium" when all of the following hold:
 | 0 | Design system + tooling foundation | 1–1.5 wk | ✅ done |
 | 1 | Transactions end-to-end | 1.5–2 wk | ✅ done |
 | 1.5 | Polish & premium identity (onboarding, logo, splash, palettes, rebrand) | 1–1.5 wk | ✅ done |
-| 1.6 | Real authentication (Firebase wiring) | 1–1.5 wk | ⬜ needs your Firebase config |
+| 1.6 | Real authentication (Firebase wiring) | 1–1.5 wk | ✅ done (iOS init + Google sign-in pending) |
 | 2 | Budgets / Goals / Settings on real data | 1.5 wk | ✅ done |
+| 2.5 | Accounts foundation / multi-wallet (uid binding, switcher, net worth) | 1 wk | ✅ done |
+| 2.6 | Google sign-in (Android/iOS) | 0.5 wk | ⬜ next |
 | 3 | Reports + recurring engine | 1.5 wk | ⬜ |
 | 4 | Motion & premium polish | 1–1.5 wk | ⬜ |
 | 5 | Localization | 0.5–1 wk | ⬜ |

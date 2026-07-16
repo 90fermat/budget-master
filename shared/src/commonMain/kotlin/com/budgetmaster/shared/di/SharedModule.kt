@@ -7,6 +7,7 @@ import com.budgetmaster.auth.di.platformAuthModule
 import com.budgetmaster.dashboard.di.dashboardModule
 import com.budgetmaster.transactions.di.transactionsModule
 import com.budgetmaster.budgets.di.budgetsModule
+import com.budgetmaster.accounts.di.accountsModule
 import com.budgetmaster.reports.di.reportsModule
 import com.budgetmaster.settings.di.settingsModule
 import org.koin.core.context.startKoin
@@ -35,6 +36,7 @@ fun initKoin(appDeclaration: KoinAppDeclaration = {}) = startKoin {
         dashboardModule,
         transactionsModule,
         budgetsModule,
+        accountsModule,
         reportsModule,
         settingsModule,
         sharedModule

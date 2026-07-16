@@ -78,4 +78,10 @@ sealed interface AuthRoute {
      */
     @Serializable
     data object Settings : AuthRoute
+
+    /**
+     * Route representing the Accounts (wallets) management screen.
+     */
+    @Serializable
+    data object Accounts : AuthRoute
 }

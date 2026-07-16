@@ -8,6 +8,7 @@ import com.budgetmaster.budgets.domain.model.BudgetDraft
 import com.budgetmaster.budgets.domain.model.BudgetStatus
 import com.budgetmaster.core.db.AppDataSeeder
 import com.budgetmaster.core.db.DatabaseProvider
+import com.budgetmaster.core.session.SessionStore
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlin.time.Clock
@@ -18,7 +19,7 @@ class SqlDelightBudgetRepositoryTest {
 
     private suspend fun setup(): Pair<SqlDelightBudgetRepository, DatabaseProvider> {
         val provider = TestDatabaseHelper.createProvider()
-        val repo = SqlDelightBudgetRepository(provider, AppDataSeeder(provider))
+        val repo = SqlDelightBudgetRepository(provider, AppDataSeeder(provider), SessionStore())
         // Trigger seeding of the default user/account/categories.
         repo.observeCategories().first()
         return repo to provider

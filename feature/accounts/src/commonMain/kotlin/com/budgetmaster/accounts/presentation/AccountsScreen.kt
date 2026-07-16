@@ -1,0 +1,178 @@
+package com.budgetmaster.accounts.presentation
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.AlertDialog
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import budgetmaster.core.generated.resources.Res
+import budgetmaster.core.generated.resources.accounts_add
+import budgetmaster.core.generated.resources.accounts_archived_section
+import budgetmaster.core.generated.resources.accounts_delete_confirm
+import budgetmaster.core.generated.resources.accounts_empty
+import budgetmaster.core.generated.resources.accounts_net_worth
+import budgetmaster.core.generated.resources.accounts_multi_currency_note
+import budgetmaster.core.generated.resources.accounts_title
+import budgetmaster.core.generated.resources.action_cancel
+import budgetmaster.core.generated.resources.action_delete
+import com.budgetmaster.accounts.presentation.components.AccountCard
+import com.budgetmaster.accounts.presentation.components.AddEditAccountForm
+import com.budgetmaster.core.util.MoneyFormatter
+import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.viewmodel.koinViewModel
+
+/** Accounts management screen: net-worth overview, wallet list, and create/edit/archive/delete. */
+@Composable
+fun AccountsScreen(viewModel: AccountsViewModel = koinViewModel()) {
+    val state by viewModel.state.collectAsState()
+    var pendingDelete by remember { mutableStateOf<String?>(null) }
+
+    Scaffold(
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                onClick = { viewModel.onIntent(AccountsIntent.OpenAdd) },
+                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                text = { Text(stringResource(Res.string.accounts_add)) },
+            )
+        },
+    ) { padding ->
+        val active = state.activeAccounts
+        val archived = state.accounts.filter { it.isArchived }
+
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(padding),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            item {
+                Text(
+                    stringResource(Res.string.accounts_title),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+            item { NetWorthCard(state) }
+
+            if (active.isEmpty() && archived.isEmpty()) {
+                item {
+                    Text(
+                        stringResource(Res.string.accounts_empty),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            items(active, key = { it.id }) { account ->
+                AccountCard(
+                    account = account,
+                    onEdit = { viewModel.onIntent(AccountsIntent.OpenEdit(account)) },
+                    onArchiveToggle = { viewModel.onIntent(AccountsIntent.SetArchived(account.id, true)) },
+                    onDelete = { pendingDelete = account.id },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+
+            if (archived.isNotEmpty()) {
+                item {
+                    Text(
+                        stringResource(Res.string.accounts_archived_section),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                items(archived, key = { it.id }) { account ->
+                    AccountCard(
+                        account = account,
+                        onEdit = { viewModel.onIntent(AccountsIntent.OpenEdit(account)) },
+                        onArchiveToggle = { viewModel.onIntent(AccountsIntent.SetArchived(account.id, false)) },
+                        onDelete = { pendingDelete = account.id },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+        }
+    }
+
+    if (state.editorOpen) {
+        AddEditAccountForm(
+            existing = state.editingAccount,
+            onSubmit = { viewModel.onIntent(AccountsIntent.Submit(it)) },
+            onDismiss = { viewModel.onIntent(AccountsIntent.DismissEditor) },
+        )
+    }
+
+    pendingDelete?.let { id ->
+        AlertDialog(
+            onDismissRequest = { pendingDelete = null },
+            text = { Text(stringResource(Res.string.accounts_delete_confirm)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.onIntent(AccountsIntent.Delete(id))
+                    pendingDelete = null
+                }) {
+                    Text(stringResource(Res.string.action_delete), color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDelete = null }) {
+                    Text(stringResource(Res.string.action_cancel))
+                }
+            },
+        )
+    }
+}
+
+@Composable
+private fun NetWorthCard(state: AccountsState) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+    ) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                stringResource(Res.string.accounts_net_worth),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+            Text(
+                MoneyFormatter.format(state.netWorth, state.primaryCurrency),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+            if (state.isMultiCurrency) {
+                Text(
+                    stringResource(Res.string.accounts_multi_currency_note),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+            }
+        }
+    }
+}

@@ -166,4 +166,28 @@
     <string name="nav_goals">Objectifs</string>
     <string name="nav_reports">Rapports</string>
     <string name="nav_settings">Paramètres</string>
+
+    <!-- Comptes (portefeuilles) -->
+    <string name="accounts_title">Comptes</string>
+    <string name="accounts_manage">Gérer les comptes</string>
+    <string name="accounts_add">Ajouter un compte</string>
+    <string name="accounts_edit">Modifier le compte</string>
+    <string name="accounts_all">Tous les comptes</string>
+    <string name="accounts_net_worth">Valeur nette</string>
+    <string name="accounts_multi_currency_note">Plusieurs devises — le total est approximatif.</string>
+    <string name="accounts_active_section">Actifs</string>
+    <string name="accounts_archived_section">Archivés</string>
+    <string name="accounts_empty">Aucun compte. Ajoutez votre premier portefeuille.</string>
+    <string name="accounts_name_label">Nom du compte</string>
+    <string name="accounts_type_label">Type</string>
+    <string name="accounts_opening_balance_label">Solde d\'ouverture</string>
+    <string name="accounts_currency_label">Devise</string>
+    <string name="accounts_archive">Archiver</string>
+    <string name="accounts_restore">Restaurer</string>
+    <string name="accounts_delete_confirm">Supprimer ce compte et toutes ses transactions ? Cette action est irréversible.</string>
+    <string name="account_type_cash">Espèces</string>
+    <string name="account_type_checking">Compte courant</string>
+    <string name="account_type_savings">Épargne</string>
+    <string name="account_type_credit_card">Carte de crédit</string>
+    <string name="account_type_investment">Investissement</string>
 </resources>

@@ -6,6 +6,7 @@ import com.budgetmaster.budgets.TestDatabaseHelper
 import com.budgetmaster.budgets.data.repository.SqlDelightGoalRepository
 import com.budgetmaster.budgets.domain.model.GoalDraft
 import com.budgetmaster.core.db.AppDataSeeder
+import com.budgetmaster.core.session.SessionStore
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlin.time.Clock
@@ -17,7 +18,7 @@ class SqlDelightGoalRepositoryTest {
 
     private fun repository(): SqlDelightGoalRepository {
         val provider = TestDatabaseHelper.createProvider()
-        return SqlDelightGoalRepository(provider, AppDataSeeder(provider))
+        return SqlDelightGoalRepository(provider, AppDataSeeder(provider), SessionStore())
     }
 
     @Test

@@ -6,9 +6,17 @@ package com.budgetmaster.core.db
  * `INSERT OR REPLACE`.
  */
 object DefaultData {
+    /**
+     * System user that owns the shared default categories (visible to every account via
+     * `isDefault = 1`). Also the fallback owner when nobody is signed in (tests, local mode
+     * before the session is bound).
+     */
     const val DEFAULT_USER_ID = "default_user"
     const val DEFAULT_ACCOUNT_ID = "default_account"
     const val DEFAULT_CURRENCY = "USD"
+
+    /** Deterministic id of the first "Cash" wallet seeded for a given user. */
+    fun firstAccountId(userId: String): String = "${userId}_cash"
 
     /** Default categories (id, display name, emoji, hex color). */
     val categories: List<SeedCategory> = listOf(

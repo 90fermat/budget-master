@@ -166,4 +166,28 @@
     <string name="nav_goals">Goals</string>
     <string name="nav_reports">Reports</string>
     <string name="nav_settings">Settings</string>
+
+    <!-- Accounts (wallets) -->
+    <string name="accounts_title">Accounts</string>
+    <string name="accounts_manage">Manage accounts</string>
+    <string name="accounts_add">Add account</string>
+    <string name="accounts_edit">Edit account</string>
+    <string name="accounts_all">All accounts</string>
+    <string name="accounts_net_worth">Net worth</string>
+    <string name="accounts_multi_currency_note">Across multiple currencies — total is approximate.</string>
+    <string name="accounts_active_section">Active</string>
+    <string name="accounts_archived_section">Archived</string>
+    <string name="accounts_empty">No accounts yet. Add your first wallet.</string>
+    <string name="accounts_name_label">Account name</string>
+    <string name="accounts_type_label">Type</string>
+    <string name="accounts_opening_balance_label">Opening balance</string>
+    <string name="accounts_currency_label">Currency</string>
+    <string name="accounts_archive">Archive</string>
+    <string name="accounts_restore">Restore</string>
+    <string name="accounts_delete_confirm">Delete this account and all its transactions? This can\'t be undone.</string>
+    <string name="account_type_cash">Cash</string>
+    <string name="account_type_checking">Checking</string>
+    <string name="account_type_savings">Savings</string>
+    <string name="account_type_credit_card">Credit card</string>
+    <string name="account_type_investment">Investment</string>
 </resources>

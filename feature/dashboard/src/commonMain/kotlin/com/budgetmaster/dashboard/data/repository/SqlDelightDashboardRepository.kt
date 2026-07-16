@@ -6,7 +6,9 @@ import app.cash.sqldelight.async.coroutines.awaitAsList
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import com.budgetmaster.core.db.DatabaseProvider
+import com.budgetmaster.core.db.DefaultData
 import com.budgetmaster.core.model.Transaction
+import com.budgetmaster.core.session.SessionStore
 import com.budgetmaster.dashboard.domain.model.BalanceSummary
 import com.budgetmaster.dashboard.domain.model.BalanceTrend
 import com.budgetmaster.dashboard.domain.model.BudgetProgress
@@ -37,17 +39,18 @@ import kotlin.time.Instant
 class SqlDelightDashboardRepository(
     private val databaseProvider: DatabaseProvider,
     private val geminiInsightsService: GeminiInsightsService,
+    private val sessionStore: SessionStore,
     private val dispatcher: CoroutineDispatcher = Dispatchers.Default
 ) : DashboardRepository {
 
-    private val defaultUserId = "default_user"
+    private fun userId(): String = sessionStore.currentUserId.value ?: DefaultData.DEFAULT_USER_ID
 
     override fun getBalanceSummary(period: Period): Flow<BalanceSummary> = flow {
         val db = databaseProvider.getDatabase()
         val queries = db.budgetMasterDatabaseQueries
 
         emitAll(
-            queries.selectAllTransactions()
+            queries.selectTransactionsByUser(userId())
                 .asFlow()
                 .mapToList(dispatcher)
                 .map { transactions ->
@@ -65,7 +68,7 @@ class SqlDelightDashboardRepository(
                     // Account balances are opening balances; the live total is that plus
                     // the signed sum of all transactions (single source of truth shared
                     // with the transactions feature).
-                    val accounts = queries.selectAccountsByUserId(defaultUserId).awaitAsList()
+                    val accounts = queries.selectAccountsByUserId(userId()).awaitAsList()
                     val openingBalance = accounts.sumOf { it.balance }
                     val totalBalance = openingBalance + transactions.sumOf { it.amount }
 
@@ -92,7 +95,7 @@ class SqlDelightDashboardRepository(
         val queries = db.budgetMasterDatabaseQueries
 
         emitAll(
-            queries.selectAllTransactions()
+            queries.selectTransactionsByUser(userId())
                 .asFlow()
                 .mapToList(dispatcher)
                 .map { transactions ->
@@ -135,11 +138,11 @@ class SqlDelightDashboardRepository(
         val nowMs = Clock.System.now().toEpochMilliseconds()
 
         emitAll(
-            queries.selectBudgetsByUserId(defaultUserId, nowMs, nowMs)
+            queries.selectBudgetsByUserId(userId(), nowMs, nowMs)
                 .asFlow()
                 .mapToList(dispatcher)
                 .map { budgets ->
-                    val categories = queries.selectCategoriesByUserId(defaultUserId).awaitAsList().associateBy { it.id }
+                    val categories = queries.selectCategoriesByUserId(userId()).awaitAsList().associateBy { it.id }
                     budgets.map { budget ->
                         val category = categories[budget.categoryId]
                         val percentage = if (budget.amount > 0.0) budget.spent / budget.amount else 0.0
@@ -168,7 +171,7 @@ class SqlDelightDashboardRepository(
         val queries = db.budgetMasterDatabaseQueries
 
         emitAll(
-            queries.selectAllTransactions()
+            queries.selectTransactionsByUser(userId())
                 .asFlow()
                 .mapToList(dispatcher)
                 .map { list ->

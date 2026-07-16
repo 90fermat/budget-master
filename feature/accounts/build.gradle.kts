@@ -3,12 +3,11 @@ plugins {
     alias(libs.plugins.android.kmp.library)
     alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.compose.compiler)
-    alias(libs.plugins.kotlin.serialization)
 }
 
 kotlin {
     android {
-        namespace = "com.budgetmaster.shared"
+        namespace = "com.budgetmaster.accounts"
         compileSdk = 37
         minSdk = 26
         compilerOptions {
@@ -20,38 +19,34 @@ kotlin {
         withHostTest {
         }
     }
-    
+
     listOf(
         iosArm64(),
         iosSimulatorArm64()
     ).forEach {
         it.binaries.framework {
-            baseName = "shared"
+            baseName = "accounts"
             isStatic = true
-            // Export dependencies to Swift if needed
-            export(project(":core"))
-            export(project(":feature:auth"))
         }
     }
-    
+
     @OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
     wasmJs {
         browser()
     }
-    
+
     applyDefaultHierarchyTemplate()
-    
+
     sourceSets {
         commonMain.dependencies {
             implementation(project(":core"))
-            implementation(project(":feature:auth"))
-            implementation(project(":feature:dashboard"))
-            implementation(project(":feature:transactions"))
-            implementation(project(":feature:budgets"))
-            implementation(project(":feature:accounts"))
-            implementation(project(":feature:reports"))
-            implementation(project(":feature:settings"))
-            
+            implementation(libs.kotlinx.datetime)
+            implementation(libs.kotlinx.coroutines.core)
+
+            // SQLDelight extensions
+            implementation(libs.sqldelight.runtime)
+            implementation(libs.sqldelight.coroutines)
+
             // Compose Multiplatform Core
             implementation(compose.runtime)
             implementation(compose.foundation)
@@ -59,45 +54,32 @@ kotlin {
             implementation(compose.materialIconsExtended)
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
-            
+
             // Koin DI
             implementation(libs.koin.core)
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.viewmodel)
-            
+
             // Navigation
             implementation(libs.navigation.compose)
-            
-            // Coroutines
-            implementation(libs.kotlinx.coroutines.core)
         }
-        
+
         androidMain.dependencies {
             implementation(compose.uiTooling)
             implementation(libs.koin.android)
-            implementation(project.dependencies.platform(libs.firebase.bom))
-            implementation(libs.firebase.common)
-            implementation(libs.firebase.firestore)
-            implementation(libs.firebase.auth)
-            
-            implementation(libs.vico.compose)
-            implementation(libs.vico.compose.m3)
-            implementation(libs.vico.core)
-            
-            // Android Biometrics support
-            implementation(libs.androidx.biometric)
         }
-        
-        iosMain.dependencies {
-            implementation(libs.firebase.common)
-            implementation(libs.firebase.firestore)
-            implementation(libs.firebase.auth)
-        }
-        
+
+        iosMain.dependencies {}
+
         commonTest.dependencies {
-            implementation(libs.kotest.assertions.core)
-            implementation(libs.kotest.framework.engine)
+            implementation(kotlin("test"))
+            implementation(libs.kotlinx.coroutines.test)
+        }
+
+        val androidHostTest by getting {
+            dependencies {
+                implementation(libs.sqldelight.driver.sqlite)
+            }
         }
     }
 }
-

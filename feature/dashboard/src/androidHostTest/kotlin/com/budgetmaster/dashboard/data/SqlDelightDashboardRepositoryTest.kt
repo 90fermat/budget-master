@@ -7,6 +7,7 @@ import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import com.budgetmaster.core.db.BudgetMasterDatabase
 import com.budgetmaster.core.db.DatabaseProvider
 import com.budgetmaster.core.model.Transaction
+import com.budgetmaster.core.session.SessionStore
 import com.budgetmaster.dashboard.data.repository.SqlDelightDashboardRepository
 import com.budgetmaster.dashboard.data.service.GeminiInsightsService
 import com.budgetmaster.dashboard.domain.model.BalanceSummary
@@ -32,7 +33,7 @@ class SqlDelightDashboardRepositoryTest {
         database = TestDatabaseHelper.createInMemoryDatabase()
         databaseProvider = DatabaseProvider(database)
         mockInsightsService = GeminiInsightsService(databaseProvider, apiKeyProvider = { "" })
-        repository = SqlDelightDashboardRepository(databaseProvider, mockInsightsService)
+        repository = SqlDelightDashboardRepository(databaseProvider, mockInsightsService, SessionStore())
     }
 
     @Test
@@ -45,7 +46,7 @@ class SqlDelightDashboardRepositoryTest {
 
         // Setup foreign keys to avoid SQLite constraint violations
         queries.insertUser(userId, "Test User", "test@test.com", "USD", now)
-        queries.insertAccount(accountId, userId, "Checking", "CHECKING", 1500.0, "USD", now)
+        queries.insertAccount(accountId, userId, "Checking", "CHECKING", 1500.0, "USD", now, 0)
         queries.insertCategory(categoryId, userId, "Food", "🍔", "#FF0000", 1)
 
         // Insert transactions within the last 30 days
@@ -101,7 +102,7 @@ class SqlDelightDashboardRepositoryTest {
         val categoryId = "cat_1"
 
         queries.insertUser(userId, "Test User", "test@test.com", "USD", now)
-        queries.insertAccount(accountId, userId, "Checking", "CHECKING", 1500.0, "USD", now)
+        queries.insertAccount(accountId, userId, "Checking", "CHECKING", 1500.0, "USD", now, 0)
         queries.insertCategory(categoryId, userId, "Food", "🍔", "#FF0000", 1)
 
         queries.insertTransaction("tx_to_delete", accountId, categoryId, -25.0, "Burger", now, null, null, 0)
