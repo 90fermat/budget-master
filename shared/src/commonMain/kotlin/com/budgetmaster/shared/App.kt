@@ -31,6 +31,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -71,6 +72,7 @@ import com.budgetmaster.core.designsystem.DarkModeSetting
 import com.budgetmaster.core.localization.LocalAppLocale
 import com.budgetmaster.core.navigation.AuthRoute
 import com.budgetmaster.core.prefs.AppSettings
+import com.budgetmaster.core.db.AppDataSeeder
 import com.budgetmaster.core.prefs.AppSettingsRepository
 import com.budgetmaster.dashboard.presentation.DashboardScreen
 import com.budgetmaster.reports.presentation.ReportsScreen
@@ -94,6 +96,10 @@ import org.koin.compose.viewmodel.koinViewModel
 fun App() {
     val settingsRepository = koinInject<AppSettingsRepository>()
     val settings by settingsRepository.settings.collectAsState(initial = AppSettings())
+
+    // Seed default account + categories once so every feature has data from the start.
+    val seeder = koinInject<AppDataSeeder>()
+    LaunchedEffect(Unit) { seeder.seedIfNeeded() }
 
     val darkTheme = when (settings.darkMode) {
         DarkModeSetting.SYSTEM -> isSystemInDarkTheme()

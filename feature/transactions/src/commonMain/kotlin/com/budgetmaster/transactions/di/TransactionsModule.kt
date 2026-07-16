@@ -16,7 +16,7 @@ import org.koin.dsl.module
  * Koin module for the Transactions feature.
  */
 val transactionsModule = module {
-    single { SqlDelightTransactionRepository(get()) } bind TransactionRepository::class
+    single { SqlDelightTransactionRepository(get(), get()) } bind TransactionRepository::class
 
     factory { ObserveTransactionsUseCase(get()) }
     factory { ObserveCategoriesUseCase(get()) }

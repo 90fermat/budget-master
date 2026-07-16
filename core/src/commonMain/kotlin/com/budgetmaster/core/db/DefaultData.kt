@@ -1,18 +1,16 @@
-package com.budgetmaster.transactions.data
+package com.budgetmaster.core.db
 
 /**
- * First-launch seed data: a single default user + account, and the default
- * category set. IDs are stable so re-seeding is idempotent via `INSERT OR REPLACE`.
- *
- * The [DEFAULT_USER_ID] matches the id used by the dashboard repository so both
- * features operate on the same account.
+ * The single source of first-launch seed data shared by every feature (transactions,
+ * budgets, goals, dashboard). IDs are stable so re-seeding is idempotent via
+ * `INSERT OR REPLACE`.
  */
-internal object DefaultSeed {
+object DefaultData {
     const val DEFAULT_USER_ID = "default_user"
     const val DEFAULT_ACCOUNT_ID = "default_account"
     const val DEFAULT_CURRENCY = "USD"
 
-    /** (id, name, emoji, colorHex). */
+    /** Default categories (id, display name, emoji, hex color). */
     val categories: List<SeedCategory> = listOf(
         SeedCategory("cat_food", "Food & Dining", "🍔", "#F59E0B"),
         SeedCategory("cat_groceries", "Groceries", "🛒", "#10B981"),
@@ -27,7 +25,8 @@ internal object DefaultSeed {
     )
 }
 
-internal data class SeedCategory(
+/** A default category to seed. */
+data class SeedCategory(
     val id: String,
     val name: String,
     val icon: String,

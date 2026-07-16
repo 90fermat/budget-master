@@ -1,5 +1,7 @@
 package com.budgetmaster.transactions.data
 
+import com.budgetmaster.core.db.AppDataSeeder
+import com.budgetmaster.core.db.DefaultData
 import com.budgetmaster.transactions.TestDatabaseHelper
 import com.budgetmaster.transactions.domain.model.TransactionDraft
 import kotlinx.coroutines.flow.first
@@ -11,13 +13,16 @@ import kotlin.test.assertTrue
 
 class SqlDelightTransactionRepositoryTest {
 
-    private fun repository() = SqlDelightTransactionRepository(TestDatabaseHelper.createProvider())
+    private fun repository(): SqlDelightTransactionRepository {
+        val provider = TestDatabaseHelper.createProvider()
+        return SqlDelightTransactionRepository(provider, AppDataSeeder(provider))
+    }
 
     @Test
     fun seedsDefaultCategoriesOnFirstRead() = runTest {
         val repo = repository()
         val categories = repo.observeCategories().first()
-        assertEquals(DefaultSeed.categories.size, categories.size)
+        assertEquals(DefaultData.categories.size, categories.size)
         assertTrue(categories.any { it.name == "Food & Dining" })
     }
 
