@@ -1,5 +1,6 @@
 package com.budgetmaster.transactions.domain.usecase
 
+import com.budgetmaster.transactions.domain.model.TransactionAccount
 import com.budgetmaster.transactions.domain.model.TransactionCategory
 import com.budgetmaster.transactions.domain.model.TransactionDraft
 import com.budgetmaster.transactions.domain.model.TransactionItem
@@ -9,6 +10,11 @@ import kotlinx.coroutines.flow.Flow
 /** Observes the available categories for the picker and filter chips. */
 class ObserveCategoriesUseCase(private val repository: TransactionRepository) {
     operator fun invoke(): Flow<List<TransactionCategory>> = repository.observeCategories()
+}
+
+/** Observes the user's active wallets for the editor's account picker. */
+class ObserveTransactionAccountsUseCase(private val repository: TransactionRepository) {
+    operator fun invoke(): Flow<List<TransactionAccount>> = repository.observeAccounts()
 }
 
 /** Validates and saves a new or edited transaction. */

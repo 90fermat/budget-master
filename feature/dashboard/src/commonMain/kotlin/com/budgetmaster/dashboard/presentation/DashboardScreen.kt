@@ -177,7 +177,7 @@ private fun DashboardScrollableBody(
 
         // ── Balance Card ───────────────────────────────────────────────────
         if (state.balance != null) {
-            BalanceCard(balanceSummary = state.balance)
+            BalanceCard(balanceSummary = state.balance, currencyCode = state.currencyCode)
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -229,13 +229,14 @@ private fun DashboardScrollableBody(
         Spacer(modifier = Modifier.height(28.dp))
 
         // ── Budget Progress List ───────────────────────────────────────────
-        BudgetProgressList(budgets = state.budgets)
+        BudgetProgressList(budgets = state.budgets, currencyCode = state.currencyCode)
 
         Spacer(modifier = Modifier.height(28.dp))
 
         // ── Top Transactions List ──────────────────────────────────────────
         TopTransactionsList(
             transactions = state.topTransactions,
+            currencyCode = state.currencyCode,
             onTransactionSwiped = { onIntent(DashboardIntent.TransactionSwiped(it)) },
             onViewAllClicked = onViewAllTransactions
         )

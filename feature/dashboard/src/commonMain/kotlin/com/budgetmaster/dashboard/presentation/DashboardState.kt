@@ -30,5 +30,7 @@ data class DashboardState(
     val topTransactions: List<Transaction> = emptyList(),
     val insights: InsightsState = InsightsState.Loading,
     val selectedPeriod: Period = Period.MONTH,
-    val error: String? = null
+    val error: String? = null,
+    /** ISO currency from the user's settings, used to format every amount on the screen. */
+    val currencyCode: String = "USD"
 )

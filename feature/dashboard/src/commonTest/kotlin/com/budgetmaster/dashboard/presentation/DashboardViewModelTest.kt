@@ -3,6 +3,8 @@
 package com.budgetmaster.dashboard.presentation
 
 import com.budgetmaster.core.model.Transaction
+import com.budgetmaster.core.prefs.AppSettingsRepository
+import com.budgetmaster.dashboard.InMemoryKeyValueStore
 import com.budgetmaster.dashboard.domain.model.BalanceSummary
 import com.budgetmaster.dashboard.domain.model.BalanceTrend
 import com.budgetmaster.dashboard.domain.model.BudgetProgress
@@ -176,7 +178,8 @@ class DashboardViewModelTest {
             getChartData = getChartDataUseCase,
             getBudgetProgress = getBudgetProgressUseCase,
             getTopTransactions = getTopTransactionsUseCase,
-            getAiInsights = getAiInsightsUseCase
+            getAiInsights = getAiInsightsUseCase,
+            settingsRepository = AppSettingsRepository(InMemoryKeyValueStore())
         )
     }
 

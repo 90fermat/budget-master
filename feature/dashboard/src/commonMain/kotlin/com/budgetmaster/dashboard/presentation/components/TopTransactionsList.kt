@@ -75,6 +75,7 @@ fun formatTimestamp(timestamp: Long): String {
 @Composable
 fun TopTransactionsList(
     transactions: List<Transaction>,
+    currencyCode: String,
     onTransactionSwiped: (String) -> Unit,
     onViewAllClicked: () -> Unit,
     modifier: Modifier = Modifier
@@ -131,6 +132,7 @@ fun TopTransactionsList(
                     ) { transaction ->
                         DismissibleTransactionItem(
                             transaction = transaction,
+                            currencyCode = currencyCode,
                             onSwiped = onTransactionSwiped
                         )
                     }
@@ -163,6 +165,7 @@ fun TopTransactionsList(
 @Composable
 fun DismissibleTransactionItem(
     transaction: Transaction,
+    currencyCode: String,
     onSwiped: (String) -> Unit
 ) {
     val currentOnSwiped by rememberUpdatedState(onSwiped)
@@ -263,7 +266,7 @@ fun DismissibleTransactionItem(
                     }
 
                     Text(
-                        text = (if (isExpense) "-" else "+") + formatCurrency(absAmount),
+                        text = (if (isExpense) "-" else "+") + formatCurrency(absAmount, currencyCode),
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontFeatureSettings = "tnum"
                         ),
@@ -290,6 +293,7 @@ fun TopTransactionsListPreview() {
         Box(modifier = Modifier.padding(16.dp)) {
             TopTransactionsList(
                 transactions = sampleTransactions,
+                currencyCode = "USD",
                 onTransactionSwiped = {},
                 onViewAllClicked = {}
             )

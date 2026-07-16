@@ -7,7 +7,9 @@ import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import com.budgetmaster.core.db.BudgetMasterDatabase
 import com.budgetmaster.core.db.DatabaseProvider
 import com.budgetmaster.core.model.Transaction
+import com.budgetmaster.core.session.ActiveAccountStore
 import com.budgetmaster.core.session.SessionStore
+import com.budgetmaster.dashboard.InMemoryKeyValueStore
 import com.budgetmaster.dashboard.data.repository.SqlDelightDashboardRepository
 import com.budgetmaster.dashboard.data.service.GeminiInsightsService
 import com.budgetmaster.dashboard.domain.model.BalanceSummary
@@ -33,7 +35,12 @@ class SqlDelightDashboardRepositoryTest {
         database = TestDatabaseHelper.createInMemoryDatabase()
         databaseProvider = DatabaseProvider(database)
         mockInsightsService = GeminiInsightsService(databaseProvider, apiKeyProvider = { "" })
-        repository = SqlDelightDashboardRepository(databaseProvider, mockInsightsService, SessionStore())
+        repository = SqlDelightDashboardRepository(
+            databaseProvider,
+            mockInsightsService,
+            SessionStore(),
+            ActiveAccountStore(InMemoryKeyValueStore()),
+        )
     }
 
     @Test

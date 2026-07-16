@@ -30,6 +30,7 @@ import com.budgetmaster.dashboard.domain.model.BudgetStatus
 @Composable
 fun BudgetProgressList(
     budgets: List<BudgetProgress>,
+    currencyCode: String,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -77,7 +78,7 @@ fun BudgetProgressList(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     budgets.forEach { budget ->
-                        BudgetProgressItem(budget = budget)
+                        BudgetProgressItem(budget = budget, currencyCode = currencyCode)
                     }
                 }
             }
@@ -96,6 +97,7 @@ fun BudgetProgressList(
 @Composable
 fun BudgetProgressItem(
     budget: BudgetProgress,
+    currencyCode: String,
     modifier: Modifier = Modifier
 ) {
     val animatedProgress by animateFloatAsState(
@@ -146,7 +148,7 @@ fun BudgetProgressItem(
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
-                    text = "${formatCurrency(budget.spent)} of ${formatCurrency(budget.limit)}",
+                    text = "${formatCurrency(budget.spent, currencyCode)} of ${formatCurrency(budget.limit, currencyCode)}",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
                     color = if (isOverBudget) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
@@ -178,7 +180,7 @@ fun BudgetProgressListPreview() {
 
     MaterialTheme {
         Box(modifier = Modifier.padding(16.dp)) {
-            BudgetProgressList(budgets = sampleBudgets)
+            BudgetProgressList(budgets = sampleBudgets, currencyCode = "USD")
         }
     }
 }

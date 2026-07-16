@@ -11,6 +11,8 @@ package com.budgetmaster.transactions.domain.model
  * @property timestamp Epoch-millisecond time the transaction occurred.
  * @property category Resolved category, or `null` if uncategorized.
  * @property notes Optional free-text note.
+ * @property accountId The wallet this entry belongs to.
+ * @property isRecurring Whether the entry is flagged as recurring.
  */
 data class TransactionItem(
     val id: String,
@@ -19,6 +21,8 @@ data class TransactionItem(
     val timestamp: Long,
     val category: TransactionCategory?,
     val notes: String?,
+    val accountId: String = "",
+    val isRecurring: Boolean = false,
 ) {
     /** True when this transaction is an outflow. */
     val isExpense: Boolean get() = amount < 0

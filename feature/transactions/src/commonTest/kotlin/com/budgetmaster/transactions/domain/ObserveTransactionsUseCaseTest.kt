@@ -1,5 +1,6 @@
 package com.budgetmaster.transactions.domain
 
+import com.budgetmaster.transactions.domain.model.TransactionAccount
 import com.budgetmaster.transactions.domain.model.TransactionCategory
 import com.budgetmaster.transactions.domain.model.TransactionDraft
 import com.budgetmaster.transactions.domain.model.TransactionFilter
@@ -28,6 +29,7 @@ class ObserveTransactionsUseCaseTest {
     private val repository = object : TransactionRepository {
         override fun observeTransactions(): Flow<List<TransactionItem>> = flowOf(items)
         override fun observeCategories() = flowOf(listOf(food, salary))
+        override fun observeAccounts() = flowOf(emptyList<TransactionAccount>())
         override suspend fun upsertTransaction(draft: TransactionDraft) = error("unused")
         override suspend fun deleteTransaction(id: String) = Unit
         override suspend fun restoreTransaction(item: TransactionItem) = Unit

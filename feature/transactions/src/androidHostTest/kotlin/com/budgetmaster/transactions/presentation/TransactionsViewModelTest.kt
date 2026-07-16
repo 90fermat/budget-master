@@ -2,12 +2,17 @@
 
 package com.budgetmaster.transactions.presentation
 
+import com.budgetmaster.core.prefs.AppSettingsRepository
+import com.budgetmaster.core.session.ActiveAccountStore
+import com.budgetmaster.transactions.InMemoryKeyValueStore
+import com.budgetmaster.transactions.domain.model.TransactionAccount
 import com.budgetmaster.transactions.domain.model.TransactionCategory
 import com.budgetmaster.transactions.domain.model.TransactionDraft
 import com.budgetmaster.transactions.domain.model.TransactionItem
 import com.budgetmaster.transactions.domain.repository.TransactionRepository
 import com.budgetmaster.transactions.domain.usecase.DeleteTransactionUseCase
 import com.budgetmaster.transactions.domain.usecase.ObserveCategoriesUseCase
+import com.budgetmaster.transactions.domain.usecase.ObserveTransactionAccountsUseCase
 import com.budgetmaster.transactions.domain.usecase.ObserveTransactionsUseCase
 import com.budgetmaster.transactions.domain.usecase.RestoreTransactionUseCase
 import com.budgetmaster.transactions.domain.usecase.SaveTransactionUseCase
@@ -42,6 +47,7 @@ class TransactionsViewModelTest {
     private val repository = object : TransactionRepository {
         override fun observeTransactions(): Flow<List<TransactionItem>> = transactions
         override fun observeCategories() = flowOf(listOf(food))
+        override fun observeAccounts() = flowOf(listOf(TransactionAccount("acc1", "Cash", "USD")))
         var deleted: String? = null
         var restored: TransactionItem? = null
         override suspend fun upsertTransaction(draft: TransactionDraft) =
@@ -53,6 +59,9 @@ class TransactionsViewModelTest {
     private fun viewModel() = TransactionsViewModel(
         observeTransactions = ObserveTransactionsUseCase(repository),
         observeCategories = ObserveCategoriesUseCase(repository),
+        observeAccounts = ObserveTransactionAccountsUseCase(repository),
+        settingsRepository = AppSettingsRepository(InMemoryKeyValueStore()),
+        activeAccountStore = ActiveAccountStore(InMemoryKeyValueStore()),
         saveTransaction = SaveTransactionUseCase(repository),
         deleteTransaction = DeleteTransactionUseCase(repository),
         restoreTransaction = RestoreTransactionUseCase(repository),

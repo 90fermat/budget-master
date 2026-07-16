@@ -105,6 +105,11 @@
     <string name="action_save">Save</string>
     <string name="action_cancel">Cancel</string>
     <string name="action_delete">Delete</string>
+    <string name="action_ok">OK</string>
+    <string name="transactions_date_label">Date</string>
+    <string name="transactions_account_label">Account</string>
+    <string name="transactions_recurring_label">Repeats</string>
+    <string name="transactions_recurring_hint">Marks this entry as recurring.</string>
 
     <!-- Budgets Strings -->
     <string name="budgets_title">Budgets</string>

@@ -1,6 +1,7 @@
 package com.budgetmaster.transactions.presentation
 
 import com.budgetmaster.core.util.RelativeDay
+import com.budgetmaster.transactions.domain.model.TransactionAccount
 import com.budgetmaster.transactions.domain.model.TransactionCategory
 import com.budgetmaster.transactions.domain.model.TransactionDraft
 import com.budgetmaster.transactions.domain.model.TransactionItem
@@ -57,6 +58,9 @@ data class EditorState(
  * @property categoryFilterId Active category filter, or null for all.
  * @property typeFilter Active income/expense/all filter.
  * @property currencyCode ISO currency for formatting amounts.
+ * @property accounts The user's active wallets, for the editor's account picker.
+ * @property activeAccountId The wallet the app is scoped to (`null` = All accounts); used to
+ *   preselect the account for a new entry.
  * @property editor Editor sheet state.
  * @property isEmpty True when there are no transactions matching the filter.
  */
@@ -68,6 +72,8 @@ data class TransactionsState(
     val categoryFilterId: String? = null,
     val typeFilter: TypeFilter = TypeFilter.ALL,
     val currencyCode: String = "USD",
+    val accounts: List<TransactionAccount> = emptyList(),
+    val activeAccountId: String? = null,
     val editor: EditorState = EditorState(),
 ) {
     val isEmpty: Boolean get() = !isLoading && groups.isEmpty()

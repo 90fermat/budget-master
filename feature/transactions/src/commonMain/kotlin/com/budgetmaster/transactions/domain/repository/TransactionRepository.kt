@@ -1,5 +1,6 @@
 package com.budgetmaster.transactions.domain.repository
 
+import com.budgetmaster.transactions.domain.model.TransactionAccount
 import com.budgetmaster.transactions.domain.model.TransactionCategory
 import com.budgetmaster.transactions.domain.model.TransactionDraft
 import com.budgetmaster.transactions.domain.model.TransactionItem
@@ -17,6 +18,9 @@ interface TransactionRepository {
 
     /** Observes the available categories (default + user-defined). */
     fun observeCategories(): Flow<List<TransactionCategory>>
+
+    /** Observes the current user's active (non-archived) wallets, for the account picker. */
+    fun observeAccounts(): Flow<List<TransactionAccount>>
 
     /** Inserts or updates a transaction from [draft]; returns the persisted item. */
     suspend fun upsertTransaction(draft: TransactionDraft): TransactionItem

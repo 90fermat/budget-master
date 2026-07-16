@@ -255,6 +255,8 @@ private fun TransactionEditor(state: TransactionsState, viewModel: TransactionsV
             AddEditTransactionForm(
                 editing = state.editor.editing,
                 categories = state.categories,
+                accounts = state.accounts,
+                activeAccountId = state.activeAccountId,
                 onSave = { viewModel.onIntent(TransactionsIntent.SaveTransaction(it)) },
                 onCancel = { viewModel.onIntent(TransactionsIntent.EditorDismissed) },
             )

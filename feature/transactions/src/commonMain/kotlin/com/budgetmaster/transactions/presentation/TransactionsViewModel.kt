@@ -4,14 +4,18 @@ package com.budgetmaster.transactions.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.budgetmaster.core.prefs.AppSettingsRepository
+import com.budgetmaster.core.session.ActiveAccountStore
 import com.budgetmaster.core.util.DateUtils
 import com.budgetmaster.transactions.domain.model.TransactionFilter
 import com.budgetmaster.transactions.domain.model.TransactionItem
 import com.budgetmaster.transactions.domain.usecase.DeleteTransactionUseCase
 import com.budgetmaster.transactions.domain.usecase.ObserveCategoriesUseCase
+import com.budgetmaster.transactions.domain.usecase.ObserveTransactionAccountsUseCase
 import com.budgetmaster.transactions.domain.usecase.ObserveTransactionsUseCase
 import com.budgetmaster.transactions.domain.usecase.RestoreTransactionUseCase
 import com.budgetmaster.transactions.domain.usecase.SaveTransactionUseCase
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,6 +41,9 @@ import kotlin.time.ExperimentalTime
 class TransactionsViewModel(
     private val observeTransactions: ObserveTransactionsUseCase,
     observeCategories: ObserveCategoriesUseCase,
+    observeAccounts: ObserveTransactionAccountsUseCase,
+    settingsRepository: AppSettingsRepository,
+    activeAccountStore: ActiveAccountStore,
     private val saveTransaction: SaveTransactionUseCase,
     private val deleteTransaction: DeleteTransactionUseCase,
     private val restoreTransaction: RestoreTransactionUseCase,
@@ -56,6 +63,19 @@ class TransactionsViewModel(
     init {
         observeCategories()
             .onEach { categories -> _state.update { it.copy(categories = categories) } }
+            .launchIn(viewModelScope)
+
+        observeAccounts()
+            .onEach { accounts -> _state.update { it.copy(accounts = accounts) } }
+            .launchIn(viewModelScope)
+
+        settingsRepository.settings
+            .map { it.currency }
+            .onEach { currency -> _state.update { it.copy(currencyCode = currency) } }
+            .launchIn(viewModelScope)
+
+        activeAccountStore.activeAccountId
+            .onEach { id -> _state.update { it.copy(activeAccountId = id) } }
             .launchIn(viewModelScope)
 
         filter

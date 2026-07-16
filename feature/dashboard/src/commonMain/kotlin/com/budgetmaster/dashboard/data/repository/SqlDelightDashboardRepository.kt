@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalTime::class)
+@file:OptIn(ExperimentalTime::class, ExperimentalCoroutinesApi::class)
 
 package com.budgetmaster.dashboard.data.repository
 
@@ -8,6 +8,7 @@ import app.cash.sqldelight.coroutines.mapToList
 import com.budgetmaster.core.db.DatabaseProvider
 import com.budgetmaster.core.db.DefaultData
 import com.budgetmaster.core.model.Transaction
+import com.budgetmaster.core.session.ActiveAccountStore
 import com.budgetmaster.core.session.SessionStore
 import com.budgetmaster.dashboard.domain.model.BalanceSummary
 import com.budgetmaster.dashboard.domain.model.BalanceTrend
@@ -20,8 +21,10 @@ import com.budgetmaster.dashboard.domain.repository.DashboardRepository
 import com.budgetmaster.dashboard.data.service.GeminiInsightsService
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
@@ -40,17 +43,29 @@ class SqlDelightDashboardRepository(
     private val databaseProvider: DatabaseProvider,
     private val geminiInsightsService: GeminiInsightsService,
     private val sessionStore: SessionStore,
+    private val activeAccountStore: ActiveAccountStore,
     private val dispatcher: CoroutineDispatcher = Dispatchers.Default
 ) : DashboardRepository {
 
     private fun userId(): String = sessionStore.currentUserId.value ?: DefaultData.DEFAULT_USER_ID
 
-    override fun getBalanceSummary(period: Period): Flow<BalanceSummary> = flow {
+    /**
+     * Transactions in scope: the active wallet when one is selected, otherwise every wallet
+     * the current user owns ("All accounts").
+     */
+    private suspend fun transactionsInScope(activeAccountId: String?) =
+        databaseProvider.getDatabase().budgetMasterDatabaseQueries.let { q ->
+            if (activeAccountId != null) q.selectTransactionsByAccount(activeAccountId)
+            else q.selectTransactionsByUser(userId())
+        }
+
+    override fun getBalanceSummary(period: Period): Flow<BalanceSummary> =
+        activeAccountStore.activeAccountId.flatMapLatest { activeAccountId -> flow {
         val db = databaseProvider.getDatabase()
         val queries = db.budgetMasterDatabaseQueries
 
         emitAll(
-            queries.selectTransactionsByUser(userId())
+            transactionsInScope(activeAccountId)
                 .asFlow()
                 .mapToList(dispatcher)
                 .map { transactions ->
@@ -66,9 +81,10 @@ class SqlDelightDashboardRepository(
                         .sumOf { kotlin.math.abs(it.amount) }
 
                     // Account balances are opening balances; the live total is that plus
-                    // the signed sum of all transactions (single source of truth shared
-                    // with the transactions feature).
+                    // the signed sum of the transactions in scope (single source of truth
+                    // shared with the transactions/accounts features).
                     val accounts = queries.selectAccountsByUserId(userId()).awaitAsList()
+                        .filter { activeAccountId == null || it.id == activeAccountId }
                     val openingBalance = accounts.sumOf { it.balance }
                     val totalBalance = openingBalance + transactions.sumOf { it.amount }
 
@@ -88,14 +104,12 @@ class SqlDelightDashboardRepository(
                     )
                 }
         )
-    }
+    } }
 
-    override fun getChartData(period: Period): Flow<List<ChartPoint>> = flow {
-        val db = databaseProvider.getDatabase()
-        val queries = db.budgetMasterDatabaseQueries
-
+    override fun getChartData(period: Period): Flow<List<ChartPoint>> =
+        activeAccountStore.activeAccountId.flatMapLatest { activeAccountId -> flow {
         emitAll(
-            queries.selectTransactionsByUser(userId())
+            transactionsInScope(activeAccountId)
                 .asFlow()
                 .mapToList(dispatcher)
                 .map { transactions ->
@@ -130,7 +144,7 @@ class SqlDelightDashboardRepository(
                     }
                 }
         )
-    }
+    } }
 
     override fun getBudgetProgress(): Flow<List<BudgetProgress>> = flow {
         val db = databaseProvider.getDatabase()
@@ -166,12 +180,10 @@ class SqlDelightDashboardRepository(
         )
     }
 
-    override fun getTopTransactions(limit: Int): Flow<List<Transaction>> = flow {
-        val db = databaseProvider.getDatabase()
-        val queries = db.budgetMasterDatabaseQueries
-
+    override fun getTopTransactions(limit: Int): Flow<List<Transaction>> =
+        activeAccountStore.activeAccountId.flatMapLatest { activeAccountId -> flow {
         emitAll(
-            queries.selectTransactionsByUser(userId())
+            transactionsInScope(activeAccountId)
                 .asFlow()
                 .mapToList(dispatcher)
                 .map { list ->
@@ -186,7 +198,7 @@ class SqlDelightDashboardRepository(
                     }
                 }
         )
-    }
+    } }
 
     override suspend fun getAiInsights(forceRefresh: Boolean): Result<List<Insight>> {
         return runCatching {

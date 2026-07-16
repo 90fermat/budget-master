@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalTime::class, ExperimentalLayoutApi::class)
+@file:OptIn(ExperimentalTime::class, ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 
 package com.budgetmaster.transactions.presentation.components
 
@@ -15,11 +15,17 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -30,18 +36,25 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import budgetmaster.core.generated.resources.Res
+import budgetmaster.core.generated.resources.action_cancel
+import budgetmaster.core.generated.resources.action_ok
+import budgetmaster.core.generated.resources.transactions_account_label
 import budgetmaster.core.generated.resources.transactions_add_title
 import budgetmaster.core.generated.resources.transactions_amount_label
 import budgetmaster.core.generated.resources.transactions_cancel
 import budgetmaster.core.generated.resources.transactions_category_label
+import budgetmaster.core.generated.resources.transactions_date_label
 import budgetmaster.core.generated.resources.transactions_description_label
 import budgetmaster.core.generated.resources.transactions_description_placeholder
 import budgetmaster.core.generated.resources.transactions_edit_title
 import budgetmaster.core.generated.resources.transactions_notes_label
+import budgetmaster.core.generated.resources.transactions_recurring_label
 import budgetmaster.core.generated.resources.transactions_save
 import budgetmaster.core.generated.resources.transactions_type_expense
 import budgetmaster.core.generated.resources.transactions_type_income
 import com.budgetmaster.core.designsystem.Spacing
+import com.budgetmaster.core.util.DateUtils
+import com.budgetmaster.transactions.domain.model.TransactionAccount
 import com.budgetmaster.transactions.domain.model.TransactionCategory
 import com.budgetmaster.transactions.domain.model.TransactionDraft
 import com.budgetmaster.transactions.domain.model.TransactionItem
@@ -59,6 +72,8 @@ import kotlin.time.ExperimentalTime
 internal fun AddEditTransactionForm(
     editing: TransactionItem?,
     categories: List<TransactionCategory>,
+    accounts: List<TransactionAccount>,
+    activeAccountId: String?,
     onSave: (TransactionDraft) -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
@@ -70,9 +85,39 @@ internal fun AddEditTransactionForm(
     var description by remember { mutableStateOf(editing?.description ?: "") }
     var notes by remember { mutableStateOf(editing?.notes ?: "") }
     var categoryId by remember { mutableStateOf(editing?.category?.id) }
+    var timestamp by remember {
+        mutableStateOf(editing?.timestamp ?: Clock.System.now().toEpochMilliseconds())
+    }
+    var isRecurring by remember { mutableStateOf(editing?.isRecurring ?: false) }
+    // New entries default to the wallet the app is scoped to; "All accounts" falls back to
+    // the first wallet so the picker always shows the account that will actually be used.
+    var accountId by remember(accounts, activeAccountId) {
+        mutableStateOf(editing?.accountId?.ifBlank { null } ?: activeAccountId ?: accounts.firstOrNull()?.id)
+    }
+    var showDatePicker by remember { mutableStateOf(false) }
 
     val amount = amountText.replace(',', '.').toDoubleOrNull()
     val canSave = amount != null && amount > 0.0 && description.isNotBlank()
+
+    if (showDatePicker) {
+        val pickerState = rememberDatePickerState(initialSelectedDateMillis = timestamp)
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    pickerState.selectedDateMillis?.let { timestamp = it }
+                    showDatePicker = false
+                }) { Text(stringResource(Res.string.action_ok)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text(stringResource(Res.string.action_cancel))
+                }
+            },
+        ) {
+            DatePicker(state = pickerState)
+        }
+    }
 
     Column(
         modifier = modifier
@@ -137,6 +182,51 @@ internal fun AddEditTransactionForm(
             }
         }
 
+        if (accounts.size > 1) {
+            Text(
+                text = stringResource(Res.string.transactions_account_label),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.small)) {
+                accounts.forEach { account ->
+                    FilterChip(
+                        selected = accountId == account.id,
+                        onClick = { accountId = account.id },
+                        label = { Text(account.name) },
+                    )
+                }
+            }
+        }
+
+        Text(
+            text = stringResource(Res.string.transactions_date_label),
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        OutlinedButton(
+            onClick = { showDatePicker = true },
+            shape = RoundedCornerShape(14.dp),
+            modifier = Modifier.fillMaxWidth().height(52.dp),
+        ) {
+            Text(DateUtils.toLocalDate(timestamp).toString())
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = stringResource(Res.string.transactions_recurring_label),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Switch(checked = isRecurring, onCheckedChange = { isRecurring = it })
+        }
+
         OutlinedTextField(
             value = notes,
             onValueChange = { notes = it },
@@ -165,8 +255,10 @@ internal fun AddEditTransactionForm(
                             isExpense = isExpense,
                             description = description,
                             categoryId = categoryId,
-                            timestamp = editing?.timestamp ?: Clock.System.now().toEpochMilliseconds(),
+                            timestamp = timestamp,
                             notes = notes.ifBlank { null },
+                            accountId = accountId,
+                            isRecurring = isRecurring,
                         )
                     )
                 },

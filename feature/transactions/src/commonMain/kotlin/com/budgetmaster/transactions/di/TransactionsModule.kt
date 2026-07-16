@@ -4,6 +4,7 @@ import com.budgetmaster.transactions.data.SqlDelightTransactionRepository
 import com.budgetmaster.transactions.domain.repository.TransactionRepository
 import com.budgetmaster.transactions.domain.usecase.DeleteTransactionUseCase
 import com.budgetmaster.transactions.domain.usecase.ObserveCategoriesUseCase
+import com.budgetmaster.transactions.domain.usecase.ObserveTransactionAccountsUseCase
 import com.budgetmaster.transactions.domain.usecase.ObserveTransactionsUseCase
 import com.budgetmaster.transactions.domain.usecase.RestoreTransactionUseCase
 import com.budgetmaster.transactions.domain.usecase.SaveTransactionUseCase
@@ -20,6 +21,7 @@ val transactionsModule = module {
 
     factory { ObserveTransactionsUseCase(get()) }
     factory { ObserveCategoriesUseCase(get()) }
+    factory { ObserveTransactionAccountsUseCase(get()) }
     factory { SaveTransactionUseCase(get()) }
     factory { DeleteTransactionUseCase(get()) }
     factory { RestoreTransactionUseCase(get()) }
@@ -28,6 +30,9 @@ val transactionsModule = module {
         TransactionsViewModel(
             observeTransactions = get(),
             observeCategories = get(),
+            observeAccounts = get(),
+            settingsRepository = get(),
+            activeAccountStore = get(),
             saveTransaction = get(),
             deleteTransaction = get(),
             restoreTransaction = get(),

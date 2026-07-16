@@ -10,6 +10,7 @@ import com.budgetmaster.core.db.DatabaseProvider
 import com.budgetmaster.core.db.DefaultData
 import com.budgetmaster.core.session.ActiveAccountStore
 import com.budgetmaster.core.session.SessionStore
+import com.budgetmaster.transactions.domain.model.TransactionAccount
 import com.budgetmaster.transactions.domain.model.TransactionCategory
 import com.budgetmaster.transactions.domain.model.TransactionDraft
 import com.budgetmaster.transactions.domain.model.TransactionItem
@@ -70,6 +71,8 @@ class SqlDelightTransactionRepository(
                                     timestamp = entity.timestamp,
                                     category = entity.categoryId?.let { byId[it] }?.toDomain(),
                                     notes = entity.notes,
+                                    accountId = entity.accountId,
+                                    isRecurring = entity.isRecurring == 1L,
                                 )
                             }
                         },
@@ -92,21 +95,37 @@ class SqlDelightTransactionRepository(
             }
         }
 
+    override fun observeAccounts(): Flow<List<TransactionAccount>> =
+        sessionStore.currentUserId.flatMapLatest { uid ->
+            val userId = uid ?: DefaultData.DEFAULT_USER_ID
+            flow {
+                seeder.seedForUser(userId)
+                val queries = databaseProvider.getDatabase().budgetMasterDatabaseQueries
+                emitAll(
+                    queries.selectActiveAccountsByUserId(userId)
+                        .asFlow()
+                        .mapToList(dispatcher)
+                        .map { rows -> rows.map { TransactionAccount(it.id, it.name, it.currency) } },
+                )
+            }
+        }
+
     override suspend fun upsertTransaction(draft: TransactionDraft): TransactionItem =
         withContext(dispatcher) {
             val queries = databaseProvider.getDatabase().budgetMasterDatabaseQueries
             val id = draft.id ?: Uuid.random().toString()
             val amount = if (draft.isExpense) -kotlin.math.abs(draft.amountAbs) else kotlin.math.abs(draft.amountAbs)
+            val accountId = draft.accountId ?: resolveAccountId()
             queries.insertTransaction(
                 id = id,
-                accountId = resolveAccountId(),
+                accountId = accountId,
                 categoryId = draft.categoryId,
                 amount = amount,
                 description = draft.description.trim(),
                 timestamp = draft.timestamp,
                 notes = draft.notes?.trim()?.ifBlank { null },
                 tags = null,
-                isRecurring = 0,
+                isRecurring = if (draft.isRecurring) 1 else 0,
             )
             val category = draft.categoryId?.let { catId ->
                 queries.selectCategoryById(catId).awaitAsList().firstOrNull()?.toDomain()
@@ -118,6 +137,8 @@ class SqlDelightTransactionRepository(
                 timestamp = draft.timestamp,
                 category = category,
                 notes = draft.notes?.trim()?.ifBlank { null },
+                accountId = accountId,
+                isRecurring = draft.isRecurring,
             )
         }
 
@@ -128,14 +149,15 @@ class SqlDelightTransactionRepository(
     override suspend fun restoreTransaction(item: TransactionItem): Unit = withContext(dispatcher) {
         databaseProvider.getDatabase().budgetMasterDatabaseQueries.insertTransaction(
             id = item.id,
-            accountId = resolveAccountId(),
+            // Undo must put the entry back on its original wallet, not the active one.
+            accountId = item.accountId.ifBlank { resolveAccountId() },
             categoryId = item.category?.id,
             amount = item.amount,
             description = item.description,
             timestamp = item.timestamp,
             notes = item.notes,
             tags = null,
-            isRecurring = 0,
+            isRecurring = if (item.isRecurring) 1 else 0,
         )
     }
 

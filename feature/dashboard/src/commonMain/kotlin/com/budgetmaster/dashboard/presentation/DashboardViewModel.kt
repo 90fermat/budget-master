@@ -3,6 +3,7 @@ package com.budgetmaster.dashboard.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.budgetmaster.core.model.Transaction
+import com.budgetmaster.core.prefs.AppSettingsRepository
 import com.budgetmaster.dashboard.domain.model.BalanceSummary
 import com.budgetmaster.dashboard.domain.model.Period
 import com.budgetmaster.dashboard.domain.repository.DashboardRepository
@@ -20,7 +21,9 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -50,6 +53,7 @@ class DashboardViewModel(
     private val getBudgetProgress: GetBudgetProgressUseCase,
     private val getTopTransactions: GetTopTransactionsUseCase,
     private val getAiInsights: GetAiInsightsUseCase,
+    private val settingsRepository: AppSettingsRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(DashboardState())
@@ -67,6 +71,10 @@ class DashboardViewModel(
 
     init {
         onIntent(DashboardIntent.LoadDashboard(Period.MONTH))
+        settingsRepository.settings
+            .map { it.currency }
+            .onEach { currency -> _state.update { it.copy(currencyCode = currency) } }
+            .launchIn(viewModelScope)
     }
 
     /**

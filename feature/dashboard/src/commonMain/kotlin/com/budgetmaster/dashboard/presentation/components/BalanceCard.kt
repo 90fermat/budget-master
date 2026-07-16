@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.budgetmaster.core.util.MoneyFormatter
 import com.budgetmaster.dashboard.domain.model.BalanceSummary
 import com.budgetmaster.dashboard.domain.model.BalanceTrend
 
@@ -39,32 +40,16 @@ fun animateCounterAsState(targetValue: Double): State<Double> {
 }
 
 /**
- * Custom pure Kotlin Multiplatform currency formatter to support android, iOS, and Web targets.
+ * Formats a dashboard amount in the user's selected currency.
+ *
+ * Delegates to the shared [MoneyFormatter] so the Dashboard matches Transactions, Budgets,
+ * Goals, and Accounts — this replaced a local formatter that hardcoded a `$` prefix.
  *
  * @param amount The value to format.
- * @return A formatted currency string (e.g., "$12,450.80").
+ * @param currencyCode ISO currency code from the user's settings.
  */
-fun formatCurrency(amount: Double): String {
-    val isNegative = amount < 0
-    val absAmount = if (isNegative) -amount else amount
-    val integerPart = absAmount.toLong()
-    val decimalPart = ((absAmount - integerPart) * 100 + 0.5).toLong() // round to nearest cent
-    
-    val intString = integerPart.toString()
-    val formattedInt = buildString {
-        val len = intString.length
-        for (i in 0 until len) {
-            append(intString[i])
-            if ((len - i - 1) % 3 == 0 && i != len - 1) {
-                append(",")
-            }
-        }
-    }
-    
-    val decString = decimalPart.toString().padStart(2, '0')
-    val prefix = if (isNegative) "-$" else "$"
-    return "$prefix$formattedInt.$decString"
-}
+fun formatCurrency(amount: Double, currencyCode: String): String =
+    MoneyFormatter.format(amount, currencyCode)
 
 /**
  * Premium dashboard balance summary card.
@@ -77,6 +62,7 @@ fun formatCurrency(amount: Double): String {
 @Composable
 fun BalanceCard(
     balanceSummary: BalanceSummary,
+    currencyCode: String,
     modifier: Modifier = Modifier
 ) {
     val animatedBalance by animateCounterAsState(balanceSummary.totalBalance)
@@ -103,7 +89,7 @@ fun BalanceCard(
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = formatCurrency(animatedBalance),
+                text = formatCurrency(animatedBalance, currencyCode),
                 style = MaterialTheme.typography.displayMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -152,7 +138,7 @@ fun BalanceCard(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = formatCurrency(balanceSummary.monthlyIncome),
+                        text = formatCurrency(balanceSummary.monthlyIncome, currencyCode),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF10B981)
@@ -167,7 +153,7 @@ fun BalanceCard(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = formatCurrency(balanceSummary.monthlyExpenses),
+                        text = formatCurrency(balanceSummary.monthlyExpenses, currencyCode),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFFF87171)
@@ -189,7 +175,8 @@ fun BalanceCardPreview() {
                 monthlyExpenses = 2869.20,
                 balanceTrend = BalanceTrend.POSITIVE,
                 trendPercentage = 2.4
-            )
+            ),
+            currencyCode = "USD"
         )
     }
 }
