@@ -19,12 +19,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Autorenew
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -48,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import budgetmaster.core.generated.resources.Res
 import budgetmaster.core.generated.resources.empty_transactions_cta
+import budgetmaster.core.generated.resources.recurring_manage
 import budgetmaster.core.generated.resources.transactions_deleted
 import budgetmaster.core.generated.resources.transactions_empty_filtered
 import budgetmaster.core.generated.resources.transactions_empty_subtitle
@@ -81,7 +84,10 @@ import org.koin.compose.viewmodel.koinViewModel
  * (bottom sheet on phones, centered dialog on wide layouts).
  */
 @Composable
-fun TransactionsScreen(viewModel: TransactionsViewModel = koinViewModel()) {
+fun TransactionsScreen(
+    viewModel: TransactionsViewModel = koinViewModel(),
+    onManageRecurring: () -> Unit = {},
+) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -108,12 +114,24 @@ fun TransactionsScreen(viewModel: TransactionsViewModel = koinViewModel()) {
                 .padding(horizontal = Spacing.medium),
         ) {
             Spacer(Modifier.height(Spacing.medium))
-            Text(
-                text = stringResource(Res.string.transactions_title),
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = stringResource(Res.string.transactions_title),
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+                IconButton(onClick = onManageRecurring) {
+                    Icon(
+                        Icons.Default.Autorenew,
+                        contentDescription = stringResource(Res.string.recurring_manage),
+                    )
+                }
+            }
             Spacer(Modifier.height(Spacing.medium))
 
             OutlinedTextField(

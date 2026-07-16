@@ -16,6 +16,7 @@ import com.budgetmaster.transactions.domain.usecase.ObserveTransactionsUseCase
 import com.budgetmaster.transactions.domain.usecase.RestoreTransactionUseCase
 import com.budgetmaster.transactions.domain.usecase.SaveTransactionUseCase
 import com.budgetmaster.transactions.presentation.TransactionsViewModel
+import com.budgetmaster.transactions.presentation.recurring.RecurringViewModel
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.bind
 import org.koin.dsl.module
@@ -32,6 +33,19 @@ val transactionsModule = module {
     factory { SetRecurringActiveUseCase(get()) }
     factory { DeleteRecurringUseCase(get()) }
     factory { MaterializeDueRecurringUseCase(get()) }
+
+    viewModel {
+        RecurringViewModel(
+            observeRecurring = get(),
+            observeCategories = get(),
+            observeAccounts = get(),
+            settingsRepository = get(),
+            saveRecurring = get(),
+            setRecurringActive = get(),
+            deleteRecurring = get(),
+            materializeDue = get(),
+        )
+    }
 
     factory { ObserveTransactionsUseCase(get()) }
     factory { ObserveCategoriesUseCase(get()) }

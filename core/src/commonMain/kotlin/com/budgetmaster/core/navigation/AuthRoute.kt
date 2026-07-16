@@ -84,4 +84,10 @@ sealed interface AuthRoute {
      */
     @Serializable
     data object Accounts : AuthRoute
+
+    /**
+     * Route representing the recurring-schedules management screen.
+     */
+    @Serializable
+    data object Recurring : AuthRoute
 }

@@ -98,6 +98,7 @@ import com.budgetmaster.dashboard.presentation.DashboardScreen
 import com.budgetmaster.reports.presentation.ReportsScreen
 import com.budgetmaster.settings.presentation.SettingsScreen
 import com.budgetmaster.transactions.presentation.TransactionsScreen
+import com.budgetmaster.transactions.presentation.recurring.RecurringScreen
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -182,7 +183,8 @@ private fun AppShell() {
         AuthRoute.Goals::class.qualifiedName,
         AuthRoute.Reports::class.qualifiedName,
         AuthRoute.Settings::class.qualifiedName,
-        AuthRoute.Accounts::class.qualifiedName
+        AuthRoute.Accounts::class.qualifiedName,
+        AuthRoute.Recurring::class.qualifiedName
     )
 
     val isTabDestination = currentRoute in mainDestinations
@@ -464,7 +466,7 @@ private fun MainNavGraph(navController: androidx.navigation.NavHostController) {
         }
 
         composable<AuthRoute.Transactions> {
-            TransactionsScreen()
+            TransactionsScreen(onManageRecurring = { navController.navigate(AuthRoute.Recurring) })
         }
 
         composable<AuthRoute.Budgets> {
@@ -481,6 +483,10 @@ private fun MainNavGraph(navController: androidx.navigation.NavHostController) {
 
         composable<AuthRoute.Accounts> {
             AccountsScreen()
+        }
+
+        composable<AuthRoute.Recurring> {
+            RecurringScreen()
         }
 
         composable<AuthRoute.Settings> {
