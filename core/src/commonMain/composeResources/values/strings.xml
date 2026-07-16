@@ -110,6 +110,12 @@
     <string name="transactions_account_label">Account</string>
     <string name="transactions_recurring_label">Repeats</string>
     <string name="transactions_recurring_hint">Marks this entry as recurring.</string>
+    <string name="goals_target_date_label">Target date</string>
+    <string name="goals_withdraw">Withdraw</string>
+    <string name="goals_withdraw_title">Withdraw funds</string>
+    <string name="goals_projected_on_track">On track — projected %1$s</string>
+    <string name="goals_projected_behind">Behind — projected %1$s</string>
+    <string name="goals_projected_unknown">Add funds to see a projection</string>
 
     <!-- Budgets Strings -->
     <string name="budgets_title">Budgets</string>

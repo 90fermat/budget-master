@@ -59,6 +59,35 @@ class SqlDelightGoalRepositoryTest {
     }
 
     @Test
+    fun withdrawReducesTheSavedAmountAndClampsAtZero() = runTest {
+        val repo = repository()
+        val target = Clock.System.now().toEpochMilliseconds() + 1_000_000
+        repo.upsertGoal(GoalDraft(id = "g1", name = "Laptop", targetAmount = 1000.0, targetDate = target))
+        repo.contribute("g1", 500.0)
+
+        repo.withdraw("g1", 200.0)
+        assertEquals(300.0, repo.observeGoals().first().first().currentAmount)
+
+        // Withdrawing more than is saved must floor at zero, never go negative.
+        repo.withdraw("g1", 999.0)
+        assertEquals(0.0, repo.observeGoals().first().first().currentAmount)
+    }
+
+    @Test
+    fun projectedCompletionExtrapolatesFromSavingRate() = runTest {
+        val repo = repository()
+        val target = Clock.System.now().toEpochMilliseconds() + 10_000_000
+        repo.upsertGoal(GoalDraft(id = "g1", name = "Trip", targetAmount = 1000.0, targetDate = target))
+        repo.contribute("g1", 250.0)
+
+        val goal = repo.observeGoals().first().first()
+        // Nothing saved yet -> no projection; with progress -> a projection exists.
+        assertEquals(null, goal.copy(currentAmount = 0.0).projectedCompletionAt(goal.createdAt + 1_000))
+        val projected = goal.projectedCompletionAt(goal.createdAt + 1_000)
+        assertTrue(projected != null && projected > goal.createdAt)
+    }
+
+    @Test
     fun deleteRemovesGoal() = runTest {
         val repo = repository()
         val target = Clock.System.now().toEpochMilliseconds() + 1_000_000

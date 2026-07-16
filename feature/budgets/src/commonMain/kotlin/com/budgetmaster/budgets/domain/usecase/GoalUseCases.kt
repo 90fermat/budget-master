@@ -29,6 +29,15 @@ class ContributeToGoalUseCase(private val repository: GoalRepository) {
     }
 }
 
+/** Takes funds back out of a goal. */
+class WithdrawFromGoalUseCase(private val repository: GoalRepository) {
+    /** @throws IllegalArgumentException if [amount] is not positive. */
+    suspend operator fun invoke(id: String, amount: Double) {
+        require(amount > 0.0) { "Withdrawal must be greater than zero." }
+        repository.withdraw(id, amount)
+    }
+}
+
 /** Deletes a goal by id. */
 class DeleteGoalUseCase(private val repository: GoalRepository) {
     suspend operator fun invoke(id: String) = repository.deleteGoal(id)

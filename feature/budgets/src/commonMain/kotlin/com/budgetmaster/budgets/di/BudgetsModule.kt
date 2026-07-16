@@ -7,6 +7,7 @@ import com.budgetmaster.budgets.domain.repository.GoalRepository
 import com.budgetmaster.budgets.domain.usecase.ContributeToGoalUseCase
 import com.budgetmaster.budgets.domain.usecase.DeleteBudgetUseCase
 import com.budgetmaster.budgets.domain.usecase.DeleteGoalUseCase
+import com.budgetmaster.budgets.domain.usecase.WithdrawFromGoalUseCase
 import com.budgetmaster.budgets.domain.usecase.ObserveBudgetCategoriesUseCase
 import com.budgetmaster.budgets.domain.usecase.ObserveBudgetsUseCase
 import com.budgetmaster.budgets.domain.usecase.ObserveGoalsUseCase
@@ -35,8 +36,9 @@ val budgetsModule = module {
     factory { ObserveGoalsUseCase(get()) }
     factory { SaveGoalUseCase(get()) }
     factory { ContributeToGoalUseCase(get()) }
+    factory { WithdrawFromGoalUseCase(get()) }
     factory { DeleteGoalUseCase(get()) }
 
     viewModel { BudgetsViewModel(get(), get(), get(), get(), get()) }
-    viewModel { GoalsViewModel(get(), get(), get(), get(), get()) }
+    viewModel { GoalsViewModel(get(), get(), get(), get(), get(), get()) }
 }

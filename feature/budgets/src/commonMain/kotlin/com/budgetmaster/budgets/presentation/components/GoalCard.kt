@@ -18,6 +18,7 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -25,10 +26,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import kotlin.time.Clock
 import budgetmaster.core.generated.resources.Res
 import budgetmaster.core.generated.resources.goals_add_funds
 import budgetmaster.core.generated.resources.goals_completed
+import budgetmaster.core.generated.resources.goals_projected_behind
+import budgetmaster.core.generated.resources.goals_projected_on_track
+import budgetmaster.core.generated.resources.goals_projected_unknown
 import budgetmaster.core.generated.resources.goals_saved_of
+import budgetmaster.core.generated.resources.goals_withdraw
 import com.budgetmaster.budgets.domain.model.GoalItem
 import com.budgetmaster.core.designsystem.FinancialTextStyles
 import com.budgetmaster.core.designsystem.Spacing
@@ -44,9 +50,12 @@ internal fun GoalCard(
     currencyCode: String,
     onClick: () -> Unit,
     onContribute: () -> Unit,
+    onWithdraw: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val progress by animateFloatAsState(item.progress)
+    val now = Clock.System.now().toEpochMilliseconds()
+    val projected = item.projectedCompletionAt(now)
 
     Column(
         modifier = modifier
@@ -92,6 +101,30 @@ internal fun GoalCard(
         )
         Spacer(Modifier.height(Spacing.small))
 
+        // Projected completion, extrapolated from the saving rate so far.
+        if (!item.isCompleted) {
+            Text(
+                text = when (projected) {
+                    null -> stringResource(Res.string.goals_projected_unknown)
+                    else -> stringResource(
+                        if (item.isOnTrack(now)) {
+                            Res.string.goals_projected_on_track
+                        } else {
+                            Res.string.goals_projected_behind
+                        },
+                        DateUtils.toLocalDate(projected).toString(),
+                    )
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = if (projected != null && !item.isOnTrack(now)) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+            )
+            Spacer(Modifier.height(Spacing.compact))
+        }
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -106,9 +139,16 @@ internal fun GoalCard(
                 style = FinancialTextStyles.amountList,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            if (!item.isCompleted) {
-                FilledTonalButton(onClick = onContribute, shape = RoundedCornerShape(12.dp)) {
-                    Text(stringResource(Res.string.goals_add_funds))
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.compact)) {
+                if (item.currentAmount > 0.0) {
+                    TextButton(onClick = onWithdraw, shape = RoundedCornerShape(12.dp)) {
+                        Text(stringResource(Res.string.goals_withdraw))
+                    }
+                }
+                if (!item.isCompleted) {
+                    FilledTonalButton(onClick = onContribute, shape = RoundedCornerShape(12.dp)) {
+                        Text(stringResource(Res.string.goals_add_funds))
+                    }
                 }
             }
         }

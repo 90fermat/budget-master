@@ -15,6 +15,9 @@ interface GoalRepository {
     /** Adds [amount] to the goal's saved balance. */
     suspend fun contribute(id: String, amount: Double)
 
+    /** Removes [amount] from the goal's saved balance, never going below zero. */
+    suspend fun withdraw(id: String, amount: Double)
+
     /** Deletes the goal with [id]. */
     suspend fun deleteGoal(id: String)
 }

@@ -45,6 +45,7 @@ import budgetmaster.core.generated.resources.goals_title
 import com.budgetmaster.budgets.presentation.components.AddEditGoalForm
 import com.budgetmaster.budgets.presentation.components.ContributeForm
 import com.budgetmaster.budgets.presentation.components.GoalCard
+import com.budgetmaster.budgets.presentation.components.WithdrawForm
 import com.budgetmaster.core.designsystem.Spacing
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -98,6 +99,7 @@ fun GoalsScreen(viewModel: GoalsViewModel = koinViewModel()) {
                             currencyCode = state.currencyCode,
                             onClick = { viewModel.onIntent(GoalsIntent.EditClicked(item)) },
                             onContribute = { viewModel.onIntent(GoalsIntent.ContributeClicked(item)) },
+                            onWithdraw = { viewModel.onIntent(GoalsIntent.WithdrawClicked(item)) },
                         )
                     }
                     item { Spacer(Modifier.height(80.dp)) }
@@ -107,6 +109,7 @@ fun GoalsScreen(viewModel: GoalsViewModel = koinViewModel()) {
 
         if (state.editor.visible) GoalEditor(state, viewModel)
         if (state.contribute.visible) ContributeDialog(state, viewModel)
+        if (state.withdraw.visible) WithdrawDialog(state, viewModel)
     }
 }
 
@@ -137,8 +140,8 @@ private fun GoalEditor(state: GoalsState, viewModel: GoalsViewModel) {
     AdaptiveContainer(onDismiss = { viewModel.onIntent(GoalsIntent.EditorDismissed) }) {
         AddEditGoalForm(
             editing = state.editor.editing,
-            onSave = { name, target ->
-                viewModel.onIntent(GoalsIntent.SaveGoal(name, target, state.editor.editing?.id))
+            onSave = { name, target, targetDate ->
+                viewModel.onIntent(GoalsIntent.SaveGoal(name, target, targetDate, state.editor.editing?.id))
             },
             onDelete = { id -> viewModel.onIntent(GoalsIntent.DeleteRequested(id)) },
             onCancel = { viewModel.onIntent(GoalsIntent.EditorDismissed) },
@@ -154,6 +157,19 @@ private fun ContributeDialog(state: GoalsState, viewModel: GoalsViewModel) {
             goalName = goal.name,
             onSubmit = { amount -> viewModel.onIntent(GoalsIntent.SubmitContribution(goal.id, amount)) },
             onCancel = { viewModel.onIntent(GoalsIntent.ContributeDismissed) },
+        )
+    }
+}
+
+@Composable
+private fun WithdrawDialog(state: GoalsState, viewModel: GoalsViewModel) {
+    val goal = state.withdraw.goal ?: return
+    AdaptiveContainer(onDismiss = { viewModel.onIntent(GoalsIntent.WithdrawDismissed) }) {
+        WithdrawForm(
+            goal = goal,
+            currencyCode = state.currencyCode,
+            onSubmit = { amount -> viewModel.onIntent(GoalsIntent.SubmitWithdrawal(goal.id, amount)) },
+            onCancel = { viewModel.onIntent(GoalsIntent.WithdrawDismissed) },
         )
     }
 }

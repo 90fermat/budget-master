@@ -86,6 +86,13 @@ class SqlDelightGoalRepository(
         queries.updateSavingsGoalAmount(existing.currentAmount + amount, id)
     }
 
+    override suspend fun withdraw(id: String, amount: Double): Unit = withContext(dispatcher) {
+        val queries = databaseProvider.getDatabase().budgetMasterDatabaseQueries
+        val existing = queries.selectSavingsGoalById(id).awaitAsList().firstOrNull() ?: return@withContext
+        // Clamp at zero: a goal can never hold a negative balance.
+        queries.updateSavingsGoalAmount((existing.currentAmount - amount).coerceAtLeast(0.0), id)
+    }
+
     override suspend fun deleteGoal(id: String): Unit = withContext(dispatcher) {
         databaseProvider.getDatabase().budgetMasterDatabaseQueries.deleteSavingsGoal(id)
     }

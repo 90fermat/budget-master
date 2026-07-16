@@ -9,6 +9,7 @@ import com.budgetmaster.budgets.domain.usecase.ContributeToGoalUseCase
 import com.budgetmaster.budgets.domain.usecase.DeleteGoalUseCase
 import com.budgetmaster.budgets.domain.usecase.ObserveGoalsUseCase
 import com.budgetmaster.budgets.domain.usecase.SaveGoalUseCase
+import com.budgetmaster.budgets.domain.usecase.WithdrawFromGoalUseCase
 import com.budgetmaster.core.prefs.AppSettingsRepository
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,6 +38,7 @@ class GoalsViewModel(
     observeGoals: ObserveGoalsUseCase,
     private val saveGoal: SaveGoalUseCase,
     private val contributeToGoal: ContributeToGoalUseCase,
+    private val withdrawFromGoal: WithdrawFromGoalUseCase,
     private val deleteGoal: DeleteGoalUseCase,
     settingsRepository: AppSettingsRepository,
 ) : ViewModel() {
@@ -74,12 +76,15 @@ class GoalsViewModel(
             is GoalsIntent.ContributeDismissed ->
                 _state.update { it.copy(contribute = ContributeState(visible = false)) }
             is GoalsIntent.SubmitContribution -> contribute(intent)
+            is GoalsIntent.WithdrawClicked ->
+                _state.update { it.copy(withdraw = WithdrawState(visible = true, goal = intent.item)) }
+            is GoalsIntent.WithdrawDismissed ->
+                _state.update { it.copy(withdraw = WithdrawState(visible = false)) }
+            is GoalsIntent.SubmitWithdrawal -> withdraw(intent)
         }
     }
 
     private fun save(intent: GoalsIntent.SaveGoal) {
-        val targetDate = _state.value.editor.editing?.targetDate
-            ?: (Clock.System.now().toEpochMilliseconds() + DEFAULT_GOAL_HORIZON_MS)
         viewModelScope.launch {
             try {
                 saveGoal(
@@ -87,7 +92,7 @@ class GoalsViewModel(
                         id = intent.editingId,
                         name = intent.name,
                         targetAmount = intent.targetAmount,
-                        targetDate = targetDate,
+                        targetDate = intent.targetDate,
                     )
                 )
                 _state.update { it.copy(editor = GoalsEditorState(visible = false)) }
@@ -108,6 +113,19 @@ class GoalsViewModel(
                 emitEffect(GoalsEffect.ShowError(e.message ?: "Invalid amount."))
             } catch (e: Exception) {
                 emitEffect(GoalsEffect.ShowError(e.message ?: "Failed to add funds."))
+            }
+        }
+    }
+
+    private fun withdraw(intent: GoalsIntent.SubmitWithdrawal) {
+        viewModelScope.launch {
+            try {
+                withdrawFromGoal(intent.id, intent.amount)
+                _state.update { it.copy(withdraw = WithdrawState(visible = false)) }
+            } catch (e: IllegalArgumentException) {
+                emitEffect(GoalsEffect.ShowError(e.message ?: "Invalid amount."))
+            } catch (e: Exception) {
+                emitEffect(GoalsEffect.ShowError(e.message ?: "Failed to withdraw funds."))
             }
         }
     }

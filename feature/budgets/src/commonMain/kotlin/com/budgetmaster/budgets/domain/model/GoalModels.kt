@@ -21,6 +21,30 @@ data class GoalItem(
     val progress: Float get() = if (targetAmount > 0) (currentAmount / targetAmount).coerceIn(0.0, 1.0).toFloat() else 0f
     val remaining: Double get() = (targetAmount - currentAmount).coerceAtLeast(0.0)
     val isCompleted: Boolean get() = currentAmount >= targetAmount && targetAmount > 0
+
+    /**
+     * Projected completion time, extrapolated from the average saving rate so far
+     * (`currentAmount` over the time since [createdAt]).
+     *
+     * Returns `null` when a projection would be meaningless — the goal is already met, nothing
+     * has been saved yet, or no time has elapsed.
+     *
+     * @param now Epoch-ms reference time.
+     */
+    fun projectedCompletionAt(now: Long): Long? {
+        if (isCompleted || currentAmount <= 0.0) return null
+        val elapsed = now - createdAt
+        if (elapsed <= 0L) return null
+        val ratePerMs = currentAmount / elapsed
+        if (ratePerMs <= 0.0) return null
+        return now + (remaining / ratePerMs).toLong()
+    }
+
+    /** True when the projected completion lands on or before [targetDate]. */
+    fun isOnTrack(now: Long): Boolean {
+        val projected = projectedCompletionAt(now) ?: return isCompleted
+        return projected <= targetDate
+    }
 }
 
 /**
