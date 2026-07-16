@@ -18,8 +18,10 @@ kotlin {
         androidResources {
             enable = true
         }
+        withHostTest {
+        }
     }
-    
+
     listOf(
         iosArm64(),
         iosSimulatorArm64()
@@ -70,6 +72,14 @@ kotlin {
             implementation(libs.androidx.datastore.preferences)
         }
         
+        val androidHostTest by getting {
+            dependencies {
+                implementation(kotlin("test"))
+                implementation(libs.kotlinx.coroutines.test)
+                implementation(libs.sqldelight.driver.sqlite)
+            }
+        }
+
         wasmJsMain.dependencies {
             implementation(libs.sqldelight.driver.webworker)
             // Official browser API externals (org.w3c.dom.Worker etc.) for Kotlin/Wasm

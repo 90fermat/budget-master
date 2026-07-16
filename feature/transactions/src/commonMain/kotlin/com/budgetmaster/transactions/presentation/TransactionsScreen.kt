@@ -8,12 +8,15 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -79,9 +82,11 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
- * Transactions screen: searchable, filterable, day-grouped list backed by live
- * SQLDelight data, with swipe-to-delete + undo and an adaptive add/edit editor
- * (bottom sheet on phones, centered dialog on wide layouts).
+ * Transactions screen: searchable, filterable, day-grouped list backed by live SQLDelight
+ * data, with swipe-to-delete + undo.
+ *
+ * Adaptive: a **list-detail split** from 600dp, where the editor docks beside the list; a
+ * bottom sheet below that.
  */
 @Composable
 fun TransactionsScreen(
@@ -107,64 +112,96 @@ fun TransactionsScreen(
             }
         },
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = Spacing.medium),
-        ) {
-            Spacer(Modifier.height(Spacing.medium))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text(
-                    text = stringResource(Res.string.transactions_title),
-                    style = MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground,
-                )
-                IconButton(onClick = onManageRecurring) {
-                    Icon(
-                        Icons.Default.Autorenew,
-                        contentDescription = stringResource(Res.string.recurring_manage),
+        BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(padding)) {
+            // List-detail from ≥600dp: the editor becomes a docked pane beside the list rather
+            // than a sheet over it, so the list stays readable while you type. Uses the app's
+            // existing BoxWithConstraints breakpoint — the same idiom as the shell and every
+            // other editor — rather than material3-adaptive's pane scaffold, which is declared
+            // in the version catalog but wired into no module and still beta.
+            val isWide = maxWidth >= 600.dp
+            val showDetailPane = isWide && state.editor.visible
+
+            Row(modifier = Modifier.fillMaxSize()) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .padding(horizontal = Spacing.medium),
+                ) {
+                    Spacer(Modifier.height(Spacing.medium))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.transactions_title),
+                            style = MaterialTheme.typography.headlineLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground,
+                        )
+                        IconButton(onClick = onManageRecurring) {
+                            Icon(
+                                Icons.Default.Autorenew,
+                                contentDescription = stringResource(Res.string.recurring_manage),
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(Spacing.medium))
+
+                    OutlinedTextField(
+                        value = state.query,
+                        onValueChange = { viewModel.onIntent(TransactionsIntent.SearchChanged(it)) },
+                        placeholder = { Text(stringResource(Res.string.transactions_search_placeholder)) },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                        ),
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier.fillMaxWidth(),
                     )
+
+                    Spacer(Modifier.height(Spacing.medium))
+                    TypeAndCategoryFilters(state, viewModel)
+                    Spacer(Modifier.height(Spacing.medium))
+
+                    when {
+                        // Placeholder rows shaped like the real list, so nothing jumps on arrival.
+                        state.isLoading -> ShimmerListPlaceholder()
+                        state.isEmpty -> EmptyState(
+                            filtered = !state.query.isBlank() || state.categoryFilterId != null ||
+                                state.typeFilter != TypeFilter.ALL,
+                            onAdd = { viewModel.onIntent(TransactionsIntent.AddClicked) },
+                        )
+                        else -> TransactionList(state, viewModel)
+                    }
+                }
+
+                if (showDetailPane) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surface,
+                        modifier = Modifier.width(420.dp).fillMaxHeight(),
+                    ) {
+                        Column(Modifier.verticalScroll(rememberScrollState())) {
+                            AddEditTransactionForm(
+                                editing = state.editor.editing,
+                                categories = state.categories,
+                                accounts = state.accounts,
+                                activeAccountId = state.activeAccountId,
+                                onSave = { viewModel.onIntent(TransactionsIntent.SaveTransaction(it)) },
+                                onCancel = { viewModel.onIntent(TransactionsIntent.EditorDismissed) },
+                            )
+                        }
+                    }
                 }
             }
-            Spacer(Modifier.height(Spacing.medium))
 
-            OutlinedTextField(
-                value = state.query,
-                onValueChange = { viewModel.onIntent(TransactionsIntent.SearchChanged(it)) },
-                placeholder = { Text(stringResource(Res.string.transactions_search_placeholder)) },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                ),
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            Spacer(Modifier.height(Spacing.medium))
-            TypeAndCategoryFilters(state, viewModel)
-            Spacer(Modifier.height(Spacing.medium))
-
-            when {
-                // Placeholder rows shaped like the real list, so nothing jumps on arrival.
-                state.isLoading -> ShimmerListPlaceholder()
-                state.isEmpty -> EmptyState(
-                    filtered = !state.query.isBlank() || state.categoryFilterId != null || state.typeFilter != TypeFilter.ALL,
-                    onAdd = { viewModel.onIntent(TransactionsIntent.AddClicked) },
-                )
-                else -> TransactionList(state, viewModel)
+            // Narrow layouts keep the bottom sheet.
+            if (state.editor.visible && !isWide) {
+                TransactionEditor(state, viewModel)
             }
-        }
-
-        if (state.editor.visible) {
-            TransactionEditor(state, viewModel)
         }
     }
 }

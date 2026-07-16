@@ -19,5 +19,9 @@ class BudgetMasterApplication : Application() {
         initKoin {
             androidContext(this@BudgetMasterApplication)
         }
+
+        // Daily background pass so recurring entries appear on their own day instead of
+        // waiting for the next launch. Must come after Koin: the worker injects from it.
+        RecurringWorker.schedule(this)
     }
 }
