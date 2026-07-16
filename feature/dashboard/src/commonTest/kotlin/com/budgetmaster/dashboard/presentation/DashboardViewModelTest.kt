@@ -4,6 +4,8 @@ package com.budgetmaster.dashboard.presentation
 
 import com.budgetmaster.core.model.Transaction
 import com.budgetmaster.core.prefs.AppSettingsRepository
+import com.budgetmaster.core.session.SessionStore
+import com.budgetmaster.core.session.SessionUser
 import com.budgetmaster.dashboard.InMemoryKeyValueStore
 import com.budgetmaster.dashboard.domain.model.BalanceSummary
 import com.budgetmaster.dashboard.domain.model.BalanceTrend
@@ -171,7 +173,7 @@ class DashboardViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun createViewModel(): DashboardViewModel {
+    private fun createViewModel(sessionStore: SessionStore = SessionStore()): DashboardViewModel {
         return DashboardViewModel(
             repository = repository,
             getBalanceSummary = getBalanceSummaryUseCase,
@@ -179,8 +181,41 @@ class DashboardViewModelTest {
             getBudgetProgress = getBudgetProgressUseCase,
             getTopTransactions = getTopTransactionsUseCase,
             getAiInsights = getAiInsightsUseCase,
-            settingsRepository = AppSettingsRepository(InMemoryKeyValueStore())
+            settingsRepository = AppSettingsRepository(InMemoryKeyValueStore()),
+            sessionStore = sessionStore
         )
+    }
+
+    @Test
+    fun `greeting uses the signed-in display name`() = runTest {
+        val session = SessionStore().apply {
+            setCurrentUser(SessionUser("u1", displayName = "Cyrille Foyang", email = "c@example.com"))
+        }
+        val viewModel = createViewModel(session)
+        advanceUntilIdle()
+
+        assertEquals("Cyrille Foyang", viewModel.state.value.userName)
+    }
+
+    @Test
+    fun `greeting falls back to the email local part when there is no display name`() = runTest {
+        // Email/password sign-up never sets a display name, so this is the common case.
+        val session = SessionStore().apply {
+            setCurrentUser(SessionUser("u1", displayName = null, email = "cyrille@example.com"))
+        }
+        val viewModel = createViewModel(session)
+        advanceUntilIdle()
+
+        assertEquals("cyrille", viewModel.state.value.userName)
+    }
+
+    @Test
+    fun `greeting has no name when nobody is signed in`() = runTest {
+        val viewModel = createViewModel(SessionStore())
+        advanceUntilIdle()
+
+        // Null rather than a mock name — the UI substitutes a localized fallback.
+        assertNull(viewModel.state.value.userName)
     }
 
     @Test

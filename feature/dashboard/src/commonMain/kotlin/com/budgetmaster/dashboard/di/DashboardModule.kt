@@ -37,6 +37,7 @@ val dashboardModule = module {
             getTopTransactions = get(),
             getAiInsights = get(),
             settingsRepository = get(),
+            sessionStore = get(),
         )
     }
 }

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.budgetmaster.core.model.Transaction
 import com.budgetmaster.core.prefs.AppSettingsRepository
+import com.budgetmaster.core.session.SessionStore
 import com.budgetmaster.dashboard.domain.model.BalanceSummary
 import com.budgetmaster.dashboard.domain.model.Period
 import com.budgetmaster.dashboard.domain.repository.DashboardRepository
@@ -54,6 +55,7 @@ class DashboardViewModel(
     private val getTopTransactions: GetTopTransactionsUseCase,
     private val getAiInsights: GetAiInsightsUseCase,
     private val settingsRepository: AppSettingsRepository,
+    private val sessionStore: SessionStore,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(DashboardState())
@@ -74,6 +76,13 @@ class DashboardViewModel(
         settingsRepository.settings
             .map { it.currency }
             .onEach { currency -> _state.update { it.copy(currencyCode = currency) } }
+            .launchIn(viewModelScope)
+
+        // Prefer the display name; fall back to the email's local part, which is the closest
+        // thing to a name that email/password sign-up gives us.
+        sessionStore.currentUser
+            .map { user -> user?.displayName?.takeIf { it.isNotBlank() } ?: user?.email?.substringBefore('@') }
+            .onEach { name -> _state.update { it.copy(userName = name) } }
             .launchIn(viewModelScope)
     }
 

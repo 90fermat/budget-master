@@ -10,6 +10,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,9 +21,15 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import budgetmaster.core.generated.resources.Res
+import budgetmaster.core.generated.resources.dashboard_greeting
+import budgetmaster.core.generated.resources.dashboard_greeting_fallback
+import com.budgetmaster.core.util.initialsOf
+import com.budgetmaster.core.util.monthYearLabel
 import com.budgetmaster.dashboard.presentation.components.PreviewLightDark
 import com.budgetmaster.dashboard.domain.model.*
 import com.budgetmaster.dashboard.presentation.components.*
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -132,6 +139,11 @@ private fun DashboardScrollableBody(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                // The signed-in user, not the "John Doe / June 2026" mock this replaced.
+                val name = state.userName?.takeIf { it.isNotBlank() }
+                    ?: stringResource(Res.string.dashboard_greeting_fallback)
+                val initials = initialsOf(name)
+
                 Box(
                     modifier = Modifier
                         .size(44.dp)
@@ -139,23 +151,32 @@ private fun DashboardScrollableBody(
                         .background(MaterialTheme.colorScheme.primaryContainer),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "JD",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
+                    if (initials.isNotEmpty()) {
+                        Text(
+                            text = initials,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    } else {
+                        // A name we can't initialise would leave an empty circle.
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text(
-                        text = "Hello, John",
+                        text = stringResource(Res.string.dashboard_greeting, name),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
-                        text = "June 2026",
+                        text = monthYearLabel(),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                     )

@@ -32,5 +32,10 @@ data class DashboardState(
     val selectedPeriod: Period = Period.MONTH,
     val error: String? = null,
     /** ISO currency from the user's settings, used to format every amount on the screen. */
-    val currencyCode: String = "USD"
+    val currencyCode: String = "USD",
+    /**
+     * The signed-in user's name for the greeting, or `null` when unknown — email/password
+     * sign-up sets no display name, so the UI falls back rather than inventing one.
+     */
+    val userName: String? = null
 )

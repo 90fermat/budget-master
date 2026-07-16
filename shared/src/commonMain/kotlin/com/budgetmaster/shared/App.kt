@@ -83,6 +83,7 @@ import com.budgetmaster.budgets.presentation.BudgetsScreen
 import com.budgetmaster.budgets.presentation.GoalsScreen
 import com.budgetmaster.core.db.DefaultData
 import com.budgetmaster.core.session.SessionStore
+import com.budgetmaster.core.session.SessionUser
 import com.budgetmaster.core.util.isReducedMotionEnabled
 import com.budgetmaster.transactions.domain.usecase.MaterializeDueRecurringUseCase
 import com.budgetmaster.core.designsystem.AppLogo
@@ -128,7 +129,13 @@ fun App() {
     LaunchedEffect(Unit) {
         checkAuthStatus().collect { status ->
             if (status is AuthStatus.Authenticated) {
-                sessionStore.setCurrentUser(status.user.id)
+                sessionStore.setCurrentUser(
+                    SessionUser(
+                        id = status.user.id,
+                        displayName = status.user.displayName,
+                        email = status.user.email,
+                    ),
+                )
                 seeder.seedForUser(status.user.id, status.user.email)
             } else {
                 // Not signed in: fall back to the local default user so the app stays usable.

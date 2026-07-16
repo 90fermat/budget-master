@@ -72,6 +72,21 @@
 
     <!-- Dashboard Strings -->
     <string name="dashboard_title">Tableau de bord</string>
+    <string name="dashboard_greeting">Bonjour, %1$s</string>
+    <string name="dashboard_greeting_fallback">vous</string>
+    <string name="month_year">%1$s %2$s</string>
+    <string name="month_1">janvier</string>
+    <string name="month_2">février</string>
+    <string name="month_3">mars</string>
+    <string name="month_4">avril</string>
+    <string name="month_5">mai</string>
+    <string name="month_6">juin</string>
+    <string name="month_7">juillet</string>
+    <string name="month_8">août</string>
+    <string name="month_9">septembre</string>
+    <string name="month_10">octobre</string>
+    <string name="month_11">novembre</string>
+    <string name="month_12">décembre</string>
     <string name="dashboard_total_balance">SOLDE TOTAL</string>
     <string name="dashboard_recent_transactions">Transactions récentes</string>
 
