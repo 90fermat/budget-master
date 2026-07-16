@@ -12,7 +12,11 @@ import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.budgetmaster.core.db.DefaultData
 
 /**
  * Maps a category to a Material vector icon.
@@ -38,4 +42,20 @@ fun categoryIconFor(categoryId: String?): ImageVector = when (categoryId) {
     "cat_salary" -> Icons.Filled.Savings
     "cat_other" -> Icons.Filled.Category
     else -> Icons.Filled.Payments
+}
+
+/**
+ * The accent color for a category, resolved from the seeded palette in `DefaultData`.
+ *
+ * Reads the same hex the database was seeded with rather than restating a palette in UI code,
+ * so the icon tint always agrees with the stored category color. User-created categories (and
+ * unknown ids) fall back to the theme primary.
+ *
+ * @param categoryId A seeded id from `DefaultData.categories`, or any user-defined id.
+ */
+@Composable
+fun categoryAccentFor(categoryId: String?): Color {
+    val fallback = MaterialTheme.colorScheme.primary
+    val hex = DefaultData.categories.firstOrNull { it.id == categoryId }?.colorHex ?: return fallback
+    return parseHexColor(hex, fallback)
 }

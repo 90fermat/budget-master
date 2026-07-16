@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.budgetmaster.core.designsystem.financialColors
 import com.budgetmaster.dashboard.domain.model.Insight
 import com.budgetmaster.dashboard.domain.model.InsightType
 import com.budgetmaster.dashboard.presentation.InsightsState
@@ -161,10 +162,13 @@ private fun InsightCard(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Semantic tokens rather than fixed hexes: a spending alert reads as a warning, a saving
+    // opportunity as positive, and a trend as neutral information — and each now follows the
+    // user's selected palette instead of staying indigo/amber in all five.
     val leftBorderColor = when (insight.type) {
-        InsightType.SPENDING -> Color(0xFFF59E0B) // Amber
-        InsightType.SAVING -> Color(0xFF8B5CF6)   // Amethyst/Purple
-        InsightType.TREND -> Color(0xFF6366F1)    // Indigo
+        InsightType.SPENDING -> MaterialTheme.financialColors.warning
+        InsightType.SAVING -> MaterialTheme.financialColors.income
+        InsightType.TREND -> MaterialTheme.colorScheme.primary
     }
 
     Card(

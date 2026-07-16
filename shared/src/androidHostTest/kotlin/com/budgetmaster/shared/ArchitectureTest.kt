@@ -38,20 +38,16 @@ class ArchitectureTest {
     /**
      * Color belongs to the design system so palettes and dark mode stay consistent.
      *
-     * Known exceptions, each deliberate and shrinking:
-     *  - `TopTransactionsList` / `AiInsightsWidget`: per-category and per-insight accent
-     *    palettes, pending the shared component library (Phase 4).
-     *  - `ReportsScreen`: one remaining literal; folds into Phase 4's component work.
-     *
-     * The hex parser used to be duplicated in three features and allow-listed here; this rule
-     * flagged a fourth copy, so it moved to `core.designsystem.parseHexColor` instead.
+     * **No exceptions.** This rule carried an allowlist through Phases 0–3 and it is now
+     * empty: the hex parser moved to `core.designsystem.parseHexColor`, category accents to
+     * `categoryAccentFor`, and insight accents to `financialColors`/`colorScheme` tokens. A
+     * literal in a feature means the design system is missing a token — add the token.
      */
     @Test
     fun `features do not hardcode colors outside the design system`() {
-        val allowed = listOf("ReportsScreen", "TopTransactionsList", "AiInsightsWidget")
         Konsist.scopeFromProduction()
             .files
-            .filter { it.featureModule() != null && it.name !in allowed }
+            .filter { it.featureModule() != null }
             .assertFalse { file -> file.text.contains(Regex("""Color\(0x""")) }
     }
 

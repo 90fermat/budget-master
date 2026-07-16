@@ -21,6 +21,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.budgetmaster.core.designsystem.categoryAccentFor
+import com.budgetmaster.core.designsystem.financialColors
+import com.budgetmaster.core.designsystem.categoryIconFor
 import com.budgetmaster.core.model.Transaction
 import com.budgetmaster.core.util.rememberHaptics
 import kotlinx.datetime.TimeZone
@@ -29,22 +32,15 @@ import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 /**
- * Maps a category name to a corresponding Material Icon and theme color.
+ * Icon and accent for a transaction's category, from the shared design system.
  *
- * @param category The string category name.
- * @return A [Pair] containing the [ImageVector] icon and [Color] style.
+ * Replaces a local palette that matched on category *names* ("food", "starbucks") while
+ * [Transaction.category] actually carries the category **id** ("cat_food") — so nothing ever
+ * matched and every row silently drew the generic fallback.
  */
-fun getCategoryIconAndColor(category: String): Pair<ImageVector, Color> {
-    return when (category.lowercase()) {
-        "food", "food & dining", "starbucks", "dining" -> Icons.Default.Fastfood to Color(0xFFF59E0B) // Amber
-        "bills", "housing", "rent", "utilities" -> Icons.Default.ReceiptLong to Color(0xFF3B82F6) // Blue
-        "entertainment", "leisure", "movies" -> Icons.Default.LocalActivity to Color(0xFF8B5CF6) // Purple
-        "shopping", "clothing" -> Icons.Default.ShoppingBag to Color(0xFFEC4899) // Pink
-        "travel", "transport", "gas", "chevron" -> Icons.Default.DirectionsCar to Color(0xFF14B8A6) // Teal
-        "salary", "income", "inflow" -> Icons.Default.Savings to Color(0xFF10B981) // Emerald Green
-        else -> Icons.Default.Payment to Color(0xFF94A3B8) // Slate Gray fallback
-    }
-}
+@Composable
+private fun categoryVisualsFor(categoryId: String): Pair<ImageVector, Color> =
+    categoryIconFor(categoryId) to categoryAccentFor(categoryId)
 
 /**
  * Formats an epoch millisecond timestamp into a clean user-facing format.
@@ -211,7 +207,7 @@ fun DismissibleTransactionItem(
         enableDismissFromStartToEnd = false,
         enableDismissFromEndToStart = true,
         content = {
-            val (icon, categoryColor) = getCategoryIconAndColor(transaction.category)
+            val (icon, categoryColor) = categoryVisualsFor(transaction.category)
             val isExpense = transaction.amount < 0
             val absAmount = if (isExpense) -transaction.amount else transaction.amount
 
@@ -275,7 +271,11 @@ fun DismissibleTransactionItem(
                             fontFeatureSettings = "tnum"
                         ),
                         fontWeight = FontWeight.Bold,
-                        color = if (isExpense) MaterialTheme.colorScheme.error else Color(0xFF10B981)
+                        color = if (isExpense) {
+                            MaterialTheme.financialColors.expense
+                        } else {
+                            MaterialTheme.financialColors.income
+                        }
                     )
                 }
             }
