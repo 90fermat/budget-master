@@ -1,5 +1,7 @@
 package com.budgetmaster.auth.presentation.login
 
+import com.budgetmaster.auth.domain.model.AuthError
+import com.budgetmaster.auth.domain.model.AuthException
 import com.budgetmaster.auth.domain.model.AuthStatus
 import com.budgetmaster.auth.domain.model.User
 import com.budgetmaster.auth.domain.repository.AuthRepository
@@ -81,7 +83,7 @@ class LoginViewModelTest {
         assertEquals("", state.email)
         assertEquals("", state.password)
         assertFalse(state.isLoading)
-        assertNull(state.errorMessage)
+        assertNull(state.error)
     }
 
     @Test
@@ -121,20 +123,53 @@ class LoginViewModelTest {
         vm.onIntent(LoginIntent.LoginClicked)
         advanceUntilIdle()
 
-        assertTrue(vm.state.value.errorMessage != null)
+        assertEquals(AuthError.InvalidEmail, vm.state.value.error)
         assertFalse(vm.state.value.isLoading)
     }
 
     @Test
-    fun `LoginClicked with server error sets errorMessage in state`() = runTest {
+    fun `LoginClicked with server error sets Unknown error in state`() = runTest {
         val vm = LoginViewModel(LoginUseCase(failureRepo), CheckBiometricSupportUseCase(failureRepo))
         vm.onIntent(LoginIntent.EmailChanged("user@example.com"))
         vm.onIntent(LoginIntent.PasswordChanged("password123"))
         vm.onIntent(LoginIntent.LoginClicked)
         advanceUntilIdle()
 
-        assertTrue(vm.state.value.errorMessage != null)
+        assertEquals(AuthError.Unknown, vm.state.value.error)
         assertFalse(vm.state.value.isLoading)
+    }
+
+    @Test
+    fun `LoginClicked maps typed AuthException to state error`() = runTest {
+        val invalidCredsRepo = object : AuthRepository {
+            override fun getAuthStatus(): Flow<AuthStatus> = flowOf(AuthStatus.Unauthenticated)
+            override suspend fun signIn(email: String, password: String): User =
+                throw AuthException(AuthError.InvalidCredentials)
+            override suspend fun signUp(email: String, password: String): User = fakeUser
+            override suspend fun signOut() {}
+            override suspend fun sendPasswordReset(email: String) {}
+            override fun isOnboardingCompleted(): Flow<Boolean> = flowOf(false)
+            override suspend fun setOnboardingCompleted(completed: Boolean) {}
+            override fun isBiometricEnabled(): Flow<Boolean> = flowOf(false)
+            override suspend fun setBiometricEnabled(enabled: Boolean) {}
+        }
+        val vm = LoginViewModel(LoginUseCase(invalidCredsRepo), CheckBiometricSupportUseCase(invalidCredsRepo))
+        vm.onIntent(LoginIntent.EmailChanged("user@example.com"))
+        vm.onIntent(LoginIntent.PasswordChanged("password123"))
+        vm.onIntent(LoginIntent.LoginClicked)
+        advanceUntilIdle()
+
+        assertEquals(AuthError.InvalidCredentials, vm.state.value.error)
+    }
+
+    @Test
+    fun `TogglePasswordVisibility flips the flag`() = runTest {
+        val vm = LoginViewModel(LoginUseCase(successRepo), CheckBiometricSupportUseCase(successRepo))
+        assertFalse(vm.state.value.isPasswordVisible)
+        vm.onIntent(LoginIntent.TogglePasswordVisibility)
+        assertTrue(vm.state.value.isPasswordVisible)
+        vm.onIntent(LoginIntent.TogglePasswordVisibility)
+        assertFalse(vm.state.value.isPasswordVisible)
     }
 
     @Test

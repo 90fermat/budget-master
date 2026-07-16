@@ -1,5 +1,6 @@
 package com.budgetmaster.auth.presentation.forgotpassword
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +29,15 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import budgetmaster.core.generated.resources.Res
+import budgetmaster.core.generated.resources.forgot_password_btn_text
+import budgetmaster.core.generated.resources.forgot_password_login_link
+import budgetmaster.core.generated.resources.forgot_password_subtitle
+import budgetmaster.core.generated.resources.forgot_password_success_msg
+import budgetmaster.core.generated.resources.forgot_password_title
+import budgetmaster.core.generated.resources.login_email_label
+import com.budgetmaster.auth.presentation.localizedMessage
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * Forgot Password screen that sends a reset link via email.
@@ -46,64 +56,69 @@ fun ForgotPasswordScreen(
         viewModel.effects.collect { effect ->
             when (effect) {
                 ForgotPasswordEffect.NavigateToLogin -> onNavigateToLogin()
-                is ForgotPasswordEffect.ShowMessage -> Unit
+                is ForgotPasswordEffect.ShowMessage -> Unit // Success shown inline via state.isSuccess.
             }
         }
     }
 
     Box(
         modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.Center,
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.fillMaxWidth().widthIn(max = 420.dp)
+            modifier = Modifier.fillMaxWidth().widthIn(max = 420.dp),
         ) {
-            Text("Reset Password", style = MaterialTheme.typography.headlineLarge)
+            Text(stringResource(Res.string.forgot_password_title), style = MaterialTheme.typography.headlineLarge)
             Text(
-                "Enter your email address and we'll send you a link to reset your password.",
+                stringResource(Res.string.forgot_password_subtitle),
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
             )
             Spacer(Modifier.height(16.dp))
 
             OutlinedTextField(
                 value = state.email,
                 onValueChange = { viewModel.onIntent(ForgotPasswordIntent.EmailChanged(it)) },
-                label = { Text("Email") },
+                label = { Text(stringResource(Res.string.login_email_label)) },
                 singleLine = true,
+                isError = state.error != null,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Email input" }
+                modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Email input" },
             )
 
-            if (state.errorMessage != null) {
-                Text(state.errorMessage!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            AnimatedVisibility(visible = state.error != null) {
+                Text(
+                    state.error?.localizedMessage() ?: "",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                )
             }
 
-            if (state.isSuccess) {
+            AnimatedVisibility(visible = state.isSuccess) {
                 Text(
-                    "Reset link sent! Check your email.",
+                    stringResource(Res.string.forgot_password_success_msg),
                     color = MaterialTheme.colorScheme.secondary,
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyMedium,
                 )
             }
 
             Button(
                 onClick = { viewModel.onIntent(ForgotPasswordIntent.SendResetClicked) },
                 enabled = !state.isLoading && !state.isSuccess,
-                modifier = Modifier.fillMaxWidth().height(50.dp).semantics { contentDescription = "Send reset button" }
+                modifier = Modifier.fillMaxWidth().height(50.dp).semantics { contentDescription = "Send reset button" },
             ) {
                 if (state.isLoading) {
                     CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
                 } else {
-                    Text("Send Reset Link")
+                    Text(stringResource(Res.string.forgot_password_btn_text))
                 }
             }
 
             TextButton(onClick = { viewModel.onIntent(ForgotPasswordIntent.NavigateToLogin) }) {
-                Text("Back to Sign In")
+                Text(stringResource(Res.string.forgot_password_login_link))
             }
         }
     }

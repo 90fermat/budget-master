@@ -8,5 +8,6 @@ sealed interface RegisterIntent {
     data class PasswordChanged(val password: String) : RegisterIntent
     data class ConfirmPasswordChanged(val confirmPassword: String) : RegisterIntent
     data object RegisterClicked : RegisterIntent
+    data object TogglePasswordVisibility : RegisterIntent
     data object NavigateToLogin : RegisterIntent
 }

@@ -35,6 +35,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -62,6 +63,7 @@ import com.budgetmaster.auth.presentation.onboarding.OnboardingScreen
 import com.budgetmaster.auth.presentation.onboarding.OnboardingViewModel
 import com.budgetmaster.auth.presentation.register.RegisterScreen
 import com.budgetmaster.auth.presentation.register.RegisterViewModel
+import com.budgetmaster.auth.domain.usecase.SignOutUseCase
 import com.budgetmaster.auth.presentation.splash.SplashScreen
 import com.budgetmaster.auth.presentation.splash.SplashViewModel
 import com.budgetmaster.budgets.presentation.BudgetsScreen
@@ -78,6 +80,7 @@ import com.budgetmaster.dashboard.presentation.DashboardScreen
 import com.budgetmaster.reports.presentation.ReportsScreen
 import com.budgetmaster.settings.presentation.SettingsScreen
 import com.budgetmaster.transactions.presentation.TransactionsScreen
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -427,10 +430,18 @@ private fun MainNavGraph(navController: androidx.navigation.NavHostController) {
         }
 
         composable<AuthRoute.Settings> {
+            val signOutUseCase = koinInject<SignOutUseCase>()
+            val signOutScope = rememberCoroutineScope()
             SettingsScreen(
                 onSignOut = {
-                    navController.navigate(AuthRoute.Login) {
-                        popUpTo(AuthRoute.Dashboard) { inclusive = true }
+                    signOutScope.launch {
+                        // Clear the real auth session so getAuthStatus() flips to
+                        // Unauthenticated; otherwise the next launch would route straight
+                        // back to the dashboard.
+                        signOutUseCase()
+                        navController.navigate(AuthRoute.Login) {
+                            popUpTo(AuthRoute.Dashboard) { inclusive = true }
+                        }
                     }
                 },
                 onReplayOnboarding = {

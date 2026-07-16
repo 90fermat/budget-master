@@ -2,6 +2,8 @@ package com.budgetmaster.auth.presentation.login
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.budgetmaster.auth.domain.model.AuthError
+import com.budgetmaster.auth.domain.model.AuthException
 import com.budgetmaster.auth.domain.usecase.CheckBiometricSupportUseCase
 import com.budgetmaster.auth.domain.usecase.LoginUseCase
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -41,8 +43,10 @@ class LoginViewModel(
      */
     fun onIntent(intent: LoginIntent) {
         when (intent) {
-            is LoginIntent.EmailChanged -> _state.update { it.copy(email = intent.email, errorMessage = null) }
-            is LoginIntent.PasswordChanged -> _state.update { it.copy(password = intent.password, errorMessage = null) }
+            is LoginIntent.EmailChanged -> _state.update { it.copy(email = intent.email, error = null) }
+            is LoginIntent.PasswordChanged -> _state.update { it.copy(password = intent.password, error = null) }
+            is LoginIntent.TogglePasswordVisibility ->
+                _state.update { it.copy(isPasswordVisible = !it.isPasswordVisible) }
             is LoginIntent.LoginClicked -> performLogin()
             is LoginIntent.BiometricLoginClicked -> handleBiometricLogin()
             is LoginIntent.NavigateToRegister -> emitEffect(LoginEffect.NavigateToRegister)
@@ -52,16 +56,15 @@ class LoginViewModel(
 
     private fun performLogin() {
         val current = _state.value
-        _state.update { it.copy(isLoading = true, errorMessage = null) }
+        _state.update { it.copy(isLoading = true, error = null) }
         viewModelScope.launch {
             try {
                 loginUseCase(current.email, current.password)
                 emitEffect(LoginEffect.NavigateToHome)
-            } catch (e: IllegalArgumentException) {
-                _state.update { it.copy(isLoading = false, errorMessage = e.message) }
+            } catch (e: AuthException) {
+                _state.update { it.copy(isLoading = false, error = e.error) }
             } catch (e: Exception) {
-                _state.update { it.copy(isLoading = false, errorMessage = "Authentication failed. Please try again.") }
-                emitEffect(LoginEffect.ShowError(e.message ?: "Unknown error"))
+                _state.update { it.copy(isLoading = false, error = AuthError.Unknown) }
             }
         }
     }
@@ -72,7 +75,7 @@ class LoginViewModel(
                 if (enabled) {
                     emitEffect(LoginEffect.NavigateToHome)
                 } else {
-                    _state.update { it.copy(errorMessage = "Biometric authentication is not available.") }
+                    _state.update { it.copy(error = AuthError.Unknown) }
                 }
             }
         }

@@ -12,7 +12,22 @@
     <string name="login_forgot_password_link">Forgot Password?</string>
     <string name="login_register_link">Don\'t have an account? Sign Up</string>
     <string name="login_biometric_desc">Fingerprint authorization</string>
+    <string name="login_biometric_btn_text">Sign in with biometrics</string>
     <string name="login_google_desc">Google Auth button</string>
+    <string name="auth_show_password">Show password</string>
+    <string name="auth_hide_password">Hide password</string>
+
+    <!-- Auth error messages (typed, localized) -->
+    <string name="auth_error_empty_fields">Please fill in all fields.</string>
+    <string name="auth_error_invalid_email">Please enter a valid email address.</string>
+    <string name="auth_error_weak_password">Password must be at least 6 characters.</string>
+    <string name="auth_error_password_mismatch">Passwords do not match.</string>
+    <string name="auth_error_invalid_credentials">Incorrect email or password.</string>
+    <string name="auth_error_user_not_found">No account found for this email.</string>
+    <string name="auth_error_email_in_use">An account already exists for this email.</string>
+    <string name="auth_error_too_many_requests">Too many attempts. Please try again later.</string>
+    <string name="auth_error_network">Network error. Check your connection and try again.</string>
+    <string name="auth_error_unknown">Something went wrong. Please try again.</string>
 
     <!-- Biometric Setup Screen Strings -->
     <string name="biometric_setup_title">Biometric Lock</string>

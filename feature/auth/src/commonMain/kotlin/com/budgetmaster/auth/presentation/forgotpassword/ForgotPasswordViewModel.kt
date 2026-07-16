@@ -2,6 +2,8 @@ package com.budgetmaster.auth.presentation.forgotpassword
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.budgetmaster.auth.domain.model.AuthError
+import com.budgetmaster.auth.domain.model.AuthException
 import com.budgetmaster.auth.domain.usecase.ResetPasswordUseCase
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,7 +38,7 @@ class ForgotPasswordViewModel(
      */
     fun onIntent(intent: ForgotPasswordIntent) {
         when (intent) {
-            is ForgotPasswordIntent.EmailChanged -> _state.update { it.copy(email = intent.email, errorMessage = null) }
+            is ForgotPasswordIntent.EmailChanged -> _state.update { it.copy(email = intent.email, error = null) }
             ForgotPasswordIntent.SendResetClicked -> sendReset()
             ForgotPasswordIntent.NavigateToLogin -> viewModelScope.launch { _effects.emit(ForgotPasswordEffect.NavigateToLogin) }
         }
@@ -45,17 +47,18 @@ class ForgotPasswordViewModel(
     private fun sendReset() {
         val email = _state.value.email.trim()
         if (email.isBlank()) {
-            _state.update { it.copy(errorMessage = "Email must not be empty.") }
+            _state.update { it.copy(error = AuthError.EmptyFields) }
             return
         }
-        _state.update { it.copy(isLoading = true, errorMessage = null) }
+        _state.update { it.copy(isLoading = true, error = null) }
         viewModelScope.launch {
             try {
                 resetPasswordUseCase(email)
                 _state.update { it.copy(isLoading = false, isSuccess = true) }
-                _effects.emit(ForgotPasswordEffect.ShowMessage("Reset link sent to $email"))
+            } catch (e: AuthException) {
+                _state.update { it.copy(isLoading = false, error = e.error) }
             } catch (e: Exception) {
-                _state.update { it.copy(isLoading = false, errorMessage = e.message ?: "Failed to send reset link.") }
+                _state.update { it.copy(isLoading = false, error = AuthError.Unknown) }
             }
         }
     }

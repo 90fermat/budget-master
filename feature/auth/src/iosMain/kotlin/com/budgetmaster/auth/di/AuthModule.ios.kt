@@ -13,5 +13,5 @@ import org.koin.dsl.module
  */
 actual val platformAuthModule: Module = module {
     single { Firebase.auth }
-    single { FirebaseAuthRepository(get(), get()) } bind AuthRepository::class
+    single { FirebaseAuthRepository(get()) } bind AuthRepository::class
 }

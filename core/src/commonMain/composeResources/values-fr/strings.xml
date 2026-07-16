@@ -12,7 +12,22 @@
     <string name="login_forgot_password_link">Mot de passe oublié ?</string>
     <string name="login_register_link">Pas encore de compte ? Inscrivez-vous</string>
     <string name="login_biometric_desc">Autorisation par empreinte digitale</string>
+    <string name="login_biometric_btn_text">Se connecter avec la biométrie</string>
     <string name="login_google_desc">Bouton d\'authentification Google</string>
+    <string name="auth_show_password">Afficher le mot de passe</string>
+    <string name="auth_hide_password">Masquer le mot de passe</string>
+
+    <!-- Messages d'erreur d'authentification (typés, localisés) -->
+    <string name="auth_error_empty_fields">Veuillez remplir tous les champs.</string>
+    <string name="auth_error_invalid_email">Veuillez saisir une adresse e-mail valide.</string>
+    <string name="auth_error_weak_password">Le mot de passe doit contenir au moins 6 caractères.</string>
+    <string name="auth_error_password_mismatch">Les mots de passe ne correspondent pas.</string>
+    <string name="auth_error_invalid_credentials">E-mail ou mot de passe incorrect.</string>
+    <string name="auth_error_user_not_found">Aucun compte trouvé pour cet e-mail.</string>
+    <string name="auth_error_email_in_use">Un compte existe déjà pour cet e-mail.</string>
+    <string name="auth_error_too_many_requests">Trop de tentatives. Réessayez plus tard.</string>
+    <string name="auth_error_network">Erreur réseau. Vérifiez votre connexion et réessayez.</string>
+    <string name="auth_error_unknown">Une erreur s\'est produite. Veuillez réessayer.</string>
 
     <!-- Biometric Setup Screen Strings -->
     <string name="biometric_setup_title">Verrouillage biométrique</string>

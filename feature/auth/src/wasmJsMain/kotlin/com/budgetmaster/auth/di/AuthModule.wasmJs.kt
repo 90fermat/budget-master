@@ -10,5 +10,5 @@ import org.koin.dsl.module
  * WasmJs implementation of [platformAuthModule] containing the mock WasmAuthRepository binding.
  */
 actual val platformAuthModule: Module = module {
-    single { WasmAuthRepository() } bind AuthRepository::class
+    single { WasmAuthRepository(get()) } bind AuthRepository::class
 }

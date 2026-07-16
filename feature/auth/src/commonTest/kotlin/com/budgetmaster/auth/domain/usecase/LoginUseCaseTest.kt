@@ -1,5 +1,7 @@
 package com.budgetmaster.auth.domain.usecase
 
+import com.budgetmaster.auth.domain.model.AuthError
+import com.budgetmaster.auth.domain.model.AuthException
 import com.budgetmaster.auth.domain.model.AuthStatus
 import com.budgetmaster.auth.domain.model.User
 import com.budgetmaster.auth.domain.repository.AuthRepository
@@ -39,23 +41,20 @@ class LoginUseCaseTest {
     }
 
     @Test
-    fun `invoke with blank email throws IllegalArgumentException`() = runTest {
-        assertFailsWith<IllegalArgumentException> {
-            useCase("", "password123")
-        }
+    fun `invoke with blank email throws EmptyFields`() = runTest {
+        val ex = assertFailsWith<AuthException> { useCase("", "password123") }
+        assertEquals(AuthError.EmptyFields, ex.error)
     }
 
     @Test
-    fun `invoke with malformed email throws IllegalArgumentException`() = runTest {
-        assertFailsWith<IllegalArgumentException> {
-            useCase("not-an-email", "password123")
-        }
+    fun `invoke with malformed email throws InvalidEmail`() = runTest {
+        val ex = assertFailsWith<AuthException> { useCase("not-an-email", "password123") }
+        assertEquals(AuthError.InvalidEmail, ex.error)
     }
 
     @Test
-    fun `invoke with short password throws IllegalArgumentException`() = runTest {
-        assertFailsWith<IllegalArgumentException> {
-            useCase("test@example.com", "123")
-        }
+    fun `invoke with short password throws WeakPassword`() = runTest {
+        val ex = assertFailsWith<AuthException> { useCase("test@example.com", "123") }
+        assertEquals(AuthError.WeakPassword, ex.error)
     }
 }

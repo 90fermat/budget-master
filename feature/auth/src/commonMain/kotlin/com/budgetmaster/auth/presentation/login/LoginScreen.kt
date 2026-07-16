@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -41,6 +42,19 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import budgetmaster.core.generated.resources.Res
+import budgetmaster.core.generated.resources.auth_hide_password
+import budgetmaster.core.generated.resources.auth_show_password
+import budgetmaster.core.generated.resources.login_biometric_btn_text
+import budgetmaster.core.generated.resources.login_btn_text
+import budgetmaster.core.generated.resources.login_email_label
+import budgetmaster.core.generated.resources.login_forgot_password_link
+import budgetmaster.core.generated.resources.login_password_label
+import budgetmaster.core.generated.resources.login_register_link
+import budgetmaster.core.generated.resources.login_subtitle
+import budgetmaster.core.generated.resources.login_title
+import com.budgetmaster.auth.presentation.localizedMessage
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * Composable login screen that collects email/password and dispatches [LoginIntent]s.
@@ -66,29 +80,29 @@ fun LoginScreen(
                 LoginEffect.NavigateToHome -> onNavigateToHome()
                 LoginEffect.NavigateToRegister -> onNavigateToRegister()
                 LoginEffect.NavigateToForgotPassword -> onNavigateToForgotPassword()
-                is LoginEffect.ShowError -> { /* Handled inline via state.errorMessage */ }
+                is LoginEffect.ShowError -> Unit // Errors are shown inline via state.error.
             }
         }
     }
 
     Box(
         modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.Center,
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.fillMaxWidth().widthIn(max = 420.dp)
+            modifier = Modifier.fillMaxWidth().widthIn(max = 420.dp),
         ) {
             Text(
-                text = "Welcome Back",
+                text = stringResource(Res.string.login_title),
                 style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.onBackground
+                color = MaterialTheme.colorScheme.onBackground,
             )
             Text(
-                text = "Sign in to your account",
+                text = stringResource(Res.string.login_subtitle),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -96,48 +110,61 @@ fun LoginScreen(
             OutlinedTextField(
                 value = state.email,
                 onValueChange = { viewModel.onIntent(LoginIntent.EmailChanged(it)) },
-                label = { Text("Email") },
+                label = { Text(stringResource(Res.string.login_email_label)) },
                 singleLine = true,
+                isError = state.error != null,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
-                modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Email input field" }
+                modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Email input field" },
             )
 
             OutlinedTextField(
                 value = state.password,
                 onValueChange = { viewModel.onIntent(LoginIntent.PasswordChanged(it)) },
-                label = { Text("Password") },
+                label = { Text(stringResource(Res.string.login_password_label)) },
                 singleLine = true,
-                visualTransformation = if (state.isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                isError = state.error != null,
+                visualTransformation = if (state.isPasswordVisible) {
+                    VisualTransformation.None
+                } else {
+                    PasswordVisualTransformation()
+                },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = {
                     keyboardController?.hide()
                     viewModel.onIntent(LoginIntent.LoginClicked)
                 }),
                 trailingIcon = {
-                    IconButton(onClick = { /* TODO: toggle visibility via intent */ }) {
+                    val desc = stringResource(
+                        if (state.isPasswordVisible) Res.string.auth_hide_password else Res.string.auth_show_password,
+                    )
+                    IconButton(onClick = { viewModel.onIntent(LoginIntent.TogglePasswordVisibility) }) {
                         Icon(
-                            imageVector = if (state.isPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = if (state.isPasswordVisible) "Hide password" else "Show password"
+                            imageVector = if (state.isPasswordVisible) {
+                                Icons.Default.VisibilityOff
+                            } else {
+                                Icons.Default.Visibility
+                            },
+                            contentDescription = desc,
                         )
                     }
                 },
-                modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Password input field" }
+                modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Password input field" },
             )
 
-            AnimatedVisibility(visible = state.errorMessage != null) {
+            AnimatedVisibility(visible = state.error != null) {
                 Text(
-                    text = state.errorMessage ?: "",
+                    text = state.error?.localizedMessage() ?: "",
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
 
             TextButton(
                 onClick = { viewModel.onIntent(LoginIntent.NavigateToForgotPassword) },
-                modifier = Modifier.align(Alignment.End)
+                modifier = Modifier.align(Alignment.End),
             ) {
-                Text("Forgot Password?")
+                Text(stringResource(Res.string.login_forgot_password_link))
             }
 
             Button(
@@ -146,27 +173,28 @@ fun LoginScreen(
                     viewModel.onIntent(LoginIntent.LoginClicked)
                 },
                 enabled = !state.isLoading,
-                modifier = Modifier.fillMaxWidth().height(50.dp).semantics { contentDescription = "Login button" }
+                modifier = Modifier.fillMaxWidth().height(50.dp).semantics { contentDescription = "Login button" },
             ) {
                 if (state.isLoading) {
                     CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
                 } else {
-                    Text("Sign In")
+                    Text(stringResource(Res.string.login_btn_text))
                 }
             }
 
             OutlinedButton(
                 onClick = { viewModel.onIntent(LoginIntent.BiometricLoginClicked) },
-                modifier = Modifier.fillMaxWidth().height(50.dp).semantics { contentDescription = "Biometric login button" }
+                modifier = Modifier.fillMaxWidth().height(50.dp)
+                    .semantics { contentDescription = "Biometric login button" },
             ) {
                 Icon(imageVector = Icons.Default.Fingerprint, contentDescription = null)
-                Text(text = "  Sign In with Biometrics")
+                Spacer(Modifier.width(8.dp))
+                Text(text = stringResource(Res.string.login_biometric_btn_text))
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Don't have an account?", style = MaterialTheme.typography.bodyMedium)
                 TextButton(onClick = { viewModel.onIntent(LoginIntent.NavigateToRegister) }) {
-                    Text("Sign Up")
+                    Text(stringResource(Res.string.login_register_link))
                 }
             }
         }

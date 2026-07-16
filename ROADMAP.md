@@ -11,7 +11,7 @@
 
 | Feature | Domain | Data | MVI ViewModel | UI | Tests | Verdict |
 |---|---|---|---|---|---|---|
-| **Auth** | ✅ 12 use cases | ⚠️ **stubbed** (Firebase not wired — throws) | ✅ 6 ViewModels | ✅ 6 screens (illustrated onboarding, animated splash) | ✅ | **Flow/UI ~75%, but sign-in is NON-FUNCTIONAL** |
+| **Auth** | ✅ 12 use cases, typed `AuthError` | ✅ GitLive Firebase (Android/iOS) + Web local-only; `authStateChanged` | ✅ 6 ViewModels | ✅ 6 screens, **localized** EN/FR, animated splash | ✅ | **~90% — functional; per-account data scoping deferred** |
 | **Dashboard** | ✅ 5 use cases, 6 models | ✅ SQLDelight + Gemini AI | ✅ Full MVI | ✅ Premium components + skeleton | ✅ Unit + Roborazzi | **~90% — reference implementation** |
 | **Transactions** | ✅ models, repo, 5 use cases | ✅ SqlDelight repo + first-launch seeding | ✅ Full MVI | ✅ Day-grouped list, search, filters, swipe+undo, editor | ✅ use-case/VM/repo | **~90% (was ~15%)** |
 | **Settings** | ✅ 6 use cases | ✅ DataStore/localStorage prefs | ✅ Full MVI | ✅ Theme/palette/language/currency, replay-intro | ➖ | **~85% (was ~20%)** |
@@ -22,26 +22,26 @@
 **Design system:** ✅ done — `AppTheme` with **5 palettes** (incl. Material You Dynamic),
 bundled **Outfit + Inter** fonts, adaptive brand **logo**, `Spacing`/`Motion` tokens, and
 palette-independent `FinancialColors`. **Localization:** EN/FR across the shell, transactions,
-settings, and onboarding; the login/register/forgot screens still have **hardcoded English**.
-**Auth backend:** ⚠️ **not implemented** — see §Authentication below.
+settings, and onboarding; the login/register/forgot screens are **now localized** too (EN/FR).
+**Auth backend:** ✅ **implemented** (Phase 1.6) — see §Authentication below.
 
 The SQLDelight schema (10 entities) still has unused tables (budgets, goals, recurring,
 exchange rates, notifications) — the next features consume them.
 
-### Authentication status ⚠️
+### Authentication status ✅ (Phase 1.6)
 
-Sign-in / sign-up **do not work on any platform**. `FirebaseAuthRepositoryImpl`
-(Android & iOS) and `WasmAuthRepositoryImpl` (Web) throw
-`UnsupportedOperationException("… not configured")`; `getAuthStatus()` always returns
-`Unauthenticated`. The app is usable because data features run on a local `default_user`
-without a login gate, but there is no real account system.
+Sign-in / sign-up / reset / sign-out are **functional**. Android & iOS use the GitLive
+Firebase Kotlin SDK against the real project (`budget-master-4c24f`); `getAuthStatus()` is
+backed by `authStateChanged`, so sessions persist across restarts and sign-out clears them.
+Web runs a durable **local-only** profile in `localStorage` (no remote sync). Errors are a
+typed `AuthError` mapped to localized EN/FR copy; the password-visibility toggle works.
 
-**To make auth work:** wire the GitLive Firebase Kotlin SDK (`Firebase.auth
-.signInWithEmailAndPassword` / `createUser…` / `sendPasswordReset` / `signOut`, mapping
-`FirebaseUser`→`User`, and `authStateChanged`→`getAuthStatus()`); initialize Firebase per
-platform (Android `google-services.json` is present, iOS needs `GoogleService-Info.plist`);
-for Web either add Firebase JS interop or keep the local-only mode. Tracked as **Phase 1.6**
-below. Localizing the three auth screens rides along.
+**Remaining for auth:** (1) **iOS** needs, on macOS/Xcode, the Firebase iOS SDK added
+(SPM/Pods) and `FirebaseApp.configure()` called in `iOSApp.init()` before `initKoinIos()`
+— can't be built from the current Windows host. (2) The Firebase console must have the
+**Email/Password** provider enabled. (3) **Per-account data scoping** is deferred: the app
+still reads/writes the shared `default_user` seed regardless of who signs in; binding the
+signed-in uid as the data owner is tracked as a follow-up. (4) Google sign-in is optional/deferred.
 
 ### Architecture conformance (vs ARCHITECTURE.md)
 
@@ -60,7 +60,8 @@ below. Localizing the three auth screens rides along.
 **Remaining drift ❌**
 1. `budgetsModule` binds `SqlDelightBudgetRepository` that nothing injects (dead DI wiring).
 2. Budgets/Goals/Reports screens are static mockups with hardcoded strings/data.
-3. Login/Register/ForgotPassword screens use hardcoded English strings (not `StringResources`).
+3. ~~Login/Register/ForgotPassword screens use hardcoded English strings~~ — **fixed**
+   (Phase 1.6): all three now use `StringResources` (EN/FR), including typed error copy.
 4. Dashboard→Settings navigation uses stringly-typed `onQuickAction("Settings")` magic strings
    instead of a typed Effect.
 5. Konsist tests do not yet enforce the module-dependency / no-hardcoded-color rules
@@ -238,25 +239,39 @@ then onboarding once; returning users skip straight to auth/dashboard; 5 premium
 (verified in the user's browser; the in-app preview pane can't screenshot the animated
 wasm canvas).
 
-### Phase 1.6 — Real authentication (1–1.5 weeks)
-> Sign-in/up is currently stubbed on every platform (throws "not configured"). The app
-> works locally on a `default_user`, but there is no account system. This phase makes it real.
+### Phase 1.6 — Real authentication (1–1.5 weeks) — **done (native config in place)**
+> Sign-in/up was stubbed on every platform (threw "not configured"). It is now wired to the
+> real GitLive Firebase SDK on Android/iOS and a durable local-only profile on Web. The real
+> Firebase project (`budget-master-4c24f`) config is committed for Android + iOS.
 
-- [ ] Wire the **GitLive Firebase Kotlin SDK** in `FirebaseAuthRepositoryImpl`
-  (Android/iOS): `signInWithEmailAndPassword`, `createUserWithEmailAndPassword`,
-  `sendPasswordReset`, `signOut`; map `FirebaseUser`→`User`; back `getAuthStatus()` with
-  the `authStateChanged` flow.
-- [ ] Initialize Firebase per platform (Android `google-services.json` present; add iOS
-  `GoogleService-Info.plist` + init; confirm gitlive init on startup).
-- [ ] **Web**: implement Firebase JS-interop auth via gitlive, or keep an explicit local-only
-  mode with the auth screens hidden/disabled on Wasm (no throwing paths).
-- [ ] Surface auth errors inline (invalid credentials, network) via `state.errorMessage`;
-  wire the password-visibility toggle (currently a TODO).
-- [ ] Bind the real user into the app: replace the `default_user` seed owner with the signed-in
-  uid so data is per-account; migrate/scope existing local data.
-- [ ] Google sign-in button (optional) via gitlive.
-- [ ] **Localize** the login/register/forgot-password screens (EN/FR) — still hardcoded English.
-- [ ] Tests: repository tests with a fake Firebase, ViewModel tests for success/error flows.
+- [x] **GitLive Firebase Kotlin SDK** wired in `FirebaseAuthRepository` (Android/iOS):
+  `signInWithEmailAndPassword`, `createUserWithEmailAndPassword`, `sendPasswordResetEmail`,
+  `signOut`; `FirebaseUser`→`User` mapping; `getAuthStatus()` now backed by the
+  `authStateChanged` flow so sessions survive restarts. The dead `FirebaseAuthRepositoryImpl`
+  stubs were deleted and a latent DI bug (`FirebaseAuthRepository(get(), get())` — no second
+  dependency) was fixed.
+- [x] **Firebase init**: Android auto-initializes via the `google-services` plugin +
+  `google-services.json`. iOS `GoogleService-Info.plist` is committed. **iOS still needs, in
+  Xcode (macOS):** add the Firebase iOS SDK (SPM/CocoaPods) and call `FirebaseApp.configure()`
+  in `iOSApp.init()` *before* `initKoinIos()` — can't be built/verified from the Windows host.
+- [x] **Web local-only mode**: `WasmAuthRepository` now persists a local profile in
+  `localStorage` (via `KeyValueStore`) instead of throwing — sign-in/up create/reuse it,
+  sign-out clears it, `getAuthStatus()` reflects it. Browser-scoped, no remote sync.
+- [x] **Typed, localized errors**: new `AuthError`/`AuthException`; repos map Firebase
+  failures (invalid credentials, user-not-found, email-in-use, weak password, network) onto
+  them; screens resolve them to EN/FR strings. **Password-visibility toggle** wired (was a TODO).
+- [x] **Localize** login/register/forgot-password screens (EN/FR) via string resources
+  (previously hardcoded English).
+- [x] **Sign-out** now calls the real `SignOutUseCase` from the composition root before
+  routing to Login (previously navigation-only, which left the session active).
+- [x] Tests: `AuthError` validation in `LoginUseCase`/`SignUpUseCase`; `LoginViewModel`
+  success/typed-error/toggle flows.
+- [ ] **Deferred — per-account data scoping**: still runs on the shared `default_user` seed;
+  binding the signed-in uid as the data owner (and migrating local rows) is a larger change
+  tracked separately to avoid destabilizing the local-first model.
+- [ ] **Deferred — Google sign-in** button (optional) via gitlive.
+- [ ] **Console prerequisite**: Email/Password provider must be enabled in the Firebase
+  console for the project; otherwise Android/iOS sign-in returns an error.
 
 ### Phase 2 — Budgets, Goals, Settings on real data (1.5 weeks) — **mostly done**
 - [x] **Shared seeding**: extracted default user/account/categories into a single

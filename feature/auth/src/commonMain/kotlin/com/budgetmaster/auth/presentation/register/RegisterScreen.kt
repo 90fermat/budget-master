@@ -1,5 +1,6 @@
 package com.budgetmaster.auth.presentation.register
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,6 +36,18 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import budgetmaster.core.generated.resources.Res
+import budgetmaster.core.generated.resources.auth_hide_password
+import budgetmaster.core.generated.resources.auth_show_password
+import budgetmaster.core.generated.resources.login_email_label
+import budgetmaster.core.generated.resources.login_password_label
+import budgetmaster.core.generated.resources.register_btn_text
+import budgetmaster.core.generated.resources.register_confirm_password_label
+import budgetmaster.core.generated.resources.register_login_link
+import budgetmaster.core.generated.resources.register_subtitle
+import budgetmaster.core.generated.resources.register_title
+import com.budgetmaster.auth.presentation.localizedMessage
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * Register screen for creating a new account.
@@ -56,87 +69,104 @@ fun RegisterScreen(
             when (effect) {
                 RegisterEffect.NavigateToHome -> onNavigateToHome()
                 RegisterEffect.NavigateToLogin -> onNavigateToLogin()
-                is RegisterEffect.ShowError -> Unit
+                is RegisterEffect.ShowError -> Unit // Errors are shown inline via state.error.
             }
         }
     }
 
     Box(
         modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.Center,
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.fillMaxWidth().widthIn(max = 420.dp)
+            modifier = Modifier.fillMaxWidth().widthIn(max = 420.dp),
         ) {
-            Text("Create Account", style = MaterialTheme.typography.headlineLarge)
+            Text(stringResource(Res.string.register_title), style = MaterialTheme.typography.headlineLarge)
             Text(
-                "Start your financial journey",
+                stringResource(Res.string.register_subtitle),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
             )
             Spacer(Modifier.height(16.dp))
 
             OutlinedTextField(
                 value = state.email,
                 onValueChange = { viewModel.onIntent(RegisterIntent.EmailChanged(it)) },
-                label = { Text("Email") },
+                label = { Text(stringResource(Res.string.login_email_label)) },
                 singleLine = true,
+                isError = state.error != null,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Email input" }
+                modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Email input" },
             )
 
             OutlinedTextField(
                 value = state.password,
                 onValueChange = { viewModel.onIntent(RegisterIntent.PasswordChanged(it)) },
-                label = { Text("Password") },
+                label = { Text(stringResource(Res.string.login_password_label)) },
                 singleLine = true,
-                visualTransformation = if (state.isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                isError = state.error != null,
+                visualTransformation = if (state.isPasswordVisible) {
+                    VisualTransformation.None
+                } else {
+                    PasswordVisualTransformation()
+                },
                 trailingIcon = {
-                    IconButton(onClick = {}) {
+                    val desc = stringResource(
+                        if (state.isPasswordVisible) Res.string.auth_hide_password else Res.string.auth_show_password,
+                    )
+                    IconButton(onClick = { viewModel.onIntent(RegisterIntent.TogglePasswordVisibility) }) {
                         Icon(
-                            imageVector = if (state.isPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = "Toggle password visibility"
+                            imageVector = if (state.isPasswordVisible) {
+                                Icons.Default.VisibilityOff
+                            } else {
+                                Icons.Default.Visibility
+                            },
+                            contentDescription = desc,
                         )
                     }
                 },
-                modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Password input" }
+                modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Password input" },
             )
 
             OutlinedTextField(
                 value = state.confirmPassword,
                 onValueChange = { viewModel.onIntent(RegisterIntent.ConfirmPasswordChanged(it)) },
-                label = { Text("Confirm Password") },
+                label = { Text(stringResource(Res.string.register_confirm_password_label)) },
                 singleLine = true,
-                visualTransformation = PasswordVisualTransformation(),
-                modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Confirm password input" }
+                isError = state.error != null,
+                visualTransformation = if (state.isPasswordVisible) {
+                    VisualTransformation.None
+                } else {
+                    PasswordVisualTransformation()
+                },
+                modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Confirm password input" },
             )
 
-            if (state.errorMessage != null) {
+            AnimatedVisibility(visible = state.error != null) {
                 Text(
-                    text = state.errorMessage!!,
+                    text = state.error?.localizedMessage() ?: "",
                     color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall
+                    style = MaterialTheme.typography.bodySmall,
                 )
             }
 
             Button(
                 onClick = { viewModel.onIntent(RegisterIntent.RegisterClicked) },
                 enabled = !state.isLoading,
-                modifier = Modifier.fillMaxWidth().height(50.dp).semantics { contentDescription = "Register button" }
+                modifier = Modifier.fillMaxWidth().height(50.dp).semantics { contentDescription = "Register button" },
             ) {
                 if (state.isLoading) {
                     CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
                 } else {
-                    Text("Create Account")
+                    Text(stringResource(Res.string.register_btn_text))
                 }
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Already have an account?", style = MaterialTheme.typography.bodyMedium)
                 TextButton(onClick = { viewModel.onIntent(RegisterIntent.NavigateToLogin) }) {
-                    Text("Sign In")
+                    Text(stringResource(Res.string.register_login_link))
                 }
             }
         }

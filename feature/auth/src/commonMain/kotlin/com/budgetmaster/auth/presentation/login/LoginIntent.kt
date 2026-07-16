@@ -19,6 +19,9 @@ sealed interface LoginIntent {
     /** Triggered when the user clicks the login button. */
     data object LoginClicked : LoginIntent
 
+    /** Triggered when the user toggles password visibility. */
+    data object TogglePasswordVisibility : LoginIntent
+
     /** Triggered when the user clicks the biometric login option. */
     data object BiometricLoginClicked : LoginIntent
 
