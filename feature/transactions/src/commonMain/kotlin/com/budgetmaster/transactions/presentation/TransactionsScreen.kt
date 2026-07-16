@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -46,6 +47,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import budgetmaster.core.generated.resources.Res
+import budgetmaster.core.generated.resources.empty_transactions_cta
 import budgetmaster.core.generated.resources.transactions_deleted
 import budgetmaster.core.generated.resources.transactions_empty_filtered
 import budgetmaster.core.generated.resources.transactions_empty_subtitle
@@ -60,6 +62,7 @@ import budgetmaster.core.generated.resources.transactions_uncategorized
 import budgetmaster.core.generated.resources.transactions_undo
 import budgetmaster.core.generated.resources.transactions_yesterday
 import com.budgetmaster.core.designsystem.Spacing
+import com.budgetmaster.core.designsystem.components.EmptyState as SharedEmptyState
 import com.budgetmaster.core.designsystem.categoryIconFor
 import com.budgetmaster.core.util.MoneyFormatter
 import com.budgetmaster.core.util.RelativeDay
@@ -131,7 +134,10 @@ fun TransactionsScreen(viewModel: TransactionsViewModel = koinViewModel()) {
             Spacer(Modifier.height(Spacing.medium))
 
             when {
-                state.isEmpty -> EmptyState(filtered = !state.query.isBlank() || state.categoryFilterId != null || state.typeFilter != TypeFilter.ALL)
+                state.isEmpty -> EmptyState(
+                    filtered = !state.query.isBlank() || state.categoryFilterId != null || state.typeFilter != TypeFilter.ALL,
+                    onAdd = { viewModel.onIntent(TransactionsIntent.AddClicked) },
+                )
                 else -> TransactionList(state, viewModel)
             }
         }
@@ -238,26 +244,19 @@ private fun DayHeader(group: TransactionDayGroup, currencyCode: String) {
 }
 
 @Composable
-private fun EmptyState(filtered: Boolean) {
+private fun EmptyState(filtered: Boolean, onAdd: () -> Unit) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("💸", style = MaterialTheme.typography.displaySmall)
-            Spacer(Modifier.height(Spacing.medium))
-            Text(
-                text = stringResource(Res.string.transactions_empty_title),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
-            Spacer(Modifier.height(Spacing.small))
-            Text(
-                text = stringResource(
-                    if (filtered) Res.string.transactions_empty_filtered else Res.string.transactions_empty_subtitle
-                ),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        SharedEmptyState(
+            icon = Icons.Default.ReceiptLong,
+            title = stringResource(Res.string.transactions_empty_title),
+            subtitle = stringResource(
+                if (filtered) Res.string.transactions_empty_filtered else Res.string.transactions_empty_subtitle,
+            ),
+            // A CTA only helps when the list is genuinely empty; adding an entry won't fix a
+            // filter that matched nothing.
+            actionLabel = if (filtered) null else stringResource(Res.string.empty_transactions_cta),
+            onAction = if (filtered) null else onAdd,
+        )
     }
 }
 

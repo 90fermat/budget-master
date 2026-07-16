@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -39,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import budgetmaster.core.generated.resources.Res
 import budgetmaster.core.generated.resources.goals_empty_subtitle
+import budgetmaster.core.generated.resources.empty_goals_cta
 import budgetmaster.core.generated.resources.goals_empty_title
 import budgetmaster.core.generated.resources.goals_new
 import budgetmaster.core.generated.resources.goals_title
@@ -47,6 +49,7 @@ import com.budgetmaster.budgets.presentation.components.ContributeForm
 import com.budgetmaster.budgets.presentation.components.GoalCard
 import com.budgetmaster.budgets.presentation.components.WithdrawForm
 import com.budgetmaster.core.designsystem.Spacing
+import com.budgetmaster.core.designsystem.components.EmptyState as SharedEmptyState
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -91,7 +94,7 @@ fun GoalsScreen(viewModel: GoalsViewModel = koinViewModel()) {
             Spacer(Modifier.height(Spacing.medium))
 
             when {
-                state.isEmpty -> EmptyState()
+                state.isEmpty -> EmptyState(onAdd = { viewModel.onIntent(GoalsIntent.AddClicked) })
                 else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(Spacing.small)) {
                     items(state.goals, key = { it.id }) { item ->
                         GoalCard(
@@ -114,24 +117,15 @@ fun GoalsScreen(viewModel: GoalsViewModel = koinViewModel()) {
 }
 
 @Composable
-private fun EmptyState() {
+private fun EmptyState(onAdd: () -> Unit) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("🏆", style = MaterialTheme.typography.displaySmall)
-            Spacer(Modifier.height(Spacing.medium))
-            Text(
-                text = stringResource(Res.string.goals_empty_title),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
-            Spacer(Modifier.height(Spacing.small))
-            Text(
-                text = stringResource(Res.string.goals_empty_subtitle),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        SharedEmptyState(
+            icon = Icons.Default.Flag,
+            title = stringResource(Res.string.goals_empty_title),
+            subtitle = stringResource(Res.string.goals_empty_subtitle),
+            actionLabel = stringResource(Res.string.empty_goals_cta),
+            onAction = onAdd,
+        )
     }
 }
 

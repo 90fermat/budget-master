@@ -106,6 +106,12 @@
     <string name="action_cancel">Annuler</string>
     <string name="action_delete">Supprimer</string>
     <string name="action_ok">OK</string>
+    <string name="action_retry">Réessayer</string>
+    <string name="error_generic_title">Une erreur est survenue</string>
+    <string name="empty_accounts_cta">Ajouter un compte</string>
+    <string name="empty_budgets_cta">Créer un budget</string>
+    <string name="empty_goals_cta">Définir un objectif</string>
+    <string name="empty_transactions_cta">Ajouter une transaction</string>
     <string name="transactions_date_label">Date</string>
     <string name="transactions_account_label">Compte</string>
     <string name="transactions_recurring_label">Récurrent</string>

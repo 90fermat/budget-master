@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Card
@@ -36,6 +37,7 @@ import budgetmaster.core.generated.resources.accounts_add
 import budgetmaster.core.generated.resources.accounts_archived_section
 import budgetmaster.core.generated.resources.accounts_delete_confirm
 import budgetmaster.core.generated.resources.accounts_empty
+import budgetmaster.core.generated.resources.empty_accounts_cta
 import budgetmaster.core.generated.resources.accounts_net_worth
 import budgetmaster.core.generated.resources.accounts_multi_currency_note
 import budgetmaster.core.generated.resources.accounts_title
@@ -47,6 +49,7 @@ import com.budgetmaster.accounts.presentation.components.AddEditAccountForm
 import com.budgetmaster.accounts.presentation.components.ReconcileForm
 import com.budgetmaster.accounts.presentation.components.TransferForm
 import com.budgetmaster.core.designsystem.animateCounter
+import com.budgetmaster.core.designsystem.components.EmptyState
 import com.budgetmaster.core.util.MoneyFormatter
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -96,10 +99,12 @@ fun AccountsScreen(viewModel: AccountsViewModel = koinViewModel()) {
 
             if (active.isEmpty() && archived.isEmpty()) {
                 item {
-                    Text(
-                        stringResource(Res.string.accounts_empty),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    EmptyState(
+                        icon = Icons.Filled.AccountBalanceWallet,
+                        title = stringResource(Res.string.accounts_title),
+                        subtitle = stringResource(Res.string.accounts_empty),
+                        actionLabel = stringResource(Res.string.empty_accounts_cta),
+                        onAction = { viewModel.onIntent(AccountsIntent.OpenAdd) },
                     )
                 }
             }

@@ -106,6 +106,12 @@
     <string name="action_cancel">Cancel</string>
     <string name="action_delete">Delete</string>
     <string name="action_ok">OK</string>
+    <string name="action_retry">Try again</string>
+    <string name="error_generic_title">Something went wrong</string>
+    <string name="empty_accounts_cta">Add an account</string>
+    <string name="empty_budgets_cta">Create a budget</string>
+    <string name="empty_goals_cta">Set a goal</string>
+    <string name="empty_transactions_cta">Add a transaction</string>
     <string name="transactions_date_label">Date</string>
     <string name="transactions_account_label">Account</string>
     <string name="transactions_recurring_label">Repeats</string>
