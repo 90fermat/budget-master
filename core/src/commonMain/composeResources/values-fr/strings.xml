@@ -213,4 +213,23 @@
     <string name="accounts_reconcile_title">Définir le solde réel</string>
     <string name="accounts_reconcile_hint">Nous enregistrerons un ajustement pour la différence.</string>
     <string name="accounts_reconcile_actual">Solde réel</string>
+
+    <!-- Rapports -->
+    <string name="reports_range_month">30 jours</string>
+    <string name="reports_range_quarter">90 jours</string>
+    <string name="reports_range_year">Année</string>
+    <string name="reports_range_all">Tout</string>
+    <string name="reports_income">Revenus</string>
+    <string name="reports_expenses">Dépenses</string>
+    <string name="reports_net">Net</string>
+    <string name="reports_by_category">Dépenses par catégorie</string>
+    <string name="reports_trend">Revenus et dépenses</string>
+    <string name="reports_empty">Aucune activité sur cette période.</string>
+    <string name="reports_export_csv">Exporter en CSV</string>
+    <string name="reports_export_started">Export prêt.</string>
+    <string name="reports_export_unavailable">L\'export n\'est pas disponible sur cet appareil.</string>
+    <string name="reports_vs_previous">par rapport à la période précédente</string>
+    <string name="reports_transfers_note">Les virements entre vos comptes sont exclus.</string>
+    <string name="reports_chart_a11y">Dépenses par catégorie : %1$s</string>
+    <string name="reports_trend_a11y">Revenus %1$s, dépenses %2$s sur %3$d jours.</string>
 </resources>

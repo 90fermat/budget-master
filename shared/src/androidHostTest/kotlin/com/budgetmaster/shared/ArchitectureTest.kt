@@ -38,17 +38,17 @@ class ArchitectureTest {
     /**
      * Color belongs to the design system so palettes and dark mode stay consistent.
      *
-     * Known exceptions, each deliberate:
-     *  - `ColorHex` parsers: turn a stored `#RRGGBB` category color into a `Color`, and need a
-     *    literal fallback for malformed input.
-     *  - `:feature:reports`: still the Phase 3 static mockup; its colors go when it is rebuilt
-     *    on real data.
-     *  - `TopTransactionsList`: a per-category accent palette pending the shared component
-     *    library (Phase 4).
+     * Known exceptions, each deliberate and shrinking:
+     *  - `TopTransactionsList` / `AiInsightsWidget`: per-category and per-insight accent
+     *    palettes, pending the shared component library (Phase 4).
+     *  - `ReportsScreen`: one remaining literal; folds into Phase 4's component work.
+     *
+     * The hex parser used to be duplicated in three features and allow-listed here; this rule
+     * flagged a fourth copy, so it moved to `core.designsystem.parseHexColor` instead.
      */
     @Test
     fun `features do not hardcode colors outside the design system`() {
-        val allowed = listOf("ColorHex", "ReportsScreen", "TopTransactionsList", "AiInsightsWidget")
+        val allowed = listOf("ReportsScreen", "TopTransactionsList", "AiInsightsWidget")
         Konsist.scopeFromProduction()
             .files
             .filter { it.featureModule() != null && it.name !in allowed }

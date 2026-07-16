@@ -213,4 +213,23 @@
     <string name="accounts_reconcile_title">Set real balance</string>
     <string name="accounts_reconcile_hint">We\'ll post an adjustment for the difference.</string>
     <string name="accounts_reconcile_actual">Actual balance</string>
+
+    <!-- Reports -->
+    <string name="reports_range_month">30 days</string>
+    <string name="reports_range_quarter">90 days</string>
+    <string name="reports_range_year">Year</string>
+    <string name="reports_range_all">All time</string>
+    <string name="reports_income">Income</string>
+    <string name="reports_expenses">Expenses</string>
+    <string name="reports_net">Net</string>
+    <string name="reports_by_category">Spending by category</string>
+    <string name="reports_trend">Income vs expenses</string>
+    <string name="reports_empty">No activity in this period yet.</string>
+    <string name="reports_export_csv">Export CSV</string>
+    <string name="reports_export_started">Export ready.</string>
+    <string name="reports_export_unavailable">Export isn\'t available on this device.</string>
+    <string name="reports_vs_previous">vs previous period</string>
+    <string name="reports_transfers_note">Transfers between your accounts are excluded.</string>
+    <string name="reports_chart_a11y">Spending by category: %1$s</string>
+    <string name="reports_trend_a11y">Income %1$s, expenses %2$s over %3$d days.</string>
 </resources>

@@ -33,6 +33,7 @@ import com.budgetmaster.budgets.domain.model.BudgetStatus
 import com.budgetmaster.core.designsystem.FinancialTextStyles
 import com.budgetmaster.core.designsystem.Spacing
 import com.budgetmaster.core.designsystem.categoryIconFor
+import com.budgetmaster.core.designsystem.parseHexColor
 import com.budgetmaster.core.designsystem.financialColors
 import com.budgetmaster.core.util.MoneyFormatter
 import org.jetbrains.compose.resources.stringResource

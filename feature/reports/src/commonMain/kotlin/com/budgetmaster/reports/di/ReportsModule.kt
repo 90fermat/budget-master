@@ -1,10 +1,22 @@
 package com.budgetmaster.reports.di
 
+import com.budgetmaster.reports.data.SqlDelightReportsRepository
+import com.budgetmaster.reports.domain.repository.ReportsRepository
+import com.budgetmaster.reports.domain.usecase.ExportReportCsvUseCase
+import com.budgetmaster.reports.domain.usecase.ObserveReportUseCase
+import com.budgetmaster.reports.presentation.ReportsViewModel
+import org.koin.core.module.dsl.viewModel
+import org.koin.dsl.bind
 import org.koin.dsl.module
 
 /**
  * Koin module for the Reports feature dependencies.
  */
 val reportsModule = module {
-    // Register reports ViewModels or interactors here when added
+    single { SqlDelightReportsRepository(get(), get(), get(), get()) } bind ReportsRepository::class
+
+    factory { ObserveReportUseCase(get()) }
+    factory { ExportReportCsvUseCase(get()) }
+
+    viewModel { ReportsViewModel(get(), get()) }
 }

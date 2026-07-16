@@ -18,7 +18,8 @@
 | **Budgets** | ✅ models, repo, 4 use cases | ✅ SqlDelight, **live spent** from transactions | ✅ Full MVI | ✅ Gauges, summary, create/edit/delete | ✅ repo | **~85% (was ~25%)** |
 | **Goals** | ✅ models, repo, 4 use cases | ✅ SqlDelight over SavingsGoalEntity | ✅ Full MVI | ✅ Progress cards, contribute, create/edit/delete | ✅ repo | **~85% (was ~10%)** |
 | **Accounts** | ✅ models, repo, 9 use cases | ✅ SqlDelight, **live balance** = opening + own transactions; transfers, reconcile, FX conversion | ✅ Full MVI | ✅ Wallet list, net worth, global switcher, CRUD/archive, transfer, reconcile | ✅ repo (9) | **~90%** |
-| **Reports** | ❌ | ❌ | ❌ | ⚠️ Static mockup | ❌ | **~15%** |
+| **Reports** | ✅ models, repo, 2 use cases | ✅ SqlDelight, wallet-scoped, transfers excluded | ✅ Full MVI | ✅ Totals + period comparison, category donut, trend chart, CSV export | ✅ repo (4) | **~85% (was ~15%)** |
+| **Recurring** | ✅ models, repo, 5 use cases | ✅ SqlDelight, calendar-correct, idempotent catch-up | ➖ (engine) | ⚠️ no management screen yet | ✅ repo (5) | **~70% (new)** |
 
 **Design system:** ✅ done — `AppTheme` with **5 palettes** (incl. Material You Dynamic),
 bundled **Outfit + Inter** fonts, adaptive brand **logo**, `Spacing`/`Motion` tokens, and
@@ -423,13 +424,40 @@ Two smaller follow-ups are parked in their natural phases: an **FX rate fetcher*
 networking) and **OS-level notification delivery** (rides with the Phase 3 recurring engine).
 
 ### Phase 3 — Reports & recurring engine (1.5 weeks)
-- [ ] Reports: `ReportsViewModel`; monthly income/expense trends, category ring chart,
-  period comparison — Vico on Android/iOS, existing Canvas fallback on Wasm; tabular
-  breakdown side-by-side on desktop widths.
-- [ ] CSV export (commonMain) + platform share/save (`expect/actual`); PDF optional later.
-- [ ] Recurring transactions engine: use case that materializes due `RecurringTransactionEntity`
-  rows on app start + WorkManager job on Android.
-- [ ] Chart a11y: dynamic `contentDescription` summaries per DESIGN_SYSTEM.md §7.
+- [x] **Reports on real data** (was a static mockup): `ReportsRepository` +
+  `SqlDelightReportsRepository` scoped to the signed-in user and the **active wallet**, with
+  transfers/adjustments excluded — matching the dashboard and budget rules. Period totals
+  (30/90/365/all) with a **comparison against the preceding period of the same length**,
+  spending **by category** with shares, and a daily **income-vs-expense trend**.
+  `ReportsViewModel` (MVI); the range drives a `flatMapLatest` re-query, and the report also
+  re-emits when the wallet or currency changes. Category ring + trend chart **side-by-side
+  ≥600dp**, stacked on phones.
+- [x] **Charts**: drawn with Compose `Canvas`. *Deviation from the original plan* (Vico on
+  Android/iOS + a Wasm fallback): one implementation renders identically on all three targets
+  with no per-platform divergence to maintain, and it honours reduced motion. Vico stays
+  available if a future chart needs it.
+- [x] **CSV export**: generated in commonMain with RFC 4180 quoting, shared via
+  `expect/actual` — share sheet (Android `FileProvider` / iOS `UIActivityViewController`),
+  data-URL download on Web; returns false rather than pretending to succeed. The export
+  **includes** transfers, flagged in a column: it is a record of the money, not an
+  income/expense analysis. PDF still optional/later.
+- [x] **Recurring engine** (consumes the previously-unused `RecurringTransactionEntity`):
+  `Frequency` steps by **calendar unit**, not a fixed millisecond span, so months/years keep
+  their real length, DST can't drift the time of day, and month-end behaves (Jan 31 → Feb 29
+  in a leap year). `materializeDue()` catches up **one entry per missed period** rather than a
+  lump, with a deterministic id per occurrence (`rec_<schedule>_<runAt>`) making the whole
+  operation **idempotent**, plus a catch-up ceiling. Runs on app start. Repository supports
+  observe/upsert (keeps its place in the cycle on edit)/pause/resume/delete. 5 tests.
+- [ ] **Deferred — WorkManager job on Android**: today the engine catches up on app open,
+  which is correct but means entries appear when you next launch rather than on the day. A
+  periodic background job would close that gap (Android-only; iOS/Web keep open-time
+  catch-up). Not a correctness issue — the dates on the created entries are always right.
+- [ ] **Deferred — recurring management UI**: schedules can be created/paused/deleted through
+  the repository, but there is no screen yet; the transaction editor's "repeats" toggle only
+  flags an entry. Natural home is a section on Transactions (Phase 4 polish).
+- [x] **Chart a11y**: a canvas is opaque to screen readers, so each chart carries a generated
+  `contentDescription` summarising the data (top categories with shares; income/expense
+  totals over N days), and the legend repeats the numbers as real text.
 
 ### Phase 4 — Premium polish: motion, adaptive, delight (1–1.5 weeks)
 - [ ] Motion tokens applied: balance count-up, press-to-scale on primary buttons, shimmer
@@ -619,7 +647,7 @@ The app is "production-ready premium" when all of the following hold:
 | 2.5 | Accounts foundation / multi-wallet (uid binding, switcher, net worth, transfers, reconcile, FX) | 1 wk | ✅ done |
 | 2.6 | Google sign-in (Android) | 0.5 wk | ✅ done — SHA-1 registered; needs on-device verification |
 | — | Deferred-item sweep (Phases 1 / 1.5 / 2 / 2.5 + architecture drift) | — | ✅ done |
-| 3 | Reports + recurring engine | 1.5 wk | ⬜ |
+| 3 | Reports + recurring engine | 1.5 wk | ✅ done (WorkManager job + recurring UI deferred to 4) |
 | 4 | Motion & premium polish | 1–1.5 wk | ⬜ |
 | 4.5 | In-app guidance — every screen explains its features | 1 wk | ⬜ |
 | 5 | Localization | 0.5–1 wk | ⬜ |

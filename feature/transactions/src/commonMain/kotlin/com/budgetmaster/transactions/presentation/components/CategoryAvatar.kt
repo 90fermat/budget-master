@@ -13,6 +13,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.budgetmaster.core.designsystem.categoryIconFor
+import com.budgetmaster.core.designsystem.parseHexColor
 import com.budgetmaster.transactions.domain.model.TransactionCategory
 
 /**
