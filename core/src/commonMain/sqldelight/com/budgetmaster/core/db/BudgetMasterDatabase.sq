@@ -260,6 +260,9 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
 selectActiveRecurringTransactions:
 SELECT * FROM RecurringTransactionEntity WHERE isActive = 1 AND nextRunDate <= ?;
 
+selectAllRecurringTransactions:
+SELECT * FROM RecurringTransactionEntity ORDER BY nextRunDate ASC;
+
 selectAllRecurringTransactionsByAccount:
 SELECT * FROM RecurringTransactionEntity WHERE accountId = ?;
 

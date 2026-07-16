@@ -1,6 +1,13 @@
 package com.budgetmaster.transactions.di
 
+import com.budgetmaster.transactions.data.SqlDelightRecurringRepository
 import com.budgetmaster.transactions.data.SqlDelightTransactionRepository
+import com.budgetmaster.transactions.domain.repository.RecurringRepository
+import com.budgetmaster.transactions.domain.usecase.DeleteRecurringUseCase
+import com.budgetmaster.transactions.domain.usecase.MaterializeDueRecurringUseCase
+import com.budgetmaster.transactions.domain.usecase.ObserveRecurringUseCase
+import com.budgetmaster.transactions.domain.usecase.SaveRecurringUseCase
+import com.budgetmaster.transactions.domain.usecase.SetRecurringActiveUseCase
 import com.budgetmaster.transactions.domain.repository.TransactionRepository
 import com.budgetmaster.transactions.domain.usecase.DeleteTransactionUseCase
 import com.budgetmaster.transactions.domain.usecase.ObserveCategoriesUseCase
@@ -18,6 +25,13 @@ import org.koin.dsl.module
  */
 val transactionsModule = module {
     single { SqlDelightTransactionRepository(get(), get(), get(), get()) } bind TransactionRepository::class
+    single { SqlDelightRecurringRepository(get(), get(), get()) } bind RecurringRepository::class
+
+    factory { ObserveRecurringUseCase(get()) }
+    factory { SaveRecurringUseCase(get()) }
+    factory { SetRecurringActiveUseCase(get()) }
+    factory { DeleteRecurringUseCase(get()) }
+    factory { MaterializeDueRecurringUseCase(get()) }
 
     factory { ObserveTransactionsUseCase(get()) }
     factory { ObserveCategoriesUseCase(get()) }

@@ -77,6 +77,7 @@ import com.budgetmaster.budgets.presentation.BudgetsScreen
 import com.budgetmaster.budgets.presentation.GoalsScreen
 import com.budgetmaster.core.db.DefaultData
 import com.budgetmaster.core.session.SessionStore
+import com.budgetmaster.transactions.domain.usecase.MaterializeDueRecurringUseCase
 import com.budgetmaster.core.designsystem.AppLogo
 import com.budgetmaster.core.designsystem.AppTheme
 import com.budgetmaster.core.designsystem.DarkModeSetting
@@ -114,6 +115,7 @@ fun App() {
     val seeder = koinInject<AppDataSeeder>()
     val sessionStore = koinInject<SessionStore>()
     val checkAuthStatus = koinInject<CheckAuthStatusUseCase>()
+    val materializeDueRecurring = koinInject<MaterializeDueRecurringUseCase>()
     LaunchedEffect(Unit) {
         checkAuthStatus().collect { status ->
             if (status is AuthStatus.Authenticated) {
@@ -124,6 +126,9 @@ fun App() {
                 sessionStore.setCurrentUser(null)
                 seeder.seedForUser(DefaultData.DEFAULT_USER_ID)
             }
+            // There is no background scheduler, so recurring entries catch up on open. Safe to
+            // re-run: each occurrence has a deterministic id.
+            materializeDueRecurring()
         }
     }
 
