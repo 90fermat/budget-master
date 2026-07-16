@@ -23,56 +23,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.budgetmaster.core.designsystem.components.rememberShimmerBrush
 import com.budgetmaster.core.designsystem.financialColors
 import com.budgetmaster.dashboard.domain.model.Insight
 import com.budgetmaster.dashboard.domain.model.InsightType
 import com.budgetmaster.dashboard.presentation.InsightsState
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
-
-/**
- * Sweeping shimmer brush extension on [Brush.Companion] to animate loading states.
- *
- * @param targetValue The sweeping transition pixel offset boundary.
- * @param showShimmer Toggle to enable or disable the animation.
- * @return An animated linear gradient [Brush].
- */
-@Composable
-fun Brush.Companion.shimmerBrush(
-    targetValue: Float = 1000f,
-    showShimmer: Boolean = true
-): Brush {
-    return if (showShimmer) {
-        val shimmerColors = listOf(
-            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
-            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-        )
-
-        val transition = rememberInfiniteTransition(label = "shimmer")
-        val translateAnimation = transition.animateFloat(
-            initialValue = 0f,
-            targetValue = targetValue,
-            animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = 1200, easing = LinearEasing),
-                repeatMode = RepeatMode.Restart
-            ),
-            label = "shimmerTranslation"
-        )
-
-        Brush.linearGradient(
-            colors = shimmerColors,
-            start = Offset.Zero,
-            end = Offset(x = translateAnimation.value, y = translateAnimation.value)
-        )
-    } else {
-        Brush.linearGradient(
-            colors = listOf(Color.Transparent, Color.Transparent),
-            start = Offset.Zero,
-            end = Offset.Zero
-        )
-    }
-}
 
 /**
  * Personal finance AI Insights widget.
@@ -142,6 +99,9 @@ fun AiInsightsWidget(
 
 @Composable
 private fun ShimmerCards() {
+    // Uses the shared brush, which flattens to a static tint under reduced motion instead of
+    // looping a sweep under the user.
+    val brush = rememberShimmerBrush()
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         repeat(2) {
             Box(
@@ -149,7 +109,7 @@ private fun ShimmerCards() {
                     .fillMaxWidth()
                     .height(90.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(Brush.shimmerBrush())
+                    .background(brush)
             )
         }
     }

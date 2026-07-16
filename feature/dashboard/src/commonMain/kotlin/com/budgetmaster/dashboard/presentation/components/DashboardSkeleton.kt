@@ -11,18 +11,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import com.budgetmaster.core.designsystem.components.rememberShimmerBrush
 
 /**
  * Full-page loading skeleton for the Dashboard screen.
  *
  * Matches the exact vertical rhythm, spacing, and component heights of the live dashboard.
- * Every placeholder uses the animated [Brush.shimmerBrush] extension from [AiInsightsWidget].
+ * Every placeholder uses the shared shimmer brush from the design system.
  */
 @Composable
 fun DashboardSkeleton(
     modifier: Modifier = Modifier
 ) {
-    val shimmer = androidx.compose.ui.graphics.Brush.shimmerBrush()
+    val shimmer = rememberShimmerBrush()
     val scrollState = rememberScrollState()
 
     Column(

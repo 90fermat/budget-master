@@ -63,6 +63,7 @@ import budgetmaster.core.generated.resources.transactions_undo
 import budgetmaster.core.generated.resources.transactions_yesterday
 import com.budgetmaster.core.designsystem.Spacing
 import com.budgetmaster.core.designsystem.components.EmptyState as SharedEmptyState
+import com.budgetmaster.core.designsystem.components.ShimmerListPlaceholder
 import com.budgetmaster.core.designsystem.categoryIconFor
 import com.budgetmaster.core.util.MoneyFormatter
 import com.budgetmaster.core.util.RelativeDay
@@ -134,6 +135,8 @@ fun TransactionsScreen(viewModel: TransactionsViewModel = koinViewModel()) {
             Spacer(Modifier.height(Spacing.medium))
 
             when {
+                // Placeholder rows shaped like the real list, so nothing jumps on arrival.
+                state.isLoading -> ShimmerListPlaceholder()
                 state.isEmpty -> EmptyState(
                     filtered = !state.query.isBlank() || state.categoryFilterId != null || state.typeFilter != TypeFilter.ALL,
                     onAdd = { viewModel.onIntent(TransactionsIntent.AddClicked) },

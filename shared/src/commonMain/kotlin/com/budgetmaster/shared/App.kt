@@ -1,5 +1,11 @@
 package com.budgetmaster.shared
 
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
@@ -77,8 +83,10 @@ import com.budgetmaster.budgets.presentation.BudgetsScreen
 import com.budgetmaster.budgets.presentation.GoalsScreen
 import com.budgetmaster.core.db.DefaultData
 import com.budgetmaster.core.session.SessionStore
+import com.budgetmaster.core.util.isReducedMotionEnabled
 import com.budgetmaster.transactions.domain.usecase.MaterializeDueRecurringUseCase
 import com.budgetmaster.core.designsystem.AppLogo
+import com.budgetmaster.core.designsystem.Motion
 import com.budgetmaster.core.designsystem.AppTheme
 import com.budgetmaster.core.designsystem.DarkModeSetting
 import com.budgetmaster.core.localization.LocalAppLocale
@@ -337,9 +345,22 @@ private fun AppShell() {
  */
 @Composable
 private fun MainNavGraph(navController: androidx.navigation.NavHostController) {
+    // A fade with a hair of scale reads well for both a tab switch and a push, without the
+    // directional slide that looks wrong when the bottom bar jumps between unrelated tabs.
+    val reducedMotion = isReducedMotionEnabled()
+    val fadeSpec = tween<Float>(Motion.DurationMedium, easing = Motion.EasingExpressive)
+
     NavHost(
         navController = navController,
-        startDestination = AuthRoute.Splash
+        startDestination = AuthRoute.Splash,
+        enterTransition = {
+            if (reducedMotion) EnterTransition.None else fadeIn(fadeSpec) + scaleIn(fadeSpec, initialScale = 0.98f)
+        },
+        exitTransition = { if (reducedMotion) ExitTransition.None else fadeOut(fadeSpec) },
+        popEnterTransition = {
+            if (reducedMotion) EnterTransition.None else fadeIn(fadeSpec) + scaleIn(fadeSpec, initialScale = 1.02f)
+        },
+        popExitTransition = { if (reducedMotion) ExitTransition.None else fadeOut(fadeSpec) },
     ) {
         composable<AuthRoute.Splash> {
             val splashViewModel: SplashViewModel = koinViewModel()
