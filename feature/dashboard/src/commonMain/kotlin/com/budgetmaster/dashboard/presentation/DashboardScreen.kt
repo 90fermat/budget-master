@@ -30,23 +30,33 @@ import org.koin.compose.viewmodel.koinViewModel
  * Collects state from [DashboardViewModel] and delegates rendering to specialised
  * sub-composables, keeping business logic out of the UI layer.
  *
- * @param onQuickAction Callback for navigation side-effects triggered by the ViewModel effects.
+ * @param onNavigateToSettings Called when the ViewModel emits [DashboardEffect.NavigateToSettings].
  * @param onViewAllTransactions Callback to navigate to the full Transactions list screen.
  * @param onInsightNavigate Callback for navigating to an insight action route.
  */
 @Composable
 fun DashboardScreen(
-    onQuickAction: (String) -> Unit = {},
+    onNavigateToSettings: () -> Unit = {},
     onViewAllTransactions: () -> Unit = {},
     onInsightNavigate: (String) -> Unit = {}
 ) {
     val viewModel: DashboardViewModel = koinViewModel()
     val state by viewModel.state.collectAsState()
 
+    // Navigation is driven by typed effects rather than stringly-typed callbacks.
+    LaunchedEffect(Unit) {
+        viewModel.effects.collect { effect ->
+            when (effect) {
+                DashboardEffect.NavigateToSettings -> onNavigateToSettings()
+                DashboardEffect.NavigateToTransactions -> onViewAllTransactions()
+                else -> Unit // Other effects are handled locally or not yet routed.
+            }
+        }
+    }
+
     DashboardContent(
         state = state,
         onIntent = viewModel::onIntent,
-        onQuickAction = onQuickAction,
         onViewAllTransactions = onViewAllTransactions,
         onInsightNavigate = onInsightNavigate
     )
@@ -58,15 +68,13 @@ fun DashboardScreen(
  *
  * @param state The current [DashboardState] snapshot.
  * @param onIntent Dispatch function for [DashboardIntent] events.
- * @param onQuickAction Navigation callback for Quick-Action buttons.
- * @param onViewAllTransactions Navigation callback for "Voir tout" in the transactions list.
+  * @param onViewAllTransactions Navigation callback for "Voir tout" in the transactions list.
  * @param onInsightNavigate Navigation callback for AI insight action routes.
  */
 @Composable
 fun DashboardContent(
     state: DashboardState,
     onIntent: (DashboardIntent) -> Unit,
-    onQuickAction: (String) -> Unit = {},
     onViewAllTransactions: () -> Unit = {},
     onInsightNavigate: (String) -> Unit = {}
 ) {
@@ -77,7 +85,6 @@ fun DashboardContent(
             DashboardScrollableBody(
                 state = state,
                 onIntent = onIntent,
-                onQuickAction = onQuickAction,
                 onViewAllTransactions = onViewAllTransactions,
                 onInsightNavigate = onInsightNavigate
             )
@@ -105,7 +112,6 @@ fun DashboardContent(
 private fun DashboardScrollableBody(
     state: DashboardState,
     onIntent: (DashboardIntent) -> Unit,
-    onQuickAction: (String) -> Unit,
     onViewAllTransactions: () -> Unit,
     onInsightNavigate: (String) -> Unit
 ) {
@@ -155,7 +161,7 @@ private fun DashboardScrollableBody(
                     )
                 }
             }
-            IconButton(onClick = { onQuickAction("Notifications") }) {
+            IconButton(onClick = { onIntent(DashboardIntent.NotificationsClicked) }) {
                 Icon(
                     imageVector = Icons.Default.Notifications,
                     contentDescription = "Notifications",

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -19,6 +20,7 @@ import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -53,6 +55,7 @@ import budgetmaster.core.generated.resources.transactions_save
 import budgetmaster.core.generated.resources.transactions_type_expense
 import budgetmaster.core.generated.resources.transactions_type_income
 import com.budgetmaster.core.designsystem.Spacing
+import com.budgetmaster.core.designsystem.categoryIconFor
 import com.budgetmaster.core.util.DateUtils
 import com.budgetmaster.transactions.domain.model.TransactionAccount
 import com.budgetmaster.transactions.domain.model.TransactionCategory
@@ -177,7 +180,14 @@ internal fun AddEditTransactionForm(
                 FilterChip(
                     selected = categoryId == category.id,
                     onClick = { categoryId = if (categoryId == category.id) null else category.id },
-                    label = { Text("${category.icon} ${category.name}") },
+                    label = { Text(category.name) },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = categoryIconFor(category.id),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    },
                 )
             }
         }

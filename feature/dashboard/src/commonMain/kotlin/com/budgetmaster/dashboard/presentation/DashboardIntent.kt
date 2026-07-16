@@ -49,4 +49,7 @@ sealed interface DashboardIntent {
      * @property type The type of transaction to create.
      */
     data class QuickActionClicked(val type: TransactionType) : DashboardIntent
+
+    /** The notifications/settings entry point in the header was tapped. */
+    data object NotificationsClicked : DashboardIntent
 }

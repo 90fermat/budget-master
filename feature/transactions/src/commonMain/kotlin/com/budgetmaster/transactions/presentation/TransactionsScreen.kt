@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -58,6 +59,7 @@ import budgetmaster.core.generated.resources.transactions_uncategorized
 import budgetmaster.core.generated.resources.transactions_undo
 import budgetmaster.core.generated.resources.transactions_yesterday
 import com.budgetmaster.core.designsystem.Spacing
+import com.budgetmaster.core.designsystem.categoryIconFor
 import com.budgetmaster.core.util.MoneyFormatter
 import com.budgetmaster.core.util.RelativeDay
 import com.budgetmaster.core.util.formatSigned
@@ -169,7 +171,14 @@ private fun TypeAndCategoryFilters(state: TransactionsState, viewModel: Transact
                         val next = if (state.categoryFilterId == category.id) null else category.id
                         viewModel.onIntent(TransactionsIntent.CategoryFilterChanged(next))
                     },
-                    label = { Text("${category.icon} ${category.name}") },
+                    label = { Text(category.name) },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = categoryIconFor(category.id),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    },
                 )
             }
         }

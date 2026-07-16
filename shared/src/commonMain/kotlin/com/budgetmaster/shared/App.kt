@@ -432,11 +432,8 @@ private fun MainNavGraph(navController: androidx.navigation.NavHostController) {
 
         composable<AuthRoute.Dashboard> {
             DashboardScreen(
-                onQuickAction = { action ->
-                    if (action == "Settings" || action == "Notifications") {
-                        navController.navigate(AuthRoute.Settings)
-                    }
-                }
+                onNavigateToSettings = { navController.navigate(AuthRoute.Settings) },
+                onViewAllTransactions = { navController.navigate(AuthRoute.Transactions) },
             )
         }
 

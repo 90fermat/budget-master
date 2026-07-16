@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -31,6 +32,7 @@ import com.budgetmaster.budgets.domain.model.BudgetItem
 import com.budgetmaster.budgets.domain.model.BudgetStatus
 import com.budgetmaster.core.designsystem.FinancialTextStyles
 import com.budgetmaster.core.designsystem.Spacing
+import com.budgetmaster.core.designsystem.categoryIconFor
 import com.budgetmaster.core.designsystem.financialColors
 import com.budgetmaster.core.util.MoneyFormatter
 import org.jetbrains.compose.resources.stringResource
@@ -80,7 +82,14 @@ internal fun BudgetCard(
                         .clip(CircleShape)
                         .background(accent.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center,
-                ) { Text(item.category.icon) }
+                ) {
+                    Icon(
+                        imageVector = categoryIconFor(item.category.id),
+                        contentDescription = item.category.name,
+                        tint = accent,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
                 Spacer(Modifier.width(Spacing.compact))
                 Text(
                     text = item.category.name,

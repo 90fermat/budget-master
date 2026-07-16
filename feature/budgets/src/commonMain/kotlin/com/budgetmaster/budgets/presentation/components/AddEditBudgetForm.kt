@@ -11,12 +11,14 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -44,6 +46,7 @@ import budgetmaster.core.generated.resources.budgets_new
 import com.budgetmaster.budgets.domain.model.BudgetCategory
 import com.budgetmaster.budgets.domain.model.BudgetItem
 import com.budgetmaster.core.designsystem.Spacing
+import com.budgetmaster.core.designsystem.categoryIconFor
 import org.jetbrains.compose.resources.stringResource
 
 /** Create/edit budget form used inside a bottom sheet (phone) or dialog (wide). */
@@ -99,7 +102,14 @@ internal fun AddEditBudgetForm(
                 FilterChip(
                     selected = categoryId == category.id,
                     onClick = { categoryId = category.id },
-                    label = { Text("${category.icon} ${category.name}") },
+                    label = { Text(category.name) },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = categoryIconFor(category.id),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    },
                 )
             }
         }

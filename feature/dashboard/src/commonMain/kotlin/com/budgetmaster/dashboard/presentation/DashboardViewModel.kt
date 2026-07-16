@@ -92,6 +92,7 @@ class DashboardViewModel(
             is DashboardIntent.QuickActionClicked -> emitEffect(
                 DashboardEffect.NavigateToAddTransaction(intent.type)
             )
+            is DashboardIntent.NotificationsClicked -> emitEffect(DashboardEffect.NavigateToSettings)
         }
     }
 

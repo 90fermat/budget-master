@@ -27,6 +27,13 @@ sealed interface DashboardEffect {
     data object NavigateToAnalytics : DashboardEffect
 
     /**
+     * Navigate to Settings (also where notifications currently live).
+     *
+     * Replaced a stringly-typed `onQuickAction("Settings")` callback.
+     */
+    data object NavigateToSettings : DashboardEffect
+
+    /**
      * Navigate to the detail page for a specific budget category.
      *
      * @property budgetId The unique identifier of the budget to open.

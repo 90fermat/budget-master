@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.budgetmaster.core.designsystem.categoryIconFor
 import com.budgetmaster.dashboard.domain.model.BudgetProgress
 import com.budgetmaster.dashboard.domain.model.BudgetStatus
 
@@ -127,9 +128,11 @@ fun BudgetProgressItem(
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = budget.categoryEmoji ?: "💰",
-                fontSize = 20.sp
+            Icon(
+                imageVector = categoryIconFor(budget.categoryId),
+                contentDescription = budget.categoryName,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp)
             )
         }
 

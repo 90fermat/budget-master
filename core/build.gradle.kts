@@ -54,6 +54,8 @@ kotlin {
             implementation(compose.ui)
             implementation(compose.foundation)
             implementation(compose.material3)
+            // Category icons (vectors render everywhere; emoji are tofu on Wasm).
+            implementation(compose.materialIconsExtended)
         }
         
         androidMain.dependencies {
