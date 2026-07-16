@@ -107,6 +107,12 @@
     <string name="action_delete">Delete</string>
     <string name="action_ok">OK</string>
     <string name="action_retry">Try again</string>
+    <string name="budgets_status_ok">On track</string>
+    <string name="budgets_status_warning">Close to the limit</string>
+    <string name="budgets_status_exceeded">Over budget</string>
+    <string name="a11y_budget_gauge">%1$s budget: %2$s spent of %3$s, %4$d percent. %5$s.</string>
+    <string name="a11y_goal_progress">%1$s goal: %2$s saved of %3$s, %4$d percent.</string>
+    <string name="a11y_goal_complete">%1$s goal: complete, %2$s saved.</string>
     <string name="error_generic_title">Something went wrong</string>
     <string name="empty_accounts_cta">Add an account</string>
     <string name="empty_budgets_cta">Create a budget</string>

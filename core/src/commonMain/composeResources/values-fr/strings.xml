@@ -107,6 +107,12 @@
     <string name="action_delete">Supprimer</string>
     <string name="action_ok">OK</string>
     <string name="action_retry">Réessayer</string>
+    <string name="budgets_status_ok">Dans les clous</string>
+    <string name="budgets_status_warning">Proche de la limite</string>
+    <string name="budgets_status_exceeded">Dépassé</string>
+    <string name="a11y_budget_gauge">Budget %1$s : %2$s dépensés sur %3$s, %4$d pour cent. %5$s.</string>
+    <string name="a11y_goal_progress">Objectif %1$s : %2$s épargnés sur %3$s, %4$d pour cent.</string>
+    <string name="a11y_goal_complete">Objectif %1$s : atteint, %2$s épargnés.</string>
     <string name="error_generic_title">Une erreur est survenue</string>
     <string name="empty_accounts_cta">Ajouter un compte</string>
     <string name="empty_budgets_cta">Créer un budget</string>

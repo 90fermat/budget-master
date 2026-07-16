@@ -26,6 +26,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.budgetmaster.budgets.domain.model.BudgetItem
@@ -36,9 +38,14 @@ import com.budgetmaster.core.designsystem.categoryIconFor
 import com.budgetmaster.core.designsystem.parseHexColor
 import com.budgetmaster.core.designsystem.financialColors
 import com.budgetmaster.core.util.MoneyFormatter
+import kotlin.math.roundToInt
 import org.jetbrains.compose.resources.stringResource
 import budgetmaster.core.generated.resources.Res
+import budgetmaster.core.generated.resources.a11y_budget_gauge
 import budgetmaster.core.generated.resources.budgets_left
+import budgetmaster.core.generated.resources.budgets_status_exceeded
+import budgetmaster.core.generated.resources.budgets_status_ok
+import budgetmaster.core.generated.resources.budgets_status_warning
 import budgetmaster.core.generated.resources.budgets_over
 import budgetmaster.core.generated.resources.budgets_spent_of
 
@@ -62,6 +69,25 @@ internal fun BudgetCard(
     val progress by animateFloatAsState(item.progress)
     val accent = parseHexColor(item.category.colorHex, MaterialTheme.colorScheme.primary)
 
+    // A gauge is meaningless to a screen reader: the bar is a shape and the colour carries the
+    // status. Merge the card into one description that states the numbers and the status in
+    // words, so it reads the same as it looks.
+    val statusText = stringResource(
+        when (item.status) {
+            BudgetStatus.OK -> Res.string.budgets_status_ok
+            BudgetStatus.WARNING -> Res.string.budgets_status_warning
+            BudgetStatus.EXCEEDED -> Res.string.budgets_status_exceeded
+        },
+    )
+    val gaugeDescription = stringResource(
+        Res.string.a11y_budget_gauge,
+        item.category.name,
+        MoneyFormatter.format(item.spent, currencyCode),
+        MoneyFormatter.format(item.limit, currencyCode),
+        (item.ratio * 100).roundToInt(),
+        statusText,
+    )
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -69,6 +95,7 @@ internal fun BudgetCard(
             .background(MaterialTheme.colorScheme.surface)
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(20.dp))
             .clickable(onClick = onClick)
+            .semantics(mergeDescendants = true) { contentDescription = gaugeDescription }
             .padding(Spacing.medium),
     ) {
         Row(
@@ -86,7 +113,8 @@ internal fun BudgetCard(
                 ) {
                     Icon(
                         imageVector = categoryIconFor(item.category.id),
-                        contentDescription = item.category.name,
+                        // Decorative: the merged description already names the category.
+                        contentDescription = null,
                         tint = accent,
                         modifier = Modifier.size(20.dp),
                     )
