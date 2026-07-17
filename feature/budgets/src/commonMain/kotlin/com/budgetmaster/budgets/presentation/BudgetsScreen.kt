@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -44,12 +45,18 @@ import androidx.compose.ui.window.Dialog
 import budgetmaster.core.generated.resources.Res
 import budgetmaster.core.generated.resources.budgets_empty_subtitle
 import budgetmaster.core.generated.resources.budgets_empty_title
+import budgetmaster.core.generated.resources.empty_budgets_cta
 import budgetmaster.core.generated.resources.budgets_new
 import budgetmaster.core.generated.resources.budgets_spent_of
 import budgetmaster.core.generated.resources.budgets_this_month
 import budgetmaster.core.generated.resources.budgets_title
 import com.budgetmaster.budgets.presentation.components.AddEditBudgetForm
 import com.budgetmaster.budgets.presentation.components.BudgetCard
+import com.budgetmaster.core.designsystem.components.EmptyState as SharedEmptyState
+import com.budgetmaster.core.designsystem.components.GuidanceHost
+import com.budgetmaster.core.designsystem.components.HelpIconButton
+import com.budgetmaster.core.designsystem.components.rememberGuidance
+import com.budgetmaster.core.guidance.GuidanceKey
 import com.budgetmaster.core.designsystem.FinancialTextStyles
 import com.budgetmaster.core.designsystem.Spacing
 import com.budgetmaster.core.util.MoneyFormatter
@@ -62,6 +69,9 @@ import org.koin.compose.viewmodel.koinViewModel
  */
 @Composable
 fun BudgetsScreen(viewModel: BudgetsViewModel = koinViewModel()) {
+    val guidance = rememberGuidance(GuidanceKey.BUDGETS)
+    GuidanceHost(guidance)
+
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -91,16 +101,23 @@ fun BudgetsScreen(viewModel: BudgetsViewModel = koinViewModel()) {
                 .padding(horizontal = Spacing.medium),
         ) {
             Spacer(Modifier.height(Spacing.medium))
-            Text(
-                text = stringResource(Res.string.budgets_title),
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = stringResource(Res.string.budgets_title),
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+                HelpIconButton(onClick = guidance::show)
+            }
             Spacer(Modifier.height(Spacing.medium))
 
             when {
-                state.isEmpty -> EmptyState()
+                state.isEmpty -> EmptyState(onAdd = { viewModel.onIntent(BudgetsIntent.AddClicked) })
                 else -> {
                     if (state.budgets.isNotEmpty()) SummaryHeader(state)
                     Spacer(Modifier.height(Spacing.medium))
@@ -153,24 +170,16 @@ private fun SummaryHeader(state: BudgetsState) {
 }
 
 @Composable
-private fun EmptyState() {
+private fun EmptyState(onAdd: () -> Unit) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("🎯", style = MaterialTheme.typography.displaySmall)
-            Spacer(Modifier.height(Spacing.medium))
-            Text(
-                text = stringResource(Res.string.budgets_empty_title),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
-            Spacer(Modifier.height(Spacing.small))
-            Text(
-                text = stringResource(Res.string.budgets_empty_subtitle),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        // A vector, not the target emoji this replaced: emoji are tofu on Wasm.
+        SharedEmptyState(
+            icon = Icons.Default.PieChart,
+            title = stringResource(Res.string.budgets_empty_title),
+            subtitle = stringResource(Res.string.budgets_empty_subtitle),
+            actionLabel = stringResource(Res.string.empty_budgets_cta),
+            onAction = onAdd,
+        )
     }
 }
 

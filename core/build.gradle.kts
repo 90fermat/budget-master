@@ -42,6 +42,8 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(libs.koin.core)
+            // koinInject in the shared guidance composables
+            implementation(libs.koin.compose)
             implementation(libs.sqldelight.runtime)
             implementation(libs.sqldelight.coroutines)
             implementation(libs.ktor.client.core)

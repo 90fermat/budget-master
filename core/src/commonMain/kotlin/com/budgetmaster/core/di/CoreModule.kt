@@ -6,6 +6,7 @@ import com.budgetmaster.core.db.DatabaseProvider
 import com.budgetmaster.core.currency.ExchangeRateRepository
 import com.budgetmaster.core.notifications.NotificationRepository
 import com.budgetmaster.core.prefs.AppSettingsRepository
+import com.budgetmaster.core.guidance.GuidancePreferences
 import com.budgetmaster.core.prefs.OnboardingPreferences
 import com.budgetmaster.core.session.ActiveAccountStore
 import com.budgetmaster.core.session.SessionStore
@@ -21,6 +22,7 @@ val coreModule = module {
     single { AppDataSeeder(get()) }
     single { AppSettingsRepository(get()) }
     single { OnboardingPreferences(get()) }
+    single { GuidancePreferences(get()) }
     single { SessionStore() }
     single { ActiveAccountStore(get()) }
     single { ExchangeRateRepository(get()) }

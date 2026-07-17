@@ -10,7 +10,7 @@
     <string name="login_btn_text">Sign In</string>
     <string name="login_google_btn_text">Sign in with Google</string>
     <string name="login_forgot_password_link">Forgot Password?</string>
-    <string name="login_register_link">Don\'t have an account? Sign Up</string>
+    <string name="login_register_link">Don't have an account? Sign Up</string>
     <string name="login_biometric_desc">Fingerprint authorization</string>
     <string name="login_biometric_btn_text">Sign in with biometrics</string>
     <string name="login_google_desc">Google Auth button</string>
@@ -28,7 +28,7 @@
     <string name="auth_error_too_many_requests">Too many attempts. Please try again later.</string>
     <string name="auth_error_network">Network error. Check your connection and try again.</string>
     <string name="auth_error_google_cancelled">Google sign-in was cancelled.</string>
-    <string name="auth_error_google_unavailable">Google sign-in isn\'t available on this device right now.</string>
+    <string name="auth_error_google_unavailable">Google sign-in isn't available on this device right now.</string>
     <string name="auth_error_unknown">Something went wrong. Please try again.</string>
 
     <!-- Biometric Setup Screen Strings -->
@@ -101,7 +101,7 @@
     <string name="transactions_empty_title">No transactions yet</string>
     <string name="transactions_empty_subtitle">Tap + to record your first income or expense.</string>
     <string name="transactions_empty_filtered">No transactions match your filters.</string>
-    <string name="transactions_deleted">Deleted \"%1$s\"</string>
+    <string name="transactions_deleted">Deleted “%1$s”</string>
     <string name="transactions_undo">Undo</string>
     <string name="transactions_add_title">Add Transaction</string>
     <string name="transactions_edit_title">Edit Transaction</string>
@@ -142,7 +142,7 @@
     <string name="recurring_add">Add a schedule</string>
     <string name="recurring_edit">Edit schedule</string>
     <string name="recurring_empty_title">No recurring entries</string>
-    <string name="recurring_empty_subtitle">Schedule rent, salary, or subscriptions and they\'ll be added for you.</string>
+    <string name="recurring_empty_subtitle">Schedule rent, salary, or subscriptions and they'll be added for you.</string>
     <string name="recurring_frequency_label">Repeats</string>
     <string name="recurring_daily">Daily</string>
     <string name="recurring_weekly">Weekly</string>
@@ -215,6 +215,83 @@
     <!-- Splash Strings -->
     <string name="splash_credit_from">from</string>
 
+    <!-- In-app guidance: what each screen can do. Written against what the screen
+         actually does, favouring the mechanics that aren't self-evident. -->
+    <string name="guide_help">What's on this screen?</string>
+    <string name="guide_got_it">Got it</string>
+    <string name="guide_tips_title">Help &amp; tips</string>
+    <string name="guide_tips_show">Show tips on new screens</string>
+    <string name="guide_tips_show_desc">Open a short guide the first time you visit a screen.</string>
+    <string name="guide_tips_reset">Reset tips</string>
+    <string name="guide_tips_reset_done">Tips will show again on each screen.</string>
+
+    <string name="guide_dashboard_title">Dashboard</string>
+    <string name="guide_dashboard_intro">Your money at a glance for the account you're viewing.</string>
+    <string name="guide_dashboard_1_title">Balance follows your account</string>
+    <string name="guide_dashboard_1_body">The total is the opening balance plus every transaction, recalculated live. Switch accounts at the top to re-scope it.</string>
+    <string name="guide_dashboard_2_title">Swipe to delete, with undo</string>
+    <string name="guide_dashboard_2_body">Swipe a recent transaction to remove it. An Undo appears straight after — nothing is lost by accident.</string>
+    <string name="guide_dashboard_3_title">AI insights</string>
+    <string name="guide_dashboard_3_body">Short observations about your spending. Dismiss any you don't want; they refresh over time.</string>
+
+    <string name="guide_transactions_title">Transactions</string>
+    <string name="guide_transactions_intro">Every entry, grouped by day, searchable and filterable.</string>
+    <string name="guide_transactions_1_title">Search and filter</string>
+    <string name="guide_transactions_1_body">Search descriptions and notes, then narrow by category or by income vs expense.</string>
+    <string name="guide_transactions_2_title">Swipe to delete, with undo</string>
+    <string name="guide_transactions_2_body">Swipe any row to delete it. Undo restores it to its original account.</string>
+    <string name="guide_transactions_3_title">Entries land on the active account</string>
+    <string name="guide_transactions_3_body">A new entry goes to the account you're viewing. Viewing all accounts? Pick one in the editor.</string>
+    <string name="guide_transactions_4_title">Repeating entries</string>
+    <string name="guide_transactions_4_body">Use the repeat button in the header to schedule rent, salary, or subscriptions. They're added for you as they fall due.</string>
+
+    <string name="guide_budgets_title">Budgets</string>
+    <string name="guide_budgets_intro">Monthly limits per category, and how close you are to each.</string>
+    <string name="guide_budgets_1_title">Spending is counted for you</string>
+    <string name="guide_budgets_1_body">Spent is added up from your actual transactions in the period — set the limit and nothing else to maintain.</string>
+    <string name="guide_budgets_2_title">Colours are a warning</string>
+    <string name="guide_budgets_2_body">Green is on track, amber means you're close to the limit, red means you've passed it. Each gauge also says so in words.</string>
+    <string name="guide_budgets_3_title">Budgets cover every account</string>
+    <string name="guide_budgets_3_body">A budget spans all your accounts, so it doesn't change when you switch the account you're viewing.</string>
+
+    <string name="guide_goals_title">Goals</string>
+    <string name="guide_goals_intro">What you're saving towards, and whether you'll get there in time.</string>
+    <string name="guide_goals_1_title">Add and withdraw funds</string>
+    <string name="guide_goals_1_body">Put money aside as you go, and take it back out if plans change. The goal keeps its history either way.</string>
+    <string name="guide_goals_2_title">Projected finish date</string>
+    <string name="guide_goals_2_body">Once you've saved something, we project a completion date from your rate so far, and flag when it's later than your target.</string>
+    <string name="guide_goals_3_title">Editing is safe</string>
+    <string name="guide_goals_3_body">Changing a goal's name or target keeps everything you've already saved.</string>
+
+    <string name="guide_accounts_title">Accounts</string>
+    <string name="guide_accounts_intro">Every account you hold — cash, cards, savings — and what they add up to.</string>
+    <string name="guide_accounts_1_title">The switcher re-scopes the app</string>
+    <string name="guide_accounts_1_body">Picking an account at the top narrows your dashboard, transactions, and reports to it. Pick "All accounts" to see everything together.</string>
+    <string name="guide_accounts_2_title">Net worth</string>
+    <string name="guide_accounts_2_body">Your accounts added together, with credit cards counted as debt. Balances update themselves from your transactions.</string>
+    <string name="guide_accounts_3_title">Transfers aren't spending</string>
+    <string name="guide_accounts_3_body">Moving money between your own accounts is recorded on both, but left out of income and expenses — it isn't either.</string>
+    <string name="guide_accounts_4_title">Archive, reconcile, delete</string>
+    <string name="guide_accounts_4_body">Archive hides an account but keeps its history. Reconcile corrects a balance to match reality. Delete removes the account and its transactions for good.</string>
+
+    <string name="guide_reports_title">Reports</string>
+    <string name="guide_reports_intro">Where your money went, and how it compares to before.</string>
+    <string name="guide_reports_1_title">Compared to last period</string>
+    <string name="guide_reports_1_body">Every total is measured against the period just before it, of the same length, so you can see the direction of travel.</string>
+    <string name="guide_reports_2_title">Transfers are excluded</string>
+    <string name="guide_reports_2_body">Money moved between your own accounts is left out, so it can't inflate both your income and your spending.</string>
+    <string name="guide_reports_3_title">Export to CSV</string>
+    <string name="guide_reports_3_body">Export the period for a spreadsheet. Unlike the charts it includes transfers, marked in their own column — it's a record, not an analysis.</string>
+
+    <string name="guide_settings_title">Settings</string>
+    <string name="guide_settings_intro">Make the app look and speak the way you want.</string>
+    <string name="guide_settings_1_title">Palettes and dark mode</string>
+    <string name="guide_settings_1_body">Five palettes, including Dynamic, which follows your wallpaper on Android 12 and later.</string>
+    <string name="guide_settings_2_title">Language and currency</string>
+    <string name="guide_settings_2_body">English or French, and the currency used to show your amounts.</string>
+    <string name="guide_settings_3_title">Replay the intro and tips</string>
+    <string name="guide_settings_3_body">Show the welcome tour again, or reset these screen guides so they reappear.</string>
+
     <!-- Navigation Strings -->
     <string name="nav_home">Home</string>
     <string name="nav_history">History</string>
@@ -240,7 +317,7 @@
     <string name="accounts_currency_label">Currency</string>
     <string name="accounts_archive">Archive</string>
     <string name="accounts_restore">Restore</string>
-    <string name="accounts_delete_confirm">Delete this account and all its transactions? This can\'t be undone.</string>
+    <string name="accounts_delete_confirm">Delete this account and all its transactions? This can't be undone.</string>
     <string name="account_type_cash">Cash</string>
     <string name="account_type_checking">Checking</string>
     <string name="account_type_savings">Savings</string>
@@ -251,10 +328,10 @@
     <string name="accounts_transfer_to">To</string>
     <string name="accounts_transfer_amount">Amount</string>
     <string name="accounts_transfer_same_account">Choose two different accounts.</string>
-    <string name="accounts_transfer_note">Transfers move your own money between wallets, so they don\'t count as income or spending.</string>
+    <string name="accounts_transfer_note">Transfers move your own money between wallets, so they don't count as income or spending.</string>
     <string name="accounts_reconcile">Reconcile</string>
     <string name="accounts_reconcile_title">Set real balance</string>
-    <string name="accounts_reconcile_hint">We\'ll post an adjustment for the difference.</string>
+    <string name="accounts_reconcile_hint">We'll post an adjustment for the difference.</string>
     <string name="accounts_reconcile_actual">Actual balance</string>
 
     <!-- Reports -->
@@ -270,7 +347,7 @@
     <string name="reports_empty">No activity in this period yet.</string>
     <string name="reports_export_csv">Export CSV</string>
     <string name="reports_export_started">Export ready.</string>
-    <string name="reports_export_unavailable">Export isn\'t available on this device.</string>
+    <string name="reports_export_unavailable">Export isn't available on this device.</string>
     <string name="reports_vs_previous">vs previous period</string>
     <string name="reports_transfers_note">Transfers between your accounts are excluded.</string>
     <string name="reports_chart_a11y">Spending by category: %1$s</string>

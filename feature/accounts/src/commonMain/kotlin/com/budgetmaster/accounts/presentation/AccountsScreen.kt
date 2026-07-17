@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -50,6 +51,10 @@ import com.budgetmaster.accounts.presentation.components.ReconcileForm
 import com.budgetmaster.accounts.presentation.components.TransferForm
 import com.budgetmaster.core.designsystem.animateCounter
 import com.budgetmaster.core.designsystem.components.EmptyState
+import com.budgetmaster.core.designsystem.components.GuidanceHost
+import com.budgetmaster.core.designsystem.components.HelpIconButton
+import com.budgetmaster.core.designsystem.components.rememberGuidance
+import com.budgetmaster.core.guidance.GuidanceKey
 import com.budgetmaster.core.util.MoneyFormatter
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -59,6 +64,8 @@ import org.koin.compose.viewmodel.koinViewModel
 fun AccountsScreen(viewModel: AccountsViewModel = koinViewModel()) {
     val state by viewModel.state.collectAsState()
     var pendingDelete by remember { mutableStateOf<String?>(null) }
+    val guidance = rememberGuidance(GuidanceKey.ACCOUNTS)
+    GuidanceHost(guidance)
 
     Scaffold(
         floatingActionButton = {
@@ -89,11 +96,18 @@ fun AccountsScreen(viewModel: AccountsViewModel = koinViewModel()) {
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
-                Text(
-                    stringResource(Res.string.accounts_title),
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        stringResource(Res.string.accounts_title),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    HelpIconButton(onClick = guidance::show)
+                }
             }
             item { NetWorthCard(state) }
 

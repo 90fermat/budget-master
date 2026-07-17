@@ -24,6 +24,10 @@ import androidx.compose.ui.unit.dp
 import budgetmaster.core.generated.resources.Res
 import budgetmaster.core.generated.resources.dashboard_greeting
 import budgetmaster.core.generated.resources.dashboard_greeting_fallback
+import com.budgetmaster.core.designsystem.components.GuidanceHost
+import com.budgetmaster.core.designsystem.components.HelpIconButton
+import com.budgetmaster.core.designsystem.components.rememberGuidance
+import com.budgetmaster.core.guidance.GuidanceKey
 import com.budgetmaster.core.util.initialsOf
 import com.budgetmaster.core.util.monthYearLabel
 import com.budgetmaster.dashboard.presentation.components.PreviewLightDark
@@ -49,6 +53,8 @@ fun DashboardScreen(
 ) {
     val viewModel: DashboardViewModel = koinViewModel()
     val state by viewModel.state.collectAsState()
+    val guidance = rememberGuidance(GuidanceKey.DASHBOARD)
+    GuidanceHost(guidance)
 
     // Navigation is driven by typed effects rather than stringly-typed callbacks.
     LaunchedEffect(Unit) {
@@ -65,7 +71,8 @@ fun DashboardScreen(
         state = state,
         onIntent = viewModel::onIntent,
         onViewAllTransactions = onViewAllTransactions,
-        onInsightNavigate = onInsightNavigate
+        onInsightNavigate = onInsightNavigate,
+        onHelp = guidance::show
     )
 }
 
@@ -83,7 +90,8 @@ fun DashboardContent(
     state: DashboardState,
     onIntent: (DashboardIntent) -> Unit,
     onViewAllTransactions: () -> Unit = {},
-    onInsightNavigate: (String) -> Unit = {}
+    onInsightNavigate: (String) -> Unit = {},
+    onHelp: () -> Unit = {}
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         if (state.isLoading) {
@@ -93,7 +101,8 @@ fun DashboardContent(
                 state = state,
                 onIntent = onIntent,
                 onViewAllTransactions = onViewAllTransactions,
-                onInsightNavigate = onInsightNavigate
+                onInsightNavigate = onInsightNavigate,
+                onHelp = onHelp
             )
         }
 
@@ -120,7 +129,8 @@ private fun DashboardScrollableBody(
     state: DashboardState,
     onIntent: (DashboardIntent) -> Unit,
     onViewAllTransactions: () -> Unit,
-    onInsightNavigate: (String) -> Unit
+    onInsightNavigate: (String) -> Unit,
+    onHelp: () -> Unit
 ) {
     val scrollState = rememberScrollState()
 
@@ -182,12 +192,15 @@ private fun DashboardScrollableBody(
                     )
                 }
             }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+            HelpIconButton(onClick = onHelp)
             IconButton(onClick = { onIntent(DashboardIntent.NotificationsClicked) }) {
                 Icon(
                     imageVector = Icons.Default.Notifications,
                     contentDescription = "Notifications",
                     tint = MaterialTheme.colorScheme.onBackground
                 )
+            }
             }
         }
 

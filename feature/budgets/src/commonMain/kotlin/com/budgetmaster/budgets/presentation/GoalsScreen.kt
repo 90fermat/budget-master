@@ -5,7 +5,9 @@ package com.budgetmaster.budgets.presentation
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -48,6 +50,10 @@ import com.budgetmaster.budgets.presentation.components.AddEditGoalForm
 import com.budgetmaster.budgets.presentation.components.ContributeForm
 import com.budgetmaster.budgets.presentation.components.GoalCard
 import com.budgetmaster.budgets.presentation.components.WithdrawForm
+import com.budgetmaster.core.designsystem.components.GuidanceHost
+import com.budgetmaster.core.designsystem.components.HelpIconButton
+import com.budgetmaster.core.designsystem.components.rememberGuidance
+import com.budgetmaster.core.guidance.GuidanceKey
 import com.budgetmaster.core.designsystem.Spacing
 import com.budgetmaster.core.designsystem.components.EmptyState as SharedEmptyState
 import org.jetbrains.compose.resources.stringResource
@@ -59,6 +65,9 @@ import org.koin.compose.viewmodel.koinViewModel
  */
 @Composable
 fun GoalsScreen(viewModel: GoalsViewModel = koinViewModel()) {
+    val guidance = rememberGuidance(GuidanceKey.GOALS)
+    GuidanceHost(guidance)
+
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -85,12 +94,19 @@ fun GoalsScreen(viewModel: GoalsViewModel = koinViewModel()) {
             modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = Spacing.medium),
         ) {
             Spacer(Modifier.height(Spacing.medium))
-            Text(
-                text = stringResource(Res.string.goals_title),
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = stringResource(Res.string.goals_title),
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+                HelpIconButton(onClick = guidance::show)
+            }
             Spacer(Modifier.height(Spacing.medium))
 
             when {

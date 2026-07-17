@@ -13,7 +13,7 @@
     <string name="login_register_link">Pas encore de compte ? Inscrivez-vous</string>
     <string name="login_biometric_desc">Autorisation par empreinte digitale</string>
     <string name="login_biometric_btn_text">Se connecter avec la biométrie</string>
-    <string name="login_google_desc">Bouton d\'authentification Google</string>
+    <string name="login_google_desc">Bouton d'authentification Google</string>
     <string name="auth_show_password">Afficher le mot de passe</string>
     <string name="auth_hide_password">Masquer le mot de passe</string>
 
@@ -28,16 +28,16 @@
     <string name="auth_error_too_many_requests">Trop de tentatives. Réessayez plus tard.</string>
     <string name="auth_error_network">Erreur réseau. Vérifiez votre connexion et réessayez.</string>
     <string name="auth_error_google_cancelled">Connexion Google annulée.</string>
-    <string name="auth_error_google_unavailable">La connexion Google n\'est pas disponible sur cet appareil pour le moment.</string>
-    <string name="auth_error_unknown">Une erreur s\'est produite. Veuillez réessayer.</string>
+    <string name="auth_error_google_unavailable">La connexion Google n'est pas disponible sur cet appareil pour le moment.</string>
+    <string name="auth_error_unknown">Une erreur s'est produite. Veuillez réessayer.</string>
 
     <!-- Biometric Setup Screen Strings -->
     <string name="biometric_setup_title">Verrouillage biométrique</string>
     <string name="biometric_setup_subtitle">Protégez vos données financières personnelles</string>
-    <string name="biometric_enable_label">Activer l\'empreinte / Face ID</string>
+    <string name="biometric_enable_label">Activer l'empreinte / Face ID</string>
     <string name="biometric_status_enabled">La connexion biométrique est active</string>
     <string name="biometric_status_disabled">La connexion biométrique est désactivée</string>
-    <string name="biometric_not_supported">Le matériel biométrique n\'est pas disponible sur cet appareil</string>
+    <string name="biometric_not_supported">Le matériel biométrique n'est pas disponible sur cet appareil</string>
     <string name="biometric_authenticate_reason">Confirmez vos données biométriques pour activer la connexion</string>
     <string name="biometric_setup_success">Connexion biométrique configurée avec succès</string>
     <string name="biometric_setup_disabled_msg">La connexion biométrique a été désactivée</string>
@@ -51,7 +51,7 @@
     <string name="onboarding_page0_title">Suivez vos dépenses</string>
     <string name="onboarding_page0_desc">Enregistrez vos achats quotidiens et visualisez où va votre argent grâce à des listes de transactions détaillées.</string>
     <string name="onboarding_page1_title">Budgets intelligents</string>
-    <string name="onboarding_page1_desc">Définissez des limites personnalisées pour l\'alimentation, le shopping, les voyages et plus encore, et soyez averti avant de trop dépenser.</string>
+    <string name="onboarding_page1_desc">Définissez des limites personnalisées pour l'alimentation, le shopping, les voyages et plus encore, et soyez averti avant de trop dépenser.</string>
     <string name="onboarding_page2_title">Synchronisation sécurisée</string>
     <string name="onboarding_page2_desc">Vos données sont entièrement chiffrées et synchronisées sur tous vos appareils via Firebase Auth.</string>
 
@@ -60,7 +60,7 @@
     <string name="register_subtitle">Rejoignez Budget Master pour prendre le contrôle de vos finances</string>
     <string name="register_confirm_password_label">Confirmer le mot de passe</string>
     <string name="register_confirm_password_placeholder">Saisissez à nouveau votre mot de passe</string>
-    <string name="register_btn_text">S\'inscrire</string>
+    <string name="register_btn_text">S'inscrire</string>
     <string name="register_login_link">Déjà un compte ? Connectez-vous</string>
 
     <!-- Forgot Password Screen Strings -->
@@ -96,7 +96,7 @@
     <string name="transactions_filter_all">Toutes</string>
     <string name="transactions_filter_income">Revenus</string>
     <string name="transactions_filter_expense">Dépenses</string>
-    <string name="transactions_today">Aujourd\'hui</string>
+    <string name="transactions_today">Aujourd'hui</string>
     <string name="transactions_yesterday">Hier</string>
     <string name="transactions_empty_title">Aucune transaction</string>
     <string name="transactions_empty_subtitle">Appuyez sur + pour enregistrer votre premier revenu ou dépense.</string>
@@ -174,12 +174,12 @@
     <string name="budgets_spent_of">%1$s sur %2$s</string>
 
     <!-- Goals Strings -->
-    <string name="goals_title">Objectifs d\'épargne</string>
-    <string name="goals_empty_title">Aucun objectif d\'épargne</string>
+    <string name="goals_title">Objectifs d'épargne</string>
+    <string name="goals_empty_title">Aucun objectif d'épargne</string>
     <string name="goals_empty_subtitle">Appuyez sur + pour définir un objectif et suivre votre progression.</string>
     <string name="goals_new">Nouvel objectif</string>
-    <string name="goals_edit">Modifier l\'objectif</string>
-    <string name="goals_name_label">Nom de l\'objectif</string>
+    <string name="goals_edit">Modifier l'objectif</string>
+    <string name="goals_name_label">Nom de l'objectif</string>
     <string name="goals_target_label">Montant cible</string>
     <string name="goals_saved_of">%1$s sur %2$s épargnés</string>
     <string name="goals_add_funds">Ajouter des fonds</string>
@@ -209,11 +209,87 @@
     <string name="language_french">Français</string>
     <string name="settings_preferences">Préférences</string>
     <string name="settings_currency">Devise principale</string>
-    <string name="settings_replay_onboarding">Revoir l\'intro</string>
+    <string name="settings_replay_onboarding">Revoir l'intro</string>
     <string name="settings_sign_out">Se déconnecter</string>
 
     <!-- Splash Strings -->
     <string name="splash_credit_from">de</string>
+
+    <!-- Guides intégrés : ce que chaque écran sait faire. -->
+    <string name="guide_help">Que trouve-t-on sur cet écran ?</string>
+    <string name="guide_got_it">J'ai compris</string>
+    <string name="guide_tips_title">Aide et astuces</string>
+    <string name="guide_tips_show">Afficher les astuces sur les nouveaux écrans</string>
+    <string name="guide_tips_show_desc">Ouvre un guide court lors de votre première visite d'un écran.</string>
+    <string name="guide_tips_reset">Réinitialiser les astuces</string>
+    <string name="guide_tips_reset_done">Les astuces réapparaîtront sur chaque écran.</string>
+
+    <string name="guide_dashboard_title">Tableau de bord</string>
+    <string name="guide_dashboard_intro">Vos finances en un coup d'œil, pour le compte affiché.</string>
+    <string name="guide_dashboard_1_title">Le solde suit votre compte</string>
+    <string name="guide_dashboard_1_body">Le total correspond au solde d'ouverture plus toutes les transactions, recalculé en direct. Changez de compte en haut pour l'ajuster.</string>
+    <string name="guide_dashboard_2_title">Balayez pour supprimer, avec annulation</string>
+    <string name="guide_dashboard_2_body">Balayez une transaction récente pour la supprimer. Une annulation apparaît aussitôt — rien ne se perd par accident.</string>
+    <string name="guide_dashboard_3_title">Analyses IA</string>
+    <string name="guide_dashboard_3_body">De courtes observations sur vos dépenses. Masquez celles qui ne vous servent pas ; elles se renouvellent avec le temps.</string>
+
+    <string name="guide_transactions_title">Transactions</string>
+    <string name="guide_transactions_intro">Toutes vos entrées, groupées par jour, avec recherche et filtres.</string>
+    <string name="guide_transactions_1_title">Rechercher et filtrer</string>
+    <string name="guide_transactions_1_body">Cherchez dans les descriptions et les notes, puis affinez par catégorie ou par revenus et dépenses.</string>
+    <string name="guide_transactions_2_title">Balayez pour supprimer, avec annulation</string>
+    <string name="guide_transactions_2_body">Balayez une ligne pour la supprimer. L'annulation la remet sur son compte d'origine.</string>
+    <string name="guide_transactions_3_title">Les entrées vont au compte actif</string>
+    <string name="guide_transactions_3_body">Une nouvelle entrée est enregistrée sur le compte affiché. Vous consultez tous les comptes ? Choisissez-en un dans l'éditeur.</string>
+    <string name="guide_transactions_4_title">Entrées récurrentes</string>
+    <string name="guide_transactions_4_body">Utilisez le bouton de répétition en haut pour planifier loyer, salaire ou abonnements. Ils sont ajoutés automatiquement à échéance.</string>
+
+    <string name="guide_budgets_title">Budgets</string>
+    <string name="guide_budgets_intro">Des limites mensuelles par catégorie, et votre position par rapport à chacune.</string>
+    <string name="guide_budgets_1_title">Les dépenses sont comptées pour vous</string>
+    <string name="guide_budgets_1_body">Le montant dépensé est calculé à partir de vos transactions réelles sur la période — définissez la limite, rien d'autre à tenir à jour.</string>
+    <string name="guide_budgets_2_title">Les couleurs sont un avertissement</string>
+    <string name="guide_budgets_2_body">Vert : dans les clous. Orange : proche de la limite. Rouge : dépassée. Chaque jauge le dit aussi en toutes lettres.</string>
+    <string name="guide_budgets_3_title">Les budgets couvrent tous les comptes</string>
+    <string name="guide_budgets_3_body">Un budget s'applique à tous vos comptes : il ne change pas quand vous changez le compte affiché.</string>
+
+    <string name="guide_goals_title">Objectifs</string>
+    <string name="guide_goals_intro">Ce pour quoi vous épargnez, et si vous y arriverez à temps.</string>
+    <string name="guide_goals_1_title">Ajouter et retirer des fonds</string>
+    <string name="guide_goals_1_body">Mettez de l'argent de côté au fil du temps, et reprenez-le si vos plans changent. L'objectif conserve son historique.</string>
+    <string name="guide_goals_2_title">Date de fin projetée</string>
+    <string name="guide_goals_2_body">Dès que vous avez épargné, nous projetons une date d'arrivée selon votre rythme, et signalons si elle dépasse votre échéance.</string>
+    <string name="guide_goals_3_title">Modifier sans risque</string>
+    <string name="guide_goals_3_body">Changer le nom ou le montant cible conserve tout ce que vous avez déjà épargné.</string>
+
+    <string name="guide_accounts_title">Comptes</string>
+    <string name="guide_accounts_intro">Tous vos comptes — espèces, cartes, épargne — et leur total.</string>
+    <string name="guide_accounts_1_title">Le sélecteur ajuste toute l'app</string>
+    <string name="guide_accounts_1_body">Choisir un compte en haut restreint le tableau de bord, les transactions et les rapports à ce compte. Choisissez « Tous les comptes » pour tout voir ensemble.</string>
+    <string name="guide_accounts_2_title">Valeur nette</string>
+    <string name="guide_accounts_2_body">Vos comptes additionnés, les cartes de crédit comptant comme des dettes. Les soldes se mettent à jour depuis vos transactions.</string>
+    <string name="guide_accounts_3_title">Un virement n'est pas une dépense</string>
+    <string name="guide_accounts_3_body">Déplacer de l'argent entre vos comptes est enregistré des deux côtés, mais exclu des revenus et des dépenses — ce n'est ni l'un ni l'autre.</string>
+    <string name="guide_accounts_4_title">Archiver, rapprocher, supprimer</string>
+    <string name="guide_accounts_4_body">Archiver masque un compte en gardant son historique. Le rapprochement corrige un solde pour coller à la réalité. Supprimer efface le compte et ses transactions définitivement.</string>
+
+    <string name="guide_reports_title">Rapports</string>
+    <string name="guide_reports_intro">Où est passé votre argent, et comment cela se compare à avant.</string>
+    <string name="guide_reports_1_title">Comparé à la période précédente</string>
+    <string name="guide_reports_1_body">Chaque total est comparé à la période juste avant, de même durée, pour voir la tendance.</string>
+    <string name="guide_reports_2_title">Les virements sont exclus</string>
+    <string name="guide_reports_2_body">L'argent déplacé entre vos comptes est écarté : il ne peut pas gonfler à la fois vos revenus et vos dépenses.</string>
+    <string name="guide_reports_3_title">Exporter en CSV</string>
+    <string name="guide_reports_3_body">Exportez la période vers un tableur. Contrairement aux graphiques, l'export inclut les virements, signalés dans une colonne — c'est un relevé, pas une analyse.</string>
+
+    <string name="guide_settings_title">Paramètres</string>
+    <string name="guide_settings_intro">Adaptez l'apparence et la langue de l'application.</string>
+    <string name="guide_settings_1_title">Palettes et mode sombre</string>
+    <string name="guide_settings_1_body">Cinq palettes, dont Dynamique, qui suit votre fond d'écran sur Android 12 et plus.</string>
+    <string name="guide_settings_2_title">Langue et devise</string>
+    <string name="guide_settings_2_body">Français ou anglais, et la devise utilisée pour afficher vos montants.</string>
+    <string name="guide_settings_3_title">Revoir l'intro et les astuces</string>
+    <string name="guide_settings_3_body">Réaffichez la visite de bienvenue, ou réinitialisez ces guides pour qu'ils reviennent.</string>
 
     <!-- Navigation Strings -->
     <string name="nav_home">Accueil</string>
@@ -236,7 +312,7 @@
     <string name="accounts_empty">Aucun compte. Ajoutez votre premier portefeuille.</string>
     <string name="accounts_name_label">Nom du compte</string>
     <string name="accounts_type_label">Type</string>
-    <string name="accounts_opening_balance_label">Solde d\'ouverture</string>
+    <string name="accounts_opening_balance_label">Solde d'ouverture</string>
     <string name="accounts_currency_label">Devise</string>
     <string name="accounts_archive">Archiver</string>
     <string name="accounts_restore">Restaurer</string>
@@ -270,7 +346,7 @@
     <string name="reports_empty">Aucune activité sur cette période.</string>
     <string name="reports_export_csv">Exporter en CSV</string>
     <string name="reports_export_started">Export prêt.</string>
-    <string name="reports_export_unavailable">L\'export n\'est pas disponible sur cet appareil.</string>
+    <string name="reports_export_unavailable">L'export n'est pas disponible sur cet appareil.</string>
     <string name="reports_vs_previous">par rapport à la période précédente</string>
     <string name="reports_transfers_note">Les virements entre vos comptes sont exclus.</string>
     <string name="reports_chart_a11y">Dépenses par catégorie : %1$s</string>

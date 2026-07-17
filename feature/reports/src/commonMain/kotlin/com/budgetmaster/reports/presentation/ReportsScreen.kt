@@ -63,6 +63,10 @@ import budgetmaster.core.generated.resources.reports_transfers_note
 import budgetmaster.core.generated.resources.reports_trend
 import budgetmaster.core.generated.resources.reports_trend_a11y
 import budgetmaster.core.generated.resources.reports_vs_previous
+import com.budgetmaster.core.designsystem.components.GuidanceHost
+import com.budgetmaster.core.designsystem.components.HelpIconButton
+import com.budgetmaster.core.designsystem.components.rememberGuidance
+import com.budgetmaster.core.guidance.GuidanceKey
 import com.budgetmaster.core.designsystem.Spacing
 import com.budgetmaster.core.designsystem.financialColors
 import com.budgetmaster.core.util.MoneyFormatter
@@ -83,6 +87,9 @@ import kotlin.math.roundToInt
  */
 @Composable
 fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
+    val guidance = rememberGuidance(GuidanceKey.REPORTS)
+    GuidanceHost(guidance)
+
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -121,18 +128,21 @@ fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground,
                 )
-                OutlinedButton(
-                    onClick = { viewModel.onIntent(ReportsIntent.ExportCsvClicked) },
-                    enabled = !state.isExporting && !state.isEmpty,
-                    shape = RoundedCornerShape(12.dp),
-                ) {
-                    if (state.isExporting) {
-                        CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
-                    } else {
-                        Icon(Icons.Default.FileDownload, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text(stringResource(Res.string.reports_export_csv))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedButton(
+                        onClick = { viewModel.onIntent(ReportsIntent.ExportCsvClicked) },
+                        enabled = !state.isExporting && !state.isEmpty,
+                        shape = RoundedCornerShape(12.dp),
+                    ) {
+                        if (state.isExporting) {
+                            CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                        } else {
+                            Icon(Icons.Default.FileDownload, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(stringResource(Res.string.reports_export_csv))
+                        }
                     }
+                    HelpIconButton(onClick = guidance::show)
                 }
             }
 

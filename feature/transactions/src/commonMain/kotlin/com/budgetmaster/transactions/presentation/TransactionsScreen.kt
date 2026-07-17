@@ -69,7 +69,11 @@ import budgetmaster.core.generated.resources.transactions_undo
 import budgetmaster.core.generated.resources.transactions_yesterday
 import com.budgetmaster.core.designsystem.Spacing
 import com.budgetmaster.core.designsystem.components.EmptyState as SharedEmptyState
+import com.budgetmaster.core.designsystem.components.GuidanceHost
+import com.budgetmaster.core.designsystem.components.HelpIconButton
 import com.budgetmaster.core.designsystem.components.ShimmerListPlaceholder
+import com.budgetmaster.core.designsystem.components.rememberGuidance
+import com.budgetmaster.core.guidance.GuidanceKey
 import com.budgetmaster.core.designsystem.categoryIconFor
 import com.budgetmaster.core.util.MoneyFormatter
 import com.budgetmaster.core.util.RelativeDay
@@ -95,9 +99,12 @@ fun TransactionsScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val guidance = rememberGuidance(GuidanceKey.TRANSACTIONS)
 
     val undoLabel = stringResource(Res.string.transactions_undo)
     LaunchedEffectEffects(viewModel, snackbarHostState, undoLabel)
+
+    GuidanceHost(guidance)
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -140,11 +147,14 @@ fun TransactionsScreen(
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onBackground,
                         )
-                        IconButton(onClick = onManageRecurring) {
-                            Icon(
-                                Icons.Default.Autorenew,
-                                contentDescription = stringResource(Res.string.recurring_manage),
-                            )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(onClick = onManageRecurring) {
+                                Icon(
+                                    Icons.Default.Autorenew,
+                                    contentDescription = stringResource(Res.string.recurring_manage),
+                                )
+                            }
+                            HelpIconButton(onClick = guidance::show)
                         }
                     }
                     Spacer(Modifier.height(Spacing.medium))

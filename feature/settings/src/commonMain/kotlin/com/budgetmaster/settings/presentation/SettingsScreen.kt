@@ -29,10 +29,15 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -60,6 +65,20 @@ import budgetmaster.core.generated.resources.settings_title
 import budgetmaster.core.generated.resources.theme_mode_dark
 import budgetmaster.core.generated.resources.theme_mode_light
 import budgetmaster.core.generated.resources.theme_mode_system
+import budgetmaster.core.generated.resources.guide_tips_reset
+import budgetmaster.core.generated.resources.guide_tips_reset_done
+import budgetmaster.core.generated.resources.guide_tips_show
+import budgetmaster.core.generated.resources.guide_tips_show_desc
+import budgetmaster.core.generated.resources.guide_tips_title
+import com.budgetmaster.core.designsystem.components.GuidanceHost
+import com.budgetmaster.core.designsystem.components.GuidanceSheet
+import com.budgetmaster.core.designsystem.components.rememberGuidance
+import com.budgetmaster.core.guidance.GuidanceKey
+import com.budgetmaster.core.guidance.GuidancePreferences
+import com.budgetmaster.core.guidance.GuidanceRegistry
+import com.budgetmaster.core.guidance.ScreenGuide
+import kotlinx.coroutines.launch
+import org.koin.compose.koinInject
 import com.budgetmaster.core.designsystem.AppPalette
 import com.budgetmaster.core.designsystem.DarkModeSetting
 import com.budgetmaster.core.designsystem.DynamicSwatchColors
@@ -88,6 +107,8 @@ fun SettingsScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val scrollState = rememberScrollState()
+    val guidance = rememberGuidance(GuidanceKey.SETTINGS)
+    GuidanceHost(guidance)
 
     Column(
         modifier = Modifier
@@ -204,6 +225,9 @@ fun SettingsScreen(
                 onReplayOnboarding()
             },
         )
+
+        Spacer(modifier = Modifier.height(Spacing.medium))
+        HelpAndTipsSection()
 
         Spacer(modifier = Modifier.height(Spacing.huge))
 
@@ -328,6 +352,81 @@ private fun SettingsCard(content: @Composable () -> Unit) {
         Column(modifier = Modifier.padding(Spacing.medium)) {
             content()
         }
+    }
+}
+
+/**
+ * Browse every screen's guide on demand, and control whether they open by themselves.
+ *
+ * Enumerates [GuidanceRegistry] rather than a hand-written list, so a new screen's guide
+ * appears here automatically instead of being forgotten.
+ */
+@Composable
+private fun HelpAndTipsSection() {
+    val preferences = koinInject<GuidancePreferences>()
+    val scope = rememberCoroutineScope()
+    val tipsEnabled by preferences.tipsEnabled.collectAsState(initial = true)
+    var openGuide by remember { mutableStateOf<ScreenGuide?>(null) }
+    var resetDone by remember { mutableStateOf(false) }
+
+    Text(
+        text = stringResource(Res.string.guide_tips_title),
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.onBackground,
+    )
+    Spacer(modifier = Modifier.height(Spacing.small))
+
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.small),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = stringResource(Res.string.guide_tips_show),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+            Text(
+                text = stringResource(Res.string.guide_tips_show_desc),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Switch(
+            checked = tipsEnabled,
+            onCheckedChange = { enabled -> scope.launch { preferences.setTipsEnabled(enabled) } },
+        )
+    }
+
+    // Every guide, on demand — the "?" only helps if you're already on the screen.
+    GuidanceRegistry.guides.values.forEach { guide ->
+        SettingRowAction(
+            label = stringResource(guide.title),
+            onClick = { openGuide = guide },
+        )
+    }
+
+    SettingRowAction(
+        label = stringResource(Res.string.guide_tips_reset),
+        onClick = {
+            scope.launch {
+                preferences.resetAll()
+                resetDone = true
+            }
+        },
+    )
+    if (resetDone) {
+        Text(
+            text = stringResource(Res.string.guide_tips_reset_done),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.primary,
+        )
+    }
+
+    openGuide?.let { guide ->
+        GuidanceSheet(guide = guide, onDismiss = { openGuide = null })
     }
 }
 
