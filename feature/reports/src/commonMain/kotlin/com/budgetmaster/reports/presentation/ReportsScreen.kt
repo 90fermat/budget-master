@@ -22,7 +22,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -30,6 +34,8 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -38,7 +44,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -63,6 +71,15 @@ import budgetmaster.core.generated.resources.reports_transfers_note
 import budgetmaster.core.generated.resources.reports_trend
 import budgetmaster.core.generated.resources.reports_trend_a11y
 import budgetmaster.core.generated.resources.reports_change_vs_previous
+import budgetmaster.core.generated.resources.reports_ai_title
+import budgetmaster.core.generated.resources.reports_ai_summarize
+import budgetmaster.core.generated.resources.reports_ai_thinking
+import budgetmaster.core.generated.resources.reports_ai_ask_label
+import budgetmaster.core.generated.resources.reports_ai_ask_placeholder
+import budgetmaster.core.generated.resources.reports_ai_ask_action
+import budgetmaster.core.generated.resources.reports_ai_failed
+import budgetmaster.core.generated.resources.reports_ai_rate_limited
+import budgetmaster.core.generated.resources.ai_disclaimer
 import com.budgetmaster.core.designsystem.components.GuidanceHost
 import com.budgetmaster.core.designsystem.components.HelpIconButton
 import com.budgetmaster.core.designsystem.components.rememberGuidance
@@ -153,7 +170,19 @@ fun ReportsScreen(viewModel: ReportsViewModel = koinViewModel()) {
             val report = state.report
             when {
                 state.isEmpty -> EmptyState()
-                report != null -> ReportBody(report)
+                report != null -> {
+                    // AI coaching sits above the numbers it talks about, and only when the user
+                    // has opted in (state.aiEnabled already folds in provider availability).
+                    if (state.aiEnabled && !report.isEmpty) {
+                        AiReportSection(
+                            state = state,
+                            onGenerate = { viewModel.onIntent(ReportsIntent.GenerateNarrative) },
+                            onAsk = { viewModel.onIntent(ReportsIntent.AskQuestion(it)) },
+                        )
+                        Spacer(Modifier.height(Spacing.medium))
+                    }
+                    ReportBody(report)
+                }
             }
             Spacer(Modifier.height(80.dp))
         }
@@ -182,6 +211,99 @@ private fun ReportRange.label(): String = stringResource(
         ReportRange.ALL -> Res.string.reports_range_all
     },
 )
+
+/**
+ * The AI coaching card: a one-tap "summarize this period" narrative plus a free-text Q&A box.
+ *
+ * Both send only the report aggregates (never raw transactions) and carry the shared "not
+ * financial advice" disclaimer, since a confident sentence about someone's money reads as advice.
+ */
+@Composable
+private fun AiReportSection(
+    state: ReportsState,
+    onGenerate: () -> Unit,
+    onAsk: (String) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+            .padding(Spacing.medium),
+        verticalArrangement = Arrangement.spacedBy(Spacing.small),
+    ) {
+        Text(
+            text = stringResource(Res.string.reports_ai_title),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+
+        // Narrative
+        when (val n = state.narrative) {
+            AiText.Idle -> OutlinedButton(onClick = onGenerate, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text(stringResource(Res.string.reports_ai_summarize))
+            }
+            AiText.Loading -> AiBusyRow(stringResource(Res.string.reports_ai_thinking))
+            is AiText.Ready -> AiTextBlock(n.text)
+            is AiText.Failed -> AiTextBlock(stringResource(aiFailureRes(n.message)))
+        }
+
+        // Q&A
+        var question by remember { mutableStateOf("") }
+        OutlinedTextField(
+            value = question,
+            onValueChange = { question = it },
+            label = { Text(stringResource(Res.string.reports_ai_ask_label)) },
+            placeholder = { Text(stringResource(Res.string.reports_ai_ask_placeholder)) },
+            singleLine = true,
+            enabled = state.answer !is AiText.Loading,
+            trailingIcon = {
+                if (state.answer is AiText.Loading) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                } else {
+                    TextButton(onClick = { onAsk(question) }, enabled = question.isNotBlank()) {
+                        Text(stringResource(Res.string.reports_ai_ask_action))
+                    }
+                }
+            },
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+            keyboardActions = KeyboardActions(onSend = { onAsk(question) }),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        when (val a = state.answer) {
+            is AiText.Ready -> AiTextBlock(a.text)
+            is AiText.Failed -> AiTextBlock(stringResource(aiFailureRes(a.message)))
+            else -> Unit
+        }
+
+        Text(
+            text = stringResource(Res.string.ai_disclaimer),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun AiBusyRow(label: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+        Spacer(Modifier.width(8.dp))
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun AiTextBlock(text: String) {
+    Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+}
+
+/** "rate_limited" gets its own copy; everything else is the generic failure. */
+private fun aiFailureRes(code: String) =
+    if (code == "rate_limited") Res.string.reports_ai_rate_limited else Res.string.reports_ai_failed
 
 @Composable
 private fun ReportBody(report: ReportSummary) {

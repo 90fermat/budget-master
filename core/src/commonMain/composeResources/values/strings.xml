@@ -172,6 +172,16 @@
     <string name="transactions_quick_add_no_amount">Couldn't find an amount. Try including a number, like "lunch 12".</string>
     <string name="transactions_quick_add_failed">Couldn't read that. Fill the fields below instead.</string>
 
+    <!-- AI reports: narrative summary + Q&A -->
+    <string name="reports_ai_title">AI coach</string>
+    <string name="reports_ai_summarize">Summarize this period</string>
+    <string name="reports_ai_thinking">Writing your summary…</string>
+    <string name="reports_ai_ask_label">Ask about your spending</string>
+    <string name="reports_ai_ask_placeholder">e.g. Where did most of my money go?</string>
+    <string name="reports_ai_ask_action">Ask</string>
+    <string name="reports_ai_failed">Couldn't reach the AI. Try again in a moment.</string>
+    <string name="reports_ai_rate_limited">The AI is busy right now. Try again shortly.</string>
+
     <string name="dashboard_transaction_subtitle">%1$s • %2$s</string>
     <string name="dashboard_budget_spent_of">%1$s of %2$s</string>
     <string name="date_month_day">%1$s %2$d</string>

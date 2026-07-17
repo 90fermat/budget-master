@@ -2,7 +2,9 @@ package com.budgetmaster.reports.di
 
 import com.budgetmaster.reports.data.SqlDelightReportsRepository
 import com.budgetmaster.reports.domain.repository.ReportsRepository
+import com.budgetmaster.reports.domain.usecase.AnswerFinanceQuestionUseCase
 import com.budgetmaster.reports.domain.usecase.ExportReportCsvUseCase
+import com.budgetmaster.reports.domain.usecase.GenerateNarrativeUseCase
 import com.budgetmaster.reports.domain.usecase.ObserveReportUseCase
 import com.budgetmaster.reports.presentation.ReportsViewModel
 import org.koin.core.module.dsl.viewModel
@@ -17,6 +19,8 @@ val reportsModule = module {
 
     factory { ObserveReportUseCase(get()) }
     factory { ExportReportCsvUseCase(get()) }
+    factory { GenerateNarrativeUseCase(get()) }
+    factory { AnswerFinanceQuestionUseCase(get()) }
 
-    viewModel { ReportsViewModel(get(), get()) }
+    viewModel { ReportsViewModel(get(), get(), get(), get(), get()) }
 }
