@@ -129,7 +129,12 @@ class DashboardViewModelTest {
         override fun getBudgetProgress(): Flow<List<BudgetProgress>> = budgetProgressFlow
         override fun getTopTransactions(limit: Int): Flow<List<Transaction>> = topTransactionsFlow
 
-        override suspend fun getAiInsights(forceRefresh: Boolean): Result<List<Insight>> = aiInsightsResult
+        // The existing tests all exercise the configured path; the unconfigured one is covered
+        // by its own test below.
+        override var isAiConfigured: Boolean = true
+
+        override suspend fun getAiInsights(forceRefresh: Boolean, languageTag: String): Result<List<Insight>> =
+            aiInsightsResult
 
         override suspend fun deleteTransaction(id: String) {
             if (shouldThrowOnDelete) throw RuntimeException("Failed to delete from database")
@@ -346,6 +351,22 @@ class DashboardViewModelTest {
         assertTrue(effects.any { it is DashboardEffect.ShowError })
 
         collectJob.cancel()
+    }
+
+    /**
+     * With no AI provider the state must be Unavailable, not a Loading spinner or an empty
+     * Success — the dashboard keys off it to drop the section entirely, and the service must not
+     * be called at all.
+     */
+    @Test
+    fun `insights are Unavailable and the service is never called when AI is not configured`() = runTest {
+        repository.isAiConfigured = false
+        repository.aiInsightsResult = Result.failure(AssertionError("must not ask for insights"))
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        assertEquals(InsightsState.Unavailable, viewModel.state.value.insights)
     }
 
     @Test

@@ -204,7 +204,10 @@ class SqlDelightDashboardRepository(
         )
     } }
 
-    override suspend fun getAiInsights(forceRefresh: Boolean): Result<List<Insight>> {
+    override val isAiConfigured: Boolean
+        get() = geminiInsightsService.isConfigured
+
+    override suspend fun getAiInsights(forceRefresh: Boolean, languageTag: String): Result<List<Insight>> {
         return runCatching {
             val db = databaseProvider.getDatabase()
             val queries = db.budgetMasterDatabaseQueries
@@ -223,7 +226,7 @@ class SqlDelightDashboardRepository(
                     )
                 }
 
-            geminiInsightsService.getInsights(transactions, forceRefresh)
+            geminiInsightsService.getInsights(transactions, forceRefresh, languageTag)
         }
     }
 

@@ -651,18 +651,39 @@ Phase 8 screenshots.
 > and date format are covered by compile + guard tests rather than a screenshot.
 
 ### Phase 6 — Production hardening & release (1.5–2 weeks)
-- [ ] **Gemini key removal**: migrate `GeminiInsightsService` from direct REST + embedded
-  API key to **Firebase AI Logic** (see Phase 7) — the SDK proxies Gemini through Firebase
-  with App Check attestation, so no secret ships in the client. Non-negotiable before any
-  public build.
+- [x] **Gemini key removal — closed for release safety.** A release build now refuses to embed
+  the key: `generateDashboardConfig` forces the generated constant empty for any Release/bundle
+  task, and the service disables itself without one, so no secret can reach a public bundle
+  (verified: the same `GEMINI_API_KEY` yields the key in a debug build and `""` in a release
+  build). AI insights are therefore a **debug-only** feature until Phase 7 routes them through
+  Firebase AI Logic, which remains the real fix and is planned there.
+  - Two things found while doing this, both fixed:
+    - **The prompt shipped the raw ledger** — every transaction's description (free text, where
+      users write names), timestamp and id went to Google. It now carries **aggregates only**
+      (per-category totals + income/expense sums), pinned by a test.
+    - **With no key the app invented insights.** `getMockInsights()` returned hardcoded French
+      claims like "your coffee spending rose 15%" — fabricated figures presented as analysis of
+      the user's own money, in *every* build without a key. Deleted; the state is now
+      `InsightsState.Unavailable` and the dashboard omits the section. The prompt language also
+      followed a hardcoded "French" rather than the app's language.
 - [ ] Web auth: implement Firebase JS interop or hide auth-gated features on Wasm; remove
   `UnsupportedOperationException` paths.
 - [ ] Firebase per-platform config hygiene (google-services.json per build type, iOS plist).
 - [ ] Crashlytics + analytics events; performance monitoring; Android Baseline Profiles.
 - [ ] Release engineering: signing configs, `isMinifyEnabled = true` + R8 rules, versioning
   from git tags, CI release lanes (AAB, TestFlight, static web deploy).
-- [ ] Offline-first sync (Firestore libs are already declared): last-write-wins sync for
-  transactions/budgets/goals, or explicitly de-scope and update README.
+- [x] **Offline-first sync — explicitly de-scoped.** The app is local-only per device and the
+  README now says so. Last-write-wins was the sketched design and is a poor fit for a ledger:
+  two devices editing the same transaction would silently discard one edit, and "the money app
+  quietly lost a record" is the worst bug this app could ship. It also can't be validated from
+  this host (needs multiple devices + console). Real sync deserves its own phase with a
+  conflict model chosen on purpose.
+  - The Firestore dependency was declared in **4 source sets but imported nowhere** — removed,
+    so it stops being pulled into every build. The catalog entry stays for the future work.
+  - While updating the README, its feature list turned out to advertise **receipt scanning,
+    tags, heatmaps, PDF export and automatic sync — none of which exist** ("receipt" was a
+    `ReceiptLong` icon; `tags` is a column always written null). Corrected, with an explicit
+    "Honest scope" section, since these are exactly the claims that end up in a store listing.
 - [ ] Store readiness: privacy policy, data-safety forms, screenshots, listing copy.
 
 ### Phase 7 — AI intelligence layer (free-tier Gemini via Firebase) (2–2.5 weeks)

@@ -283,15 +283,18 @@ private fun DashboardScrollableBody(
             onViewAllClicked = onViewAllTransactions
         )
 
-        Spacer(modifier = Modifier.height(28.dp))
-
         // ── AI Insights Widget ─────────────────────────────────────────────
-        AiInsightsWidget(
-            insightsState = state.insights,
-            onInsightClicked = onInsightNavigate,
-            onInsightDismissed = { onIntent(DashboardIntent.InsightsDismissed(it)) },
-            onRetry = { onIntent(DashboardIntent.RefreshRequested) }
-        )
+        // Omitted entirely when no AI provider is configured: an "AI Insights" heading over a
+        // permanent empty state is just a dead end with a retry button that cannot work.
+        if (state.insights != InsightsState.Unavailable) {
+            Spacer(modifier = Modifier.height(28.dp))
+            AiInsightsWidget(
+                insightsState = state.insights,
+                onInsightClicked = onInsightNavigate,
+                onInsightDismissed = { onIntent(DashboardIntent.InsightsDismissed(it)) },
+                onRetry = { onIntent(DashboardIntent.RefreshRequested) }
+            )
+        }
 
         Spacer(modifier = Modifier.height(24.dp))
     }

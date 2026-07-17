@@ -69,7 +69,6 @@ kotlin {
             implementation(libs.koin.android)
             implementation(project.dependencies.platform(libs.firebase.bom))
             implementation(libs.firebase.common)
-            implementation(libs.firebase.firestore)
             implementation(libs.firebase.auth)
             
             // Android Biometrics support
@@ -83,7 +82,6 @@ kotlin {
         
         iosMain.dependencies {
             implementation(libs.firebase.common)
-            implementation(libs.firebase.firestore)
             implementation(libs.firebase.auth)
         }
         

@@ -105,12 +105,29 @@ kotlin {
 // ── Build-time config generation ─────────────────────────────────────────────
 // The AGP KMP library plugin has no BuildConfig support, so the Gemini API key is
 // generated into a commonMain source file from the GEMINI_API_KEY environment
-// variable or Gradle property. The key must NOT be committed; production builds
-// should proxy Gemini through a backend (see ROADMAP.md Phase 6).
+// variable or Gradle property. The key must NOT be committed.
+//
+// Anything baked in here ships inside the APK/wasm bundle and is extractable by anyone who
+// downloads it, so a **release build refuses to embed a key at all**: the generated constant is
+// forced empty and the AI surface disables itself. That makes "no secret in a public build" a
+// property of the build rather than a rule someone has to remember. Until the Firebase AI Logic
+// migration (Phase 7) gives the client a proxied path, AI insights are a debug-only feature.
+val isReleaseBuild = gradle.startParameter.taskNames.any {
+    it.contains("Release", ignoreCase = true) || it.contains("bundle", ignoreCase = true)
+}
+
 val generateDashboardConfig = tasks.register("generateDashboardConfig") {
-    val apiKey = providers.environmentVariable("GEMINI_API_KEY")
+    val configuredKey = providers.environmentVariable("GEMINI_API_KEY")
         .orElse(providers.gradleProperty("GEMINI_API_KEY"))
         .getOrElse("")
+    if (isReleaseBuild && configuredKey.isNotBlank()) {
+        logger.warn(
+            "GEMINI_API_KEY is set but this is a release build: the key will NOT be embedded " +
+                "(it would ship extractable in the bundle). AI insights are disabled in release " +
+                "until the Firebase AI Logic migration lands.",
+        )
+    }
+    val apiKey = if (isReleaseBuild) "" else configuredKey
     val outputDir = layout.buildDirectory.dir("generated/dashboardConfig/kotlin")
     inputs.property("apiKey", apiKey)
     outputs.dir(outputDir)

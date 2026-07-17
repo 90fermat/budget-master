@@ -66,7 +66,9 @@ class GetBalanceSummaryUseCaseTest {
         override fun getChartData(period: Period): Flow<List<ChartPoint>> = flowOf(emptyList())
         override fun getBudgetProgress(): Flow<List<BudgetProgress>> = flowOf(emptyList())
         override fun getTopTransactions(limit: Int): Flow<List<Transaction>> = flowOf(emptyList())
-        override suspend fun getAiInsights(forceRefresh: Boolean): Result<List<Insight>> = Result.success(emptyList())
+        override val isAiConfigured: Boolean = true
+        override suspend fun getAiInsights(forceRefresh: Boolean, languageTag: String): Result<List<Insight>> =
+            Result.success(emptyList())
         override suspend fun deleteTransaction(id: String) {}
         override suspend fun dismissInsight(id: String) {}
     }

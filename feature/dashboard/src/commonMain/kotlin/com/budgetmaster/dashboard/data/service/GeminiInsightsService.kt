@@ -26,6 +26,15 @@ import kotlin.time.Instant
 /**
  * Service calling the Gemini API to analyze transactions and generate spending insights.
  * Implements local caching with SQLDelight and error resilience (timeout, rate limiting).
+ *
+ * **Only aggregates leave the device.** The prompt carries per-category totals and the period's
+ * income/expense sums — never descriptions (free text, and users put names in them), timestamps,
+ * or ids. Sending the raw ledger to a third party is not something a finance app should do, and
+ * the aggregates are what the model actually reasons about anyway.
+ *
+ * When no API key is configured the service is [isConfigured] `false` and returns nothing: it
+ * used to answer with hardcoded "mock" insights that stated invented figures ("coffee spending
+ * up 15%") as though they were real analysis of the user's money.
  */
 class GeminiInsightsService(
     private val databaseProvider: DatabaseProvider,
@@ -47,12 +56,23 @@ class GeminiInsightsService(
     }
 
     /**
+     * Whether a usable API key is present. False in any build that did not supply one — which is
+     * every release build, since shipping the key would put it in the bundle for anyone to
+     * extract. Callers should hide the AI surface entirely rather than show an empty section.
+     */
+    val isConfigured: Boolean
+        get() = apiKeyProvider().let { key ->
+            key.isNotBlank() && key !in PLACEHOLDER_KEYS
+        }
+
+    /**
      * Retrieves insights either from local cache (if age < 24h) or generates them via Gemini.
      * Fallbacks to cache in case of rate-limiting or network issues.
      */
     suspend fun getInsights(
         transactions: List<Transaction>,
-        forceRefresh: Boolean
+        forceRefresh: Boolean,
+        languageTag: String = "en"
     ): List<Insight> {
         val db = databaseProvider.getDatabase()
         val queries = db.budgetMasterDatabaseQueries
@@ -80,35 +100,22 @@ class GeminiInsightsService(
         // 2. Fetch from Gemini API
         try {
             val apiKey = apiKeyProvider()
-            if (apiKey.isBlank() || apiKey == "MOCK_IOS_API_KEY" || apiKey == "MOCK_WASM_API_KEY" || apiKey == "YOUR_WASM_API_KEY" || apiKey == "YOUR_IOS_API_KEY") {
-                // If API Key is missing or mock, return cached as fallback or some mock values to avoid failure
-                println("WARNING: Gemini API Key is missing or a mock. Returning cached insights if available.")
-                if (cachedEntities.isNotEmpty()) {
-                    return cachedEntities.map { entity ->
-                        Insight(
-                            id = entity.id,
-                            type = mapStringToType(entity.type),
-                            message = entity.message,
-                            actionRoute = entity.actionRoute,
-                            generatedAt = Instant.fromEpochMilliseconds(entity.timestamp)
-                        )
-                    }
+            if (!isConfigured) {
+                // No key: answer with the cache if we have one, otherwise nothing at all. Never
+                // invent insights — a fabricated "your coffee spending rose 15%" is worse than
+                // silence in an app whose whole job is telling the user the truth about money.
+                return cachedEntities.map { entity ->
+                    Insight(
+                        id = entity.id,
+                        type = mapStringToType(entity.type),
+                        message = entity.message,
+                        actionRoute = entity.actionRoute,
+                        generatedAt = Instant.fromEpochMilliseconds(entity.timestamp)
+                    )
                 }
-                return getMockInsights()
             }
 
-            val systemPrompt = "You are a personal finance advisor. Analyze the spending data and return exactly 3 insights as JSON array. Each insight has: type (SPENDING|SAVING|TREND), message (max 80 chars, French), actionRoute (optional screen route to navigate to). Be specific with numbers. Be encouraging, not judgmental."
-            val prompt = buildString {
-                append(systemPrompt)
-                append("\n\nHere is the personal transaction data of the user for the last 30 days:\n")
-                if (transactions.isEmpty()) {
-                    append("No transactions in the last 30 days.\n")
-                } else {
-                    transactions.forEach { tx ->
-                        append("- Amount: ${tx.amount}, Category: ${tx.category}, Description: ${tx.description}, Timestamp: ${tx.timestamp}\n")
-                    }
-                }
-            }
+            val prompt = buildPrompt(transactions, languageTag)
 
             val responseText = withTimeout(10000L) { // 10 seconds timeout
                 val httpResponse: HttpResponse = httpClient.post("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent") {
@@ -199,6 +206,12 @@ class GeminiInsightsService(
         }
     }
 
+    /** Two decimals is all the precision an insight needs, and it keeps the prompt small. */
+    private fun Double.roundedToCents(): String {
+        val cents = kotlin.math.round(this * 100) / 100
+        return cents.toString()
+    }
+
     private fun mapStringToType(typeStr: String): InsightType {
         return when (typeStr.uppercase()) {
             "SPENDING" -> InsightType.SPENDING
@@ -208,35 +221,57 @@ class GeminiInsightsService(
         }
     }
 
-    @OptIn(ExperimentalTime::class)
-    private fun getMockInsights(): List<Insight> {
-        val now = Clock.System.now()
-        return listOf(
-            Insight(
-                id = "mock_1",
-                type = InsightType.SPENDING,
-                message = "Vos dépenses en cafés ont augmenté de 15% ce mois-ci. Réduisez-les de 10€.",
-                actionRoute = "transactions",
-                generatedAt = now
-            ),
-            Insight(
-                id = "mock_2",
-                type = InsightType.SAVING,
-                message = "Bravo! Vous avez économisé 80% de votre objectif vacances ce mois-ci.",
-                actionRoute = "budgets",
-                generatedAt = now
-            ),
-            Insight(
-                id = "mock_3",
-                type = InsightType.TREND,
-                message = "Votre solde net est positif ce mois-ci, une tendance très encourageante.",
-                actionRoute = null,
-                generatedAt = now
-            )
+    /**
+     * Builds the prompt from **aggregates only** — per-category totals plus the period's income
+     * and expense sums. Descriptions, timestamps and ids never leave the device.
+     *
+     * @param languageTag BCP-47 tag for the app's current language, so the insights come back in
+     *   the language the user chose rather than a language hardcoded into the prompt.
+     */
+    private fun buildPrompt(transactions: List<Transaction>, languageTag: String): String = buildString {
+        append(
+            "You are a personal finance advisor. Analyse the aggregated spending summary and " +
+                "return exactly 3 insights as a JSON array. Each insight has: type " +
+                "(SPENDING|SAVING|TREND), message (max 80 chars, written in the language with " +
+                "BCP-47 tag '$languageTag'), actionRoute (optional: transactions, budgets, or " +
+                "goals). Be specific with the numbers you are given, and encouraging rather " +
+                "than judgmental. Do not invent figures that are not in the summary.",
         )
+        append("\n\nAggregated summary of the user's last 30 days:\n")
+
+        if (transactions.isEmpty()) {
+            append("No transactions in the last 30 days.\n")
+            return@buildString
+        }
+
+        val income = transactions.filter { it.amount > 0 }.sumOf { it.amount }
+        val expenses = transactions.filter { it.amount < 0 }.sumOf { -it.amount }
+        append("- Total income: ${income.roundedToCents()}\n")
+        append("- Total expenses: ${expenses.roundedToCents()}\n")
+        append("- Number of transactions: ${transactions.size}\n")
+        append("- Spending by category:\n")
+
+        transactions.filter { it.amount < 0 }
+            .groupBy { it.category }
+            .mapValues { (_, rows) -> rows.sumOf { -it.amount } }
+            .entries
+            .sortedByDescending { it.value }
+            .forEach { (category, total) ->
+                append("  - $category: ${total.roundedToCents()}\n")
+            }
     }
 
     private class RateLimitException : Exception("Rate Limit Exceeded")
     private class ApiException(msg: String) : Exception(msg)
     private class ParseException(msg: String) : Exception(msg)
+
+    private companion object {
+        /** Values that look like a key but aren't one; treated the same as "no key". */
+        val PLACEHOLDER_KEYS = setOf(
+            "MOCK_IOS_API_KEY",
+            "MOCK_WASM_API_KEY",
+            "YOUR_WASM_API_KEY",
+            "YOUR_IOS_API_KEY",
+        )
+    }
 }

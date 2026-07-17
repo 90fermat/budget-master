@@ -23,7 +23,9 @@ import kotlinx.serialization.json.Json
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlin.test.assertContains
 
 class GeminiInsightsServiceTest {
 
@@ -36,28 +38,94 @@ class GeminiInsightsServiceTest {
         databaseProvider = DatabaseProvider(database)
     }
 
+    /**
+     * With no key the service must say nothing at all.
+     *
+     * This test previously asserted the opposite — that three "mock" insights came back — which
+     * pinned in place a dashboard that told users invented things about their money ("coffee
+     * spending up 15%") in any build without a key, which is every release build.
+     */
     @Test
-    fun testGetInsightsReturnsMockIfApiKeyIsMock() = runBlocking {
-        val mockHttpClient = HttpClient(MockEngine) {
+    fun testGetInsightsReturnsNothingAndIsNotConfiguredWithoutApiKey() = runBlocking {
+        val service = GeminiInsightsService(
+            databaseProvider = databaseProvider,
+            httpClient = failingClient(),
+            apiKeyProvider = { "" }
+        )
+
+        assertFalse(service.isConfigured)
+        assertTrue(service.getInsights(emptyList(), forceRefresh = false).isEmpty())
+    }
+
+    /** A placeholder key is not a key: same silence, so a stray placeholder can't enable AI. */
+    @Test
+    fun testPlaceholderApiKeyIsTreatedAsUnconfigured() = runBlocking {
+        val service = GeminiInsightsService(
+            databaseProvider = databaseProvider,
+            httpClient = failingClient(),
+            apiKeyProvider = { "MOCK_IOS_API_KEY" }
+        )
+
+        assertFalse(service.isConfigured)
+        assertTrue(service.getInsights(emptyList(), forceRefresh = false).isEmpty())
+    }
+
+    /** Fails the test rather than the request if an unconfigured service still calls out. */
+    private fun failingClient() = HttpClient(MockEngine) {
+        engine {
+            addHandler { error("The service must not call Gemini without a configured key") }
+        }
+        install(ContentNegotiation) {
+            json(Json { ignoreUnknownKeys = true })
+        }
+    }
+
+    /**
+     * The prompt must carry aggregates only. Transaction descriptions are free text — users put
+     * merchant names, people's names and notes in them — and it sent every one of them, with
+     * timestamps and ids, to a third party. Only category totals should leave the device.
+     */
+    @Test
+    fun testPromptSendsAggregatesAndNeverTheRawLedger() = runBlocking {
+        var body = ""
+        val capturingClient = HttpClient(MockEngine) {
             engine {
                 addHandler { request ->
-                    respond("", HttpStatusCode.OK)
+                    body = (request.body as io.ktor.http.content.TextContent).text
+                    respond(
+                        """{"candidates":[{"content":{"parts":[{"text":"[]"}]}}]}""",
+                        HttpStatusCode.OK,
+                        headersOf(HttpHeaders.ContentType, "application/json"),
+                    )
                 }
             }
-            install(ContentNegotiation) {
-                json(Json { ignoreUnknownKeys = true })
-            }
+            install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
         }
         val service = GeminiInsightsService(
             databaseProvider = databaseProvider,
-            httpClient = mockHttpClient,
-            apiKeyProvider = { "" }
+            httpClient = capturingClient,
+            apiKeyProvider = { "test-key" }
         )
-        val result = service.getInsights(emptyList(), forceRefresh = false)
-        assertEquals(3, result.size)
-        assertEquals(InsightType.SPENDING, result[0].type)
-        assertEquals(InsightType.SAVING, result[1].type)
-        assertEquals(InsightType.TREND, result[2].type)
+
+        service.getInsights(
+            transactions = listOf(
+                Transaction("t1", -12.5, "cat_food", "Lunch with Dr. Meredith Palmer", 1_700_000_000_000),
+                Transaction("t2", -7.5, "cat_food", "Coffee", 1_700_000_100_000),
+                Transaction("t3", 2000.0, "cat_salary", "ACME payroll", 1_700_000_200_000),
+            ),
+            forceRefresh = true,
+            languageTag = "fr",
+        )
+
+        assertFalse(body.contains("Meredith"), "A transaction description reached the prompt:\n$body")
+        assertFalse(body.contains("ACME"), "A transaction description reached the prompt:\n$body")
+        assertFalse(body.contains("t1"), "A transaction id reached the prompt:\n$body")
+        assertFalse(body.contains("1700000000000"), "A raw timestamp reached the prompt:\n$body")
+
+        // The aggregates it does need: category totals, the income/expense sums, and the language.
+        assertContains(body, "cat_food: 20")
+        assertContains(body, "Total income: 2000")
+        assertContains(body, "'fr'")
     }
 
     @Test

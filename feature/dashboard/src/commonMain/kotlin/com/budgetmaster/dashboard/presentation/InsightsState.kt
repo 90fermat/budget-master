@@ -10,6 +10,15 @@ import com.budgetmaster.dashboard.domain.model.Insight
  */
 sealed interface InsightsState {
     /**
+     * No AI provider is configured, so there is nothing to show and never will be this run.
+     *
+     * Distinct from `Success(emptyList())`, which means "AI ran and found nothing to say": the
+     * dashboard hides the whole section for this state rather than presenting an empty
+     * "AI Insights" heading that no user action can ever fill.
+     */
+    data object Unavailable : InsightsState
+
+    /**
      * Insights are being fetched from the AI service or local cache.
      */
     data object Loading : InsightsState

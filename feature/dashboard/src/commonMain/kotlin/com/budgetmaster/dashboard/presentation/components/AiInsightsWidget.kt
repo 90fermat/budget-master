@@ -66,6 +66,9 @@ fun AiInsightsWidget(
         )
 
         when (insightsState) {
+            // The dashboard omits this whole widget when AI is unavailable; the branch exists so
+            // the `when` stays exhaustive if some other caller renders it directly.
+            is InsightsState.Unavailable -> Unit
             is InsightsState.Loading -> {
                 ShimmerCards()
             }

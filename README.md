@@ -1,19 +1,39 @@
 # 💰 BudgetMaster — Personal Finance Management
 
-BudgetMaster is a production-ready, feature-rich personal finance management application built with **Compose Multiplatform**. It offers a seamless experience across **Android, iOS, and Web (Kotlin/Wasm)**, helping users track expenses, manage budgets, and gain AI-powered financial insights.
+BudgetMaster is a personal finance management application built with **Compose Multiplatform**, running on **Android, iOS, and Web (Kotlin/Wasm)** from one code base. It helps you track expenses, manage budgets across multiple wallets, and see where your money goes.
 
 ---
 
 ## 🚀 Key Features
 
 - **Multi-Platform Support**: Unified code base for Android, iOS, and Web.
-- **Biometric Security**: Secure access via Fingerprint or Face ID.
-- **Intelligent Dashboard**: Real-time balance overview with interactive charts (powered by Vico).
-- **Smart Transactions**: Categorization, tags, recurring payments, and receipt scanning.
-- **Budget Tracking**: Set monthly limits and get alerts before overspending.
-- **Advanced Analytics**: Heatmaps, period comparisons, and PDF/CSV exports.
-- **Offline-First**: Fully functional without internet; syncs automatically when online.
-- **Material You**: Dynamic theme support with mandatory Dark Mode.
+- **Multi-Wallet**: Several accounts per user, per-wallet balances, transfers between them,
+  reconciliation, and an approximate multi-currency net worth.
+- **Intelligent Dashboard**: Real-time balance overview with interactive charts.
+- **Smart Transactions**: Categorization, search and filters, swipe-to-delete with undo, and
+  calendar-correct recurring schedules.
+- **Budget Tracking**: Set monthly limits, see live spend, and get alerts before overspending.
+- **Analytics**: Period totals with a comparison against the preceding period, spending by
+  category, a daily income-vs-expense trend, and CSV export.
+- **Biometric Security**: Fingerprint / Face ID on Android and iOS.
+- **Localized**: Full EN/FR, including in-app guides that explain every screen.
+- **Material You**: 5 palettes including Dynamic, with light and dark themes.
+
+### Honest scope
+
+A short list of things this app deliberately does **not** do yet, so the feature list above can
+be trusted:
+
+- **No cloud sync.** Data lives in a local database on each device. Signing in scopes your data
+  to your account; it does not move it between devices. Multi-device sync is future work — see
+  ROADMAP.md.
+- **AI insights are development-only.** They call Gemini directly, so the API key would ship
+  inside any public build; release builds therefore embed no key and hide the feature until it
+  is proxied through Firebase AI Logic (ROADMAP.md Phase 7).
+- **No receipt scanning, tags, heatmaps, or PDF export.** These were listed here before they
+  existed; they are planned, not built. CSV export is real.
+- **Web has no real authentication** — it keeps a local-only profile rather than signing in to
+  Firebase.
 
 ---
 

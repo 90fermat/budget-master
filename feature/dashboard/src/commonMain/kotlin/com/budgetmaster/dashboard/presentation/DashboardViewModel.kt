@@ -21,7 +21,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import androidx.compose.ui.text.intl.Locale
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -271,9 +273,18 @@ class DashboardViewModel(
      * @param forceRefresh `true` to skip the cache and call the AI service directly.
      */
     private fun loadInsights(forceRefresh: Boolean) {
+        if (!getAiInsights.isConfigured) {
+            // No provider, so don't flash a spinner at a section that will never fill.
+            _state.update { it.copy(insights = InsightsState.Unavailable) }
+            return
+        }
         _state.update { it.copy(insights = InsightsState.Loading) }
         viewModelScope.launch {
-            getAiInsights(forceRefresh)
+            // AppLanguage.SYSTEM carries no tag of its own: fall back to the platform locale so a
+            // French system user on "System" gets French insights rather than English ones.
+            val languageTag = settingsRepository.settings.first().language.tag
+                ?: Locale.current.language
+            getAiInsights(forceRefresh, languageTag)
                 .onSuccess { insights ->
                     _state.update { it.copy(insights = InsightsState.Success(insights)) }
                 }

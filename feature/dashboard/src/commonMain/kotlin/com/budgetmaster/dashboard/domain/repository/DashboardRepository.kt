@@ -49,7 +49,17 @@ interface DashboardRepository {
      * @param forceRefresh Whether to force a refresh from the remote server/AI service.
      * @return A [Result] containing the list of AI-generated [Insight]s on success, or an error on failure.
      */
-    suspend fun getAiInsights(forceRefresh: Boolean): Result<List<Insight>>
+    /**
+     * Whether an AI provider is configured at all. When false the UI hides the insights surface
+     * rather than showing a section that can never fill.
+     */
+    val isAiConfigured: Boolean
+
+    /**
+     * @param languageTag BCP-47 tag for the app's language, so insights come back in the language
+     *   the user chose rather than one baked into the prompt.
+     */
+    suspend fun getAiInsights(forceRefresh: Boolean, languageTag: String): Result<List<Insight>>
 
     /**
      * Permanently deletes a transaction by its unique [id].

@@ -9,13 +9,17 @@ import com.budgetmaster.dashboard.domain.repository.DashboardRepository
  * @property repository The repository that provides access to dashboard data.
  */
 class GetAiInsightsUseCase(private val repository: DashboardRepository) {
+    /** Whether an AI provider is configured; false in builds that ship no key. */
+    val isConfigured: Boolean get() = repository.isAiConfigured
+
     /**
      * Executes the use case to fetch AI-generated insights.
      *
      * @param forceRefresh Whether to force a refresh from the remote server or AI service.
+     * @param languageTag BCP-47 tag for the language the insights should be written in.
      * @return A [Result] containing a list of AI [Insight]s on success, or an error on failure.
      */
-    suspend operator fun invoke(forceRefresh: Boolean): Result<List<Insight>> {
-        return repository.getAiInsights(forceRefresh)
+    suspend operator fun invoke(forceRefresh: Boolean, languageTag: String): Result<List<Insight>> {
+        return repository.getAiInsights(forceRefresh, languageTag)
     }
 }
