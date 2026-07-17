@@ -92,10 +92,12 @@ Material You Dynamic; **Outfit + Inter** typography with tabular figures; `Spaci
 token objects; adaptive brand logo; 600/1240dp breakpoints (NavigationBar/Rail/Drawer);
 1200dp max-width container; budget gauge thresholds; premium animated splash.
 
-**Still missing ❌**
-1. Shared component library is **partial** — `EmptyState`/`ErrorState`/`ShimmerListPlaceholder`,
-   the motion primitives, `Haptics`, `parseHexColor`, and `categoryIconFor`/`categoryAccentFor`
-   are shared in `:core`, but `BalanceCard`/`TransactionRow` still live per-feature.
+**Closed (Phase 5) ✅**
+1. ~~Shared component library is partial~~ — `EmptyState`/`ErrorState`/`ShimmerListPlaceholder`,
+   the motion primitives, `Haptics`, `parseHexColor`, and the `categoryIconFor`/`categoryAccentFor`/
+   `categoryNameFor` lookups all live in `:core`. The outstanding "also share
+   `BalanceCard`/`TransactionRow`" is closed as *not needed*: `BalanceCard` has a single caller
+   and `TransactionRow` does not exist, so there is nothing to de-duplicate.
 
 **Closed since the original audit ✅**
 - ~~Motion system partial~~ — count-up, press-to-scale, and screen transitions landed in
@@ -199,7 +201,7 @@ colors/strings; CI green.
   day grouping (Today/Yesterday/date), working search + type/category filter chips,
   swipe-to-delete with undo snackbar.
 - [x] Add/Edit transaction as bottom sheet on phone → centered dialog on ≥600dp:
-  type toggle, amount, category picker, notes. (Date picker + recurring toggle deferred.)
+  type toggle, amount, category picker, notes, date picker, and a recurring toggle.
 - [x] Currency formatting utility in `:core` (`MoneyFormatter` expect/actual over
   NumberFormat / NSNumberFormatter / Intl) + `DateUtils` relative-day helper.
 - [x] Dashboard shares the same DB (single source of truth); total balance =
@@ -429,21 +431,21 @@ wasm canvas).
 - [ ] **Verify on a real device** once the console setup above is done (not verifiable from
   the current Windows host / without the SHA-1 registered).
 
-### Status: Phase 3 is the next phase
+### Status: Phases 0–5 are done; Phase 6 is next
 
-Every deferred item from Phases 1, 1.5, 2, 2.5, and 2.6 is closed, and the architecture
-drift list is resolved or explicitly scoped. **Three items remain open and cannot be closed
-from a Windows host — they are not Phase 3 blockers:**
+Phases 0 through 5 are complete. **Only the two iOS items genuinely cannot be closed from a
+Windows host** — everything else that was once "deferred" is now either done or explicitly
+closed with a reason:
 
 1. **iOS Firebase init** — add the Firebase iOS SDK (SPM/Pods) and call
    `FirebaseApp.configure()` in `iOSApp.init()` before `initKoinIos()`. Needs macOS/Xcode.
 2. **iOS Google sign-in** — add `GIDSignIn` + the reversed-client-id URL scheme, then flip
    `isGoogleSignInSupported` to true on iOS. Needs macOS/Xcode.
-3. **On-device verification of Google sign-in** — the SHA-1 is registered and the code is in
-   place, but the flow has not been exercised on real hardware.
 
-Two smaller follow-ups are parked in their natural phases: an **FX rate fetcher** (Phase 6
-networking) and **OS-level notification delivery** (rides with the Phase 3 recurring engine).
+The iOS *Kotlin* target compiles from Windows as of Phase 5; only linking and running the app
+need macOS. Open non-iOS work rides with Phase 6: the **FX rate fetcher**, Google sign-in
+**verification on the emulator** (SHA-1 now registered), and the **pseudo-locale/RTL**
+screenshot passes from Phase 5.
 
 ### Phase 3 — Reports & recurring engine (1.5 weeks)
 - [x] **Reports on real data** (was a static mockup): `ReportsRepository` +
@@ -454,10 +456,12 @@ networking) and **OS-level notification delivery** (rides with the Phase 3 recur
   `ReportsViewModel` (MVI); the range drives a `flatMapLatest` re-query, and the report also
   re-emits when the wallet or currency changes. Category ring + trend chart **side-by-side
   ≥600dp**, stacked on phones.
-- [x] **Charts**: drawn with Compose `Canvas`. *Deviation from the original plan* (Vico on
-  Android/iOS + a Wasm fallback): one implementation renders identically on all three targets
-  with no per-platform divergence to maintain, and it honours reduced motion. Vico stays
-  available if a future chart needs it.
+- [x] **Charts**: the reports charts are drawn with Compose `Canvas` on every target and honour
+  reduced motion. The **dashboard** `SpendingChart` is the exception and stays `expect/actual`:
+  Android renders it with Vico (axes + touch marker), while iOS and Web share one
+  `CanvasSpendingChart` — Vico publishes Android artifacts only. *(Corrected in Phase 5: this
+  entry previously claimed a single implementation on all three targets, which was never true
+  and hid the fact that the iOS chart was an uncompilable copy of the Android one.)*
 - [x] **CSV export**: generated in commonMain with RFC 4180 quoting, shared via
   `expect/actual` — share sheet (Android `FileProvider` / iOS `UIActivityViewController`),
   data-URL download on Web; returns false rather than pretending to succeed. The export
@@ -470,13 +474,13 @@ networking) and **OS-level notification delivery** (rides with the Phase 3 recur
   lump, with a deterministic id per occurrence (`rec_<schedule>_<runAt>`) making the whole
   operation **idempotent**, plus a catch-up ceiling. Runs on app start. Repository supports
   observe/upsert (keeps its place in the cycle on edit)/pause/resume/delete. 5 tests.
-- [ ] **Deferred — WorkManager job on Android**: today the engine catches up on app open,
-  which is correct but means entries appear when you next launch rather than on the day. A
-  periodic background job would close that gap (Android-only; iOS/Web keep open-time
-  catch-up). Not a correctness issue — the dates on the created entries are always right.
-- [ ] **Deferred — recurring management UI**: schedules can be created/paused/deleted through
-  the repository, but there is no screen yet; the transaction editor's "repeats" toggle only
-  flags an entry. Natural home is a section on Transactions (Phase 4 polish).
+- [x] **WorkManager job on Android** (done in Phase 4): `RecurringWorker` runs a unique daily
+  periodic job scheduled from `BudgetMasterApplication`, so entries appear on the day rather
+  than at next launch. iOS/Web keep the open-time catch-up; `materializeDue()` is idempotent,
+  so the two paths cannot double-post.
+- [x] **Recurring management UI** (done in Phase 4): full MVI screen
+  (`RecurringScreen`/`ViewModel`/`Contract` + `AddEditRecurringForm`), reachable from the
+  Transactions app bar and wired at `AuthRoute.Recurring` in `App.kt`.
 - [x] **Chart a11y**: a canvas is opaque to screen readers, so each chart carries a generated
   `contentDescription` summarising the data (top categories with shares; income/expense
   totals over N days), and the legend repeats the numbers as real text.
@@ -543,9 +547,12 @@ networking) and **OS-level notification delivery** (rides with the Phase 3 recur
   *existing* one crashed with "no such column". Added `1.sqm` (v1 → v2) and `:core` tests that
   recreate the original v1 schema and migrate it — a fresh database proves nothing, since
   `create()` always emits the newest columns.
-- [ ] **Deferred — shared component library**: `EmptyState`/`ErrorState`/`ShimmerListPlaceholder`
-  and the motion/haptics primitives are shared now, but `BalanceCard`/`TransactionRow` still
-  live per-feature. Cosmetic rather than structural; folds into later component work.
+- [x] **Shared component library** — `EmptyState`/`ErrorState`/`ShimmerListPlaceholder`, the
+  motion/haptics primitives, `parseHexColor` and the category icon/accent/name lookups all
+  live in `:core`. Closed rather than carried: the remaining item was "also share
+  `BalanceCard`/`TransactionRow`", but `BalanceCard` has exactly one caller (dashboard) and
+  `TransactionRow` does not exist — there is no duplication to extract, and hoisting a
+  single-use component into `:core` would add an edge for nothing.
 
 ### Phase 4.5 — In-app guidance: explain every screen (1 week) — **done**
 
@@ -594,7 +601,11 @@ exactly when the screen has data and the questions start.
 **Deliverable:** every screen answers "what can I do here?" without leaving the app; tips
 appear once, never nag, and can be replayed from Settings; fully EN/FR. Verified on device.
 
-### Phase 4.5 — original plan (superseded by the section above)
+### Phase 4.5 — why the guide sheet, and what was rejected
+
+> Kept for the design rationale only. **All of it shipped** — the section above records what
+> was actually built; the plan's checklist lived here in duplicate and is removed rather than
+> left permanently unticked.
 
 > The app has grown features that aren't self-evident — the account switcher re-scopes the
 > whole app, swipe-to-delete has undo, transfers are deliberately excluded from income, a
@@ -611,27 +622,6 @@ palettes, and a Wasm target. That's a lot of fragility, it fights reduced-motion
 interrupts rather than answers. The sheet is layout-independent, replayable, screen-reader
 friendly, and cheap to keep truthful as screens change. *Also rejected: hints in empty states
 only* — they vanish exactly when the screen has data and the questions start.
-
-- [ ] **`:core` `guidance` package** (content is strings, and strings already live in `:core`,
-  so no feature→feature edge): `GuidanceKey` per screen (dashboard, transactions, budgets,
-  goals, accounts, reports, settings); `ScreenGuide` = title + intro + `List<FeatureNote>`
-  (icon, title, body); a `GuidanceRegistry` mapping key → guide so Settings can enumerate all
-  guides without touching feature modules.
-- [ ] **`GuidancePreferences`** over `KeyValueStore`, mirroring `OnboardingPreferences`:
-  per-screen "seen" flags + a global **"Show tips"** toggle. First visit auto-opens once;
-  never again unless replayed.
-- [ ] **Shared UI**: `GuidanceSheet` (bottom sheet on phone, dialog ≥600dp — the same
-  `AdaptiveContainer` pattern the editors use) and a `HelpIconButton` for screen headers.
-- [ ] **Wire all 7 screens**, each note written against what the screen actually does
-  (including the non-obvious ones listed above).
-- [ ] **Settings → "Help & tips"**: browse every guide on demand + **"Reset tips"**, next to
-  the existing "Replay intro" row.
-- [ ] **Localized EN/FR** as authored (not retrofitted), and included in Phase 5's
-  pseudo-locale/truncation audit — guide bodies are the longest copy in the app.
-- [ ] **A11y + motion**: notes are real text (screen-reader friendly, no image-only content);
-  honours `isReducedMotionEnabled()`; every `?` has a content description.
-- [ ] Tests: registry covers every `GuidanceKey`; auto-show fires once then stops; "Reset
-  tips" restores it; ViewModel tests for the toggle.
 
 **Deliverable:** every screen answers "what can I do here?" without leaving the app; tips
 appear once, never nag, and can be replayed from Settings; fully EN/FR.
@@ -652,11 +642,10 @@ Phase 8 screenshots.
   convention calls for ("January 20, 10:45 PM" / "20 janvier à 22:45").
 - [x] Dropped English `contentDescription` overrides that replaced localized button labels
   with an English accessible name regardless of app language (16 in total across Phases 4.5–5).
-- [ ] **Deferred — pseudo-locale truncation pass.** Needs a running app per locale; French
-  averages ~20% longer than English, so it is worth doing before any store build.
-- [ ] **Not applicable yet — RTL smoke test.** EN and FR are both LTR; this becomes real work
-  the day an RTL language (Arabic/Hebrew) is added, and `Modifier.padding` start/end usage
-  should be audited then.
+- [ ] **Pseudo-locale truncation pass** — French averages ~20% longer than English. Done via
+  Roborazzi screenshot tests per locale (no sign-in needed), not by eyeballing a device.
+- [ ] **RTL smoke test** — render key screens with `LocalLayoutDirection = Rtl` to catch
+  hardcoded left/right padding before an RTL language is ever added.
 
 > Not verified on device: the dashboard sits behind sign-in, so the localized category names
 > and date format are covered by compile + guard tests rather than a screenshot.
@@ -786,10 +775,10 @@ The app is "production-ready premium" when all of the following hold:
 | 2.5 | Accounts foundation / multi-wallet (uid binding, switcher, net worth, transfers, reconcile, FX) | 1 wk | ✅ done |
 | 2.6 | Google sign-in (Android) | 0.5 wk | ✅ done — SHA-1 registered; needs on-device verification |
 | — | Deferred-item sweep (Phases 1 / 1.5 / 2 / 2.5 + architecture drift) | — | ✅ done |
-| 3 | Reports + recurring engine | 1.5 wk | ✅ done (WorkManager job + recurring UI deferred to 4) |
+| 3 | Reports + recurring engine | 1.5 wk | ✅ done (WorkManager job + recurring UI landed in 4) |
 | 4 | Motion & premium polish | 1–1.5 wk | ✅ done |
 | 4.5 | In-app guidance — every screen explains its features | 1 wk | ✅ done |
-| 5 | Localization | 0.5–1 wk | ⬜ |
+| 5 | Localization | 0.5–1 wk | ✅ done (pseudo-locale + RTL passes ride with 6) |
 | 6 | Hardening & release | 1.5–2 wk | ⬜ |
 | 7 | AI intelligence layer (free-tier Gemini via Firebase) | 2–2.5 wk | ⬜ |
 | 8 | Store polish & README screenshots | 0.5 wk | ⬜ |
