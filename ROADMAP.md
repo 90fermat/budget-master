@@ -731,15 +731,31 @@ Phase 8 screenshots.
 > toggle in Settings**, and every insight carries a "not financial advice" disclaimer.
 
 **7.0 — Foundation**
-- [ ] `GenAiClient` expect/actual in `:core` (no business logic): Android/iOS actuals use
-  the Firebase AI Logic SDKs, Wasm actual uses the Firebase JS SDK via interop (feature
-  degrades gracefully where unavailable).
-- [ ] App Check on all platforms (Play Integrity / App Attest / reCAPTCHA Enterprise).
-- [ ] Migrate `GeminiInsightsService` to `GenAiClient` with **structured JSON output**
-  (response schema) instead of free-text parsing; keep the 24 h SQLDelight cache and add
-  exponential backoff for free-tier rate limits (429s).
+
+> Split by what can actually be built here. The guardrails and robustness are done; the
+> Firebase AI Logic migration itself is **console- and Xcode-gated** and is the remaining work.
+
+- [x] **"AI features" master switch in Settings — opt-in, off by default.** `AppSettings.aiEnabled`
+  defaults to false and an absent preference is never read as consent. The gate sits *before the
+  call*, not around the UI: until the user opts in, nothing about their spending leaves the
+  device, pinned by a test that fails if the service is reached without consent. The Settings
+  copy names exactly what is and isn't sent rather than saying "enable AI insights".
+- [x] **"Not financial advice" disclaimer** rendered with the insights themselves — a model's
+  confident sentence about someone's money reads as advice unless it says otherwise.
+- [x] **Structured JSON output** via `responseSchema`, enforced by the API instead of asked for
+  in prose (free text that merely looks like JSON is the usual parse failure). `actionRoute` is
+  an enum, so the model cannot invent a screen that doesn't exist.
+- [x] **Exponential backoff for free-tier 429s.** A 429 means "wait", not "give up" — the service
+  fell back to a stale cache on the first one. Only 429 retries; a 400/403 fails identically
+  however long you wait, and a test pins that it is *not* retried. The backoff schedule is
+  injectable so tests don't sleep. The 24 h SQLDelight cache is unchanged.
+- [ ] **`GenAiClient` expect/actual + Firebase AI Logic migration** — the real fix that removes
+  the direct REST call. Blocked here: the Android SDK needs the AI Logic API enabled in the
+  console, iOS needs the Swift SDK wired in Xcode (macOS), and Wasm needs JS interop. Writing an
+  SDK integration that cannot be run once is how it ships broken.
+- [ ] **App Check** (Play Integrity / App Attest / reCAPTCHA Enterprise) — console-gated.
 - [ ] Feature flags via Firebase Remote Config (free) so each AI feature can be toggled
-  server-side; "AI features" master switch in Settings (opt-in, off by default).
+  server-side — console-gated, and worth less than the master switch above until then.
 
 **7.1 — Smart capture** (needs Phase 1 transactions)
 - [ ] **Auto-categorization**: merchant/description → category. Gemini Nano on-device when

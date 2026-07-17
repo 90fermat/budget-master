@@ -23,5 +23,28 @@ data class Part(
 
 @Serializable
 data class GenerationConfig(
-    val responseMimeType: String? = null
+    val responseMimeType: String? = null,
+    /**
+     * Constrains the model's output to a shape the API enforces, instead of asking for JSON in
+     * the prompt and hoping. Free text that merely looks like JSON is the usual reason an
+     * insights call fails to parse.
+     */
+    val responseSchema: Schema? = null,
+)
+
+/**
+ * A subset of the OpenAPI schema dialect Gemini accepts for `responseSchema`.
+ *
+ * Null fields are omitted by the encoder, so one class covers objects, arrays and primitives
+ * without sending empty keys the API would reject.
+ */
+@Serializable
+data class Schema(
+    val type: String,
+    val description: String? = null,
+    val nullable: Boolean? = null,
+    val enum: List<String>? = null,
+    val items: Schema? = null,
+    val properties: Map<String, Schema>? = null,
+    val required: List<String>? = null,
 )

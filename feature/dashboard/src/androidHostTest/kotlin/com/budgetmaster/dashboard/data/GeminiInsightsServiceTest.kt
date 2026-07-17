@@ -81,6 +81,69 @@ class GeminiInsightsServiceTest {
     }
 
     /**
+     * A free-tier 429 means "wait", not "give up": the service used to fall straight back to a
+     * stale cache on the first one. It should retry and succeed.
+     */
+    @Test
+    fun testRateLimitIsRetriedWithBackoffAndThenSucceeds() = runBlocking {
+        var calls = 0
+        val client = HttpClient(MockEngine) {
+            engine {
+                addHandler {
+                    calls++
+                    if (calls == 1) {
+                        respond("rate limited", HttpStatusCode.TooManyRequests)
+                    } else {
+                        respond(
+                            """{"candidates":[{"content":{"parts":[{"text":"[{\"type\":\"TREND\",\"message\":\"ok\"}]"}]}}]}""",
+                            HttpStatusCode.OK,
+                            headersOf(HttpHeaders.ContentType, "application/json"),
+                        )
+                    }
+                }
+            }
+            install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
+        }
+        val service = GeminiInsightsService(
+            databaseProvider = databaseProvider,
+            httpClient = client,
+            apiKeyProvider = { "test-key" },
+            retryBackoffMs = listOf(0L, 0L), // no real sleeping in a test
+        )
+
+        val result = service.getInsights(emptyList(), forceRefresh = true)
+
+        assertEquals(2, calls, "expected one retry after the 429")
+        assertEquals(1, result.size)
+        assertEquals(InsightType.TREND, result[0].type)
+    }
+
+    /** A non-429 failure will fail the same way however long we wait, so it must not retry. */
+    @Test
+    fun testNonRateLimitErrorIsNotRetried() = runBlocking {
+        var calls = 0
+        val client = HttpClient(MockEngine) {
+            engine {
+                addHandler {
+                    calls++
+                    respond("bad request", HttpStatusCode.BadRequest)
+                }
+            }
+            install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
+        }
+        val service = GeminiInsightsService(
+            databaseProvider = databaseProvider,
+            httpClient = client,
+            apiKeyProvider = { "test-key" },
+            retryBackoffMs = listOf(0L, 0L),
+        )
+
+        service.getInsights(emptyList(), forceRefresh = true)
+
+        assertEquals(1, calls, "a 400 must not be retried")
+    }
+
+    /**
      * The prompt must carry aggregates only. Transaction descriptions are free text — users put
      * merchant names, people's names and notes in them — and it sent every one of them, with
      * timestamps and ids, to a third party. Only category totals should leave the device.

@@ -17,4 +17,6 @@ data class SettingsState(
     val darkMode: DarkModeSetting = DarkModeSetting.Default,
     val language: AppLanguage = AppLanguage.Default,
     val currency: String = "USD",
+    /** Whether the user has opted in to sending spending aggregates to a cloud model. */
+    val aiEnabled: Boolean = false,
 )

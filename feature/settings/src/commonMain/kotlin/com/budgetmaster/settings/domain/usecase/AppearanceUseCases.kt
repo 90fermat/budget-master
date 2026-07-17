@@ -33,6 +33,15 @@ class SetCurrencyUseCase(private val repository: AppSettingsRepository) {
     suspend operator fun invoke(currencyCode: String) = repository.setCurrency(currencyCode)
 }
 
+/**
+ * Records whether the user opts in to AI features.
+ *
+ * Off means no spending summary is sent to a cloud model at all.
+ */
+class SetAiEnabledUseCase(private val repository: AppSettingsRepository) {
+    suspend operator fun invoke(enabled: Boolean) = repository.setAiEnabled(enabled)
+}
+
 /** Clears the onboarding-completed flag so the intro is shown again. */
 class ResetOnboardingUseCase(private val onboardingPreferences: OnboardingPreferences) {
     suspend operator fun invoke() = onboardingPreferences.setCompleted(false)

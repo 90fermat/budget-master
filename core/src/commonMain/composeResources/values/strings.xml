@@ -150,6 +150,13 @@
     <string name="category_health">Health</string>
     <string name="category_salary">Salary</string>
     <string name="category_other">Other</string>
+    <!-- AI features (opt-in) -->
+    <string name="settings_ai_title">AI insights</string>
+    <string name="settings_ai_enable">Enable AI insights</string>
+    <string name="settings_ai_enable_desc">Sends a summary of your spending — category totals and monthly income and expenses — to Google’s Gemini to generate insights. Your transaction descriptions, names, and dates are never sent. Off by default.</string>
+    <string name="settings_ai_unavailable">AI insights are not available in this build.</string>
+    <string name="ai_disclaimer">AI-generated. Not financial advice.</string>
+
     <string name="dashboard_transaction_subtitle">%1$s • %2$s</string>
     <string name="dashboard_budget_spent_of">%1$s of %2$s</string>
     <string name="date_month_day">%1$s %2$d</string>

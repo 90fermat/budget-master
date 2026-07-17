@@ -29,6 +29,7 @@ import budgetmaster.core.generated.resources.dashboard_no_insights
 import budgetmaster.core.generated.resources.action_retry
 import budgetmaster.core.generated.resources.dashboard_insight_open
 import budgetmaster.core.generated.resources.dashboard_insight_dismiss
+import budgetmaster.core.generated.resources.ai_disclaimer
 import org.jetbrains.compose.resources.stringResource
 import com.budgetmaster.core.designsystem.components.rememberShimmerBrush
 import com.budgetmaster.core.designsystem.financialColors
@@ -97,6 +98,16 @@ fun AiInsightsWidget(
                                 onDismiss = { onInsightDismissed(insight.id) }
                             )
                         }
+
+                        // A model's confident sentence about someone's money reads like advice
+                        // unless it says otherwise. Shown with the insights, not buried in
+                        // Settings, and only when there is actually something to disclaim.
+                        Text(
+                            text = stringResource(Res.string.ai_disclaimer),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
                     }
                 }
             }

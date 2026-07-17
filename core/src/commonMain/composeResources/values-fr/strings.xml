@@ -151,6 +151,13 @@
     <string name="category_salary">Salaire</string>
     <string name="category_other">Autre</string>
     <!-- French writes the day before the month: "20 janvier". -->
+    <!-- Fonctions IA (activation facultative) -->
+    <string name="settings_ai_title">Analyses IA</string>
+    <string name="settings_ai_enable">Activer les analyses IA</string>
+    <string name="settings_ai_enable_desc">Envoie un résumé de vos dépenses — totaux par catégorie et revenus et dépenses du mois — à Gemini de Google pour générer des analyses. Les libellés de vos transactions, les noms et les dates ne sont jamais envoyés. Désactivé par défaut.</string>
+    <string name="settings_ai_unavailable">Les analyses IA ne sont pas disponibles dans cette version.</string>
+    <string name="ai_disclaimer">Généré par IA. Ne constitue pas un conseil financier.</string>
+
     <string name="dashboard_transaction_subtitle">%1$s • %2$s</string>
     <string name="dashboard_budget_spent_of">%1$s sur %2$s</string>
     <string name="date_month_day">%2$d %1$s</string>

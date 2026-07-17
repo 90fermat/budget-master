@@ -70,6 +70,9 @@ import budgetmaster.core.generated.resources.guide_tips_reset_done
 import budgetmaster.core.generated.resources.guide_tips_show
 import budgetmaster.core.generated.resources.guide_tips_show_desc
 import budgetmaster.core.generated.resources.guide_tips_title
+import budgetmaster.core.generated.resources.settings_ai_title
+import budgetmaster.core.generated.resources.settings_ai_enable
+import budgetmaster.core.generated.resources.settings_ai_enable_desc
 import com.budgetmaster.core.designsystem.components.GuidanceHost
 import com.budgetmaster.core.designsystem.components.GuidanceSheet
 import com.budgetmaster.core.designsystem.components.rememberGuidance
@@ -229,6 +232,12 @@ fun SettingsScreen(
         Spacer(modifier = Modifier.height(Spacing.medium))
         HelpAndTipsSection()
 
+        Spacer(modifier = Modifier.height(Spacing.medium))
+        AiSection(
+            enabled = state.aiEnabled,
+            onEnabledChange = { viewModel.onIntent(SettingsIntent.AiEnabledChanged(it)) },
+        )
+
         Spacer(modifier = Modifier.height(Spacing.huge))
 
         // ── Account ──────────────────────────────────────────────────────────
@@ -361,6 +370,47 @@ private fun SettingsCard(content: @Composable () -> Unit) {
  * Enumerates [GuidanceRegistry] rather than a hand-written list, so a new screen's guide
  * appears here automatically instead of being forgotten.
  */
+/**
+ * The AI opt-in.
+ *
+ * The description spells out exactly what is and isn't sent, because "enable AI insights" alone
+ * doesn't tell anyone that a summary of their money leaves the device. Off by default.
+ */
+@Composable
+private fun AiSection(
+    enabled: Boolean,
+    onEnabledChange: (Boolean) -> Unit,
+) {
+    Text(
+        text = stringResource(Res.string.settings_ai_title),
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.onBackground,
+    )
+    Spacer(modifier = Modifier.height(Spacing.small))
+
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.small),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = stringResource(Res.string.settings_ai_enable),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+            Text(
+                text = stringResource(Res.string.settings_ai_enable_desc),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Spacer(modifier = Modifier.width(Spacing.small))
+        Switch(checked = enabled, onCheckedChange = onEnabledChange)
+    }
+}
+
 @Composable
 private fun HelpAndTipsSection() {
     val preferences = koinInject<GuidancePreferences>()

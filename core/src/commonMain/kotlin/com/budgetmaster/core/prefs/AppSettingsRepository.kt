@@ -13,12 +13,19 @@ import kotlinx.coroutines.flow.combine
  * @property darkMode Dark mode behavior.
  * @property language Selected application language.
  * @property currency ISO-4217 currency code used to format amounts app-wide.
+ * @property aiEnabled Whether AI features may send anything to a cloud model.
  */
 data class AppSettings(
     val palette: AppPalette = AppPalette.Default,
     val darkMode: DarkModeSetting = DarkModeSetting.Default,
     val language: AppLanguage = AppLanguage.Default,
     val currency: String = "USD",
+    /**
+     * **Off by default, and deliberately so.** Turning this on lets the app send a summary of
+     * the user's spending to a third-party model. Nobody's financial data should leave their
+     * device because they never found a setting, so this is opt-in rather than opt-out.
+     */
+    val aiEnabled: Boolean = false,
 )
 
 /**
@@ -36,12 +43,15 @@ class AppSettingsRepository(private val store: KeyValueStore) {
         store.observeString(KEY_DARK_MODE),
         store.observeString(KEY_LANGUAGE),
         store.observeString(KEY_CURRENCY),
-    ) { palette, darkMode, language, currency ->
+        store.observeString(KEY_AI_ENABLED),
+    ) { palette, darkMode, language, currency, aiEnabled ->
         AppSettings(
             palette = AppPalette.fromId(palette),
             darkMode = DarkModeSetting.fromId(darkMode),
             language = AppLanguage.fromId(language),
             currency = currency ?: "USD",
+            // Absent means off: an unset preference must never be read as consent.
+            aiEnabled = aiEnabled.toBoolean(),
         )
     }
 
@@ -53,10 +63,15 @@ class AppSettingsRepository(private val store: KeyValueStore) {
 
     suspend fun setCurrency(currencyCode: String) = store.putString(KEY_CURRENCY, currencyCode)
 
-    private companion object {
+    suspend fun setAiEnabled(enabled: Boolean) = store.putString(KEY_AI_ENABLED, enabled.toString())
+
+    // Public rather than private so tests in other modules can seed a preference before the
+    // subject first reads it, instead of hardcoding the key string.
+    companion object {
         const val KEY_PALETTE = "app.palette"
         const val KEY_DARK_MODE = "app.dark_mode"
         const val KEY_LANGUAGE = "app.language"
         const val KEY_CURRENCY = "app.currency"
+        const val KEY_AI_ENABLED = "app.ai_enabled"
     }
 }

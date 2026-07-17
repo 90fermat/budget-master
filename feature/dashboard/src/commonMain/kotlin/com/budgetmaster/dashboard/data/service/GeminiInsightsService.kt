@@ -16,6 +16,7 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeout
 
 import kotlinx.serialization.json.Json
@@ -47,7 +48,9 @@ class GeminiInsightsService(
             })
         }
     },
-    private val apiKeyProvider: () -> String = { BuildConfig.GEMINI_API_KEY }
+    private val apiKeyProvider: () -> String = { BuildConfig.GEMINI_API_KEY },
+    /** Waits between 429 retries. Tests override it so they don't actually sleep. */
+    private val retryBackoffMs: List<Long> = RETRY_BACKOFF_MS,
 ) {
     private val jsonConfiguration = Json {
         ignoreUnknownKeys = true
@@ -116,33 +119,7 @@ class GeminiInsightsService(
             }
 
             val prompt = buildPrompt(transactions, languageTag)
-
-            val responseText = withTimeout(10000L) { // 10 seconds timeout
-                val httpResponse: HttpResponse = httpClient.post("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent") {
-                    parameter("key", apiKey)
-                    contentType(ContentType.Application.Json)
-                    setBody(
-                        GeminiRequest(
-                            contents = listOf(Content(parts = listOf(Part(text = prompt)))),
-                            generationConfig = GenerationConfig(responseMimeType = "application/json")
-                        )
-                    )
-                }
-                
-                if (httpResponse.status == HttpStatusCode.TooManyRequests) {
-                    println("WARNING: Gemini API Rate Limit Exceeded (HTTP 429).")
-                    throw RateLimitException()
-                }
-
-                if (!httpResponse.status.isSuccess()) {
-                    throw ApiException("HTTP error: ${httpResponse.status}")
-                }
-
-                val geminiResponse = httpResponse.body<GeminiResponse>()
-                val jsonString = geminiResponse.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
-                    ?: throw ParseException("Empty response from Gemini")
-                jsonString
-            }
+            val responseText = requestInsightsWithBackoff(apiKey, prompt)
 
             // Parse response json string to DTOs
             val dtos = jsonConfiguration.decodeFromString<List<GeminiInsightDto>>(responseText)
@@ -204,6 +181,51 @@ class GeminiInsightsService(
             // If no cache, return empty list on parse error or generic failure (never crash)
             return emptyList()
         }
+    }
+
+    /**
+     * Posts the prompt, retrying a 429 with exponential backoff.
+     *
+     * The free tier rate-limits per minute, so a 429 usually means "wait", not "give up" — the
+     * previous behaviour fell straight back to a stale cache on the first one. Only 429 is
+     * retried: a 400 or a 403 will fail identically however long we wait. The timeout wraps each
+     * attempt rather than the whole loop, so a retry gets a full budget instead of inheriting
+     * whatever the first attempt left.
+     */
+    private suspend fun requestInsightsWithBackoff(apiKey: String, prompt: String): String {
+        var lastRateLimit: RateLimitException? = null
+
+        // One initial attempt plus one per backoff step.
+        repeat(retryBackoffMs.size + 1) { attempt ->
+            if (attempt > 0) delay(retryBackoffMs[attempt - 1])
+            try {
+                return withTimeout(REQUEST_TIMEOUT_MS) {
+                    val httpResponse: HttpResponse = httpClient.post(GENERATE_CONTENT_URL) {
+                        parameter("key", apiKey)
+                        contentType(ContentType.Application.Json)
+                        setBody(
+                            GeminiRequest(
+                                contents = listOf(Content(parts = listOf(Part(text = prompt)))),
+                                generationConfig = GenerationConfig(
+                                    responseMimeType = "application/json",
+                                    responseSchema = INSIGHTS_SCHEMA,
+                                ),
+                            ),
+                        )
+                    }
+
+                    if (httpResponse.status == HttpStatusCode.TooManyRequests) throw RateLimitException()
+                    if (!httpResponse.status.isSuccess()) throw ApiException("HTTP error: ${httpResponse.status}")
+
+                    httpResponse.body<GeminiResponse>()
+                        .candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
+                        ?: throw ParseException("Empty response from Gemini")
+                }
+            } catch (e: RateLimitException) {
+                lastRateLimit = e
+            }
+        }
+        throw lastRateLimit ?: RateLimitException()
     }
 
     /** Two decimals is all the precision an insight needs, and it keeps the prompt small. */
@@ -273,5 +295,33 @@ class GeminiInsightsService(
             "YOUR_WASM_API_KEY",
             "YOUR_IOS_API_KEY",
         )
+
+        /**
+         * The exact shape [GeminiInsightDto] parses, enforced by the API rather than requested in
+         * prose. `actionRoute` is an enum so the model cannot invent a screen that does not exist.
+         */
+        val INSIGHTS_SCHEMA = Schema(
+            type = "ARRAY",
+            items = Schema(
+                type = "OBJECT",
+                properties = mapOf(
+                    "type" to Schema(type = "STRING", enum = listOf("SPENDING", "SAVING", "TREND")),
+                    "message" to Schema(type = "STRING", description = "At most 80 characters."),
+                    "actionRoute" to Schema(
+                        type = "STRING",
+                        nullable = true,
+                        enum = listOf("transactions", "budgets", "goals"),
+                    ),
+                ),
+                required = listOf("type", "message"),
+            ),
+        )
+
+        /** Free-tier 429s are common and transient; these are the waits between retries. */
+        val RETRY_BACKOFF_MS = listOf(1_000L, 4_000L)
+
+        const val REQUEST_TIMEOUT_MS = 10_000L
+        const val GENERATE_CONTENT_URL =
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
     }
 }

@@ -278,12 +278,22 @@ class DashboardViewModel(
             _state.update { it.copy(insights = InsightsState.Unavailable) }
             return
         }
-        _state.update { it.copy(insights = InsightsState.Loading) }
         viewModelScope.launch {
+            val settings = settingsRepository.settings.first()
+
+            // The consent check has to happen before the call, not around the UI: the point of
+            // the toggle is that nothing about the user's spending leaves the device until they
+            // say so.
+            if (!settings.aiEnabled) {
+                _state.update { it.copy(insights = InsightsState.Unavailable) }
+                return@launch
+            }
+
+            _state.update { it.copy(insights = InsightsState.Loading) }
+
             // AppLanguage.SYSTEM carries no tag of its own: fall back to the platform locale so a
             // French system user on "System" gets French insights rather than English ones.
-            val languageTag = settingsRepository.settings.first().language.tag
-                ?: Locale.current.language
+            val languageTag = settings.language.tag ?: Locale.current.language
             getAiInsights(forceRefresh, languageTag)
                 .onSuccess { insights ->
                     _state.update { it.copy(insights = InsightsState.Success(insights)) }

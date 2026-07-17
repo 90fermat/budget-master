@@ -133,8 +133,13 @@ class DashboardViewModelTest {
         // by its own test below.
         override var isAiConfigured: Boolean = true
 
-        override suspend fun getAiInsights(forceRefresh: Boolean, languageTag: String): Result<List<Insight>> =
-            aiInsightsResult
+        /** Fires on every call, so a test can assert the service was *not* reached at all. */
+        var onGetAiInsights: () -> Unit = {}
+
+        override suspend fun getAiInsights(forceRefresh: Boolean, languageTag: String): Result<List<Insight>> {
+            onGetAiInsights()
+            return aiInsightsResult
+        }
 
         override suspend fun deleteTransaction(id: String) {
             if (shouldThrowOnDelete) throw RuntimeException("Failed to delete from database")
@@ -178,7 +183,16 @@ class DashboardViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun createViewModel(sessionStore: SessionStore = SessionStore()): DashboardViewModel {
+    /**
+     * AI is opt-in and off by default, so these tests seed consent: they exercise the insights
+     * path itself, not the gate. The gate has its own tests.
+     */
+    private fun createViewModel(
+        sessionStore: SessionStore = SessionStore(),
+        settingsRepository: AppSettingsRepository = AppSettingsRepository(
+            InMemoryKeyValueStore(mapOf(AppSettingsRepository.KEY_AI_ENABLED to "true")),
+        ),
+    ): DashboardViewModel {
         return DashboardViewModel(
             repository = repository,
             getBalanceSummary = getBalanceSummaryUseCase,
@@ -186,7 +200,7 @@ class DashboardViewModelTest {
             getBudgetProgress = getBudgetProgressUseCase,
             getTopTransactions = getTopTransactionsUseCase,
             getAiInsights = getAiInsightsUseCase,
-            settingsRepository = AppSettingsRepository(InMemoryKeyValueStore()),
+            settingsRepository = settingsRepository,
             sessionStore = sessionStore
         )
     }
@@ -367,6 +381,32 @@ class DashboardViewModelTest {
         advanceUntilIdle()
 
         assertEquals(InsightsState.Unavailable, viewModel.state.value.insights)
+    }
+
+    /**
+     * The opt-in is the whole privacy guarantee, so it is worth pinning: until the user turns AI
+     * on, nothing about their spending may be handed to the service — even when a provider is
+     * configured and ready to answer.
+     */
+    @Test
+    fun `nothing is sent for insights until the user opts in`() = runTest {
+        val settingsStore = InMemoryKeyValueStore()
+        val settings = AppSettingsRepository(settingsStore)
+        var asked = false
+        repository.onGetAiInsights = { asked = true }
+
+        val viewModel = createViewModel(settingsRepository = settings)
+        advanceUntilIdle()
+
+        assertFalse(asked, "AI ran without consent")
+        assertEquals(InsightsState.Unavailable, viewModel.state.value.insights)
+
+        // ...and once they do opt in, it runs.
+        settings.setAiEnabled(true)
+        viewModel.onIntent(DashboardIntent.RefreshRequested)
+        advanceUntilIdle()
+
+        assertTrue(asked, "AI did not run after the user opted in")
     }
 
     @Test
