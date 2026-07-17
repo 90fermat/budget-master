@@ -1,5 +1,7 @@
 package com.budgetmaster.core.ai
 
+import com.budgetmaster.core.config.RemoteFeatureFlags
+
 /**
  * iOS has no AI provider wired.
  *
@@ -17,4 +19,4 @@ internal class UnavailableGenAiClient : GenAiClient {
         throw GenAiException.Unavailable("Firebase AI Logic is not wired on iOS yet")
 }
 
-actual fun createGenAiClient(): GenAiClient = UnavailableGenAiClient()
+actual fun createGenAiClient(flags: RemoteFeatureFlags): GenAiClient = UnavailableGenAiClient()

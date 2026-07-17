@@ -855,8 +855,13 @@ Phase 8 screenshots.
   - Verified on the emulator: the app starts, `FirebaseApp initialization successful`, App Check
     installs and issues a debug token, no crash. The insights call itself is **not** verified
     end-to-end — that needs a registered debug token plus a signed-in user with the AI toggle on.
-- [ ] Feature flags via Firebase Remote Config (free) so each AI feature can be toggled
-  server-side — console-gated, and worth less than the master switch above until then.
+- [x] **Feature flags via Firebase Remote Config — done (Android).** `RemoteFeatureFlags` is a
+  small expect/actual: the Android actual reads Firebase Remote Config (synchronous cached reads,
+  in-app default `ai_features_enabled = true`, background `fetchAndActivate` on app start);
+  iOS/Web return the defaults. Wired as a **server-side kill-switch with zero per-feature
+  plumbing** — the Android `GenAiClient.isAvailable` consults it, and every AI surface already
+  gates on `isAvailable`, so flipping the flag in the console takes them all dark without an app
+  update. Per-*feature* flags (separate keys per AI feature) are a trivial extension on this.
 
 **7.1 — Smart capture** (needs Phase 1 transactions)
 - [x] **Natural-language quick add — done.** `ParseQuickEntryUseCase` turns "coffee 4.50

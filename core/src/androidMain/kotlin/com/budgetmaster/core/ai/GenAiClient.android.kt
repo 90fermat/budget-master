@@ -9,6 +9,7 @@ import com.google.firebase.ai.type.ResponseStoppedException
 import com.google.firebase.ai.type.Schema
 import com.google.firebase.ai.type.ServerException
 import com.google.firebase.ai.type.generationConfig
+import com.budgetmaster.core.config.RemoteFeatureFlags
 
 /**
  * Android generation via **Firebase AI Logic**.
@@ -19,9 +20,14 @@ import com.google.firebase.ai.type.generationConfig
  *
  * The model is built per call: it is cheap, and a schema is per-request.
  */
-internal class FirebaseGenAiClient : GenAiClient {
+internal class FirebaseGenAiClient(
+    private val flags: RemoteFeatureFlags,
+) : GenAiClient {
 
-    override val isAvailable: Boolean = true
+    // A provider exists, but a remote kill-switch can still take every AI surface dark — a quota
+    // scare or a misbehaving model shouldn't need an app update to disable.
+    override val isAvailable: Boolean
+        get() = flags.isEnabled(RemoteFeatureFlags.AI_FEATURES, default = true)
 
     override suspend fun generateJson(prompt: String, schema: GenAiSchema): String {
         val model = Firebase.ai(backend = GenerativeBackend.googleAI()).generativeModel(
@@ -63,4 +69,4 @@ private fun GenAiSchema.toFirebaseSchema(): Schema = when (this) {
     )
 }
 
-actual fun createGenAiClient(): GenAiClient = FirebaseGenAiClient()
+actual fun createGenAiClient(flags: RemoteFeatureFlags): GenAiClient = FirebaseGenAiClient(flags)

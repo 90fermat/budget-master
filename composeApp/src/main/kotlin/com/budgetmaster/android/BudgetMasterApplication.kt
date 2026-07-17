@@ -1,6 +1,7 @@
 package com.budgetmaster.android
 
 import android.app.Application
+import com.budgetmaster.core.config.RemoteFeatureFlags
 import com.budgetmaster.core.db.AppContextHolder
 import com.budgetmaster.shared.di.initKoin
 import com.google.firebase.FirebaseApp
@@ -8,12 +9,17 @@ import com.google.firebase.appcheck.appCheck
 import com.google.firebase.crashlytics.crashlytics
 import com.google.firebase.perf.performance
 import com.google.firebase.Firebase
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.koin.android.ext.koin.androidContext
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
 /**
  * Android Application class for setting up configurations and dependency injection.
  */
-class BudgetMasterApplication : Application() {
+class BudgetMasterApplication : Application(), KoinComponent {
     override fun onCreate() {
         super.onCreate()
 
@@ -31,6 +37,12 @@ class BudgetMasterApplication : Application() {
         // Daily background pass so recurring entries appear on their own day instead of
         // waiting for the next launch. Must come after Koin: the worker injects from it.
         RecurringWorker.schedule(this)
+
+        // Pull the latest remote feature flags (AI kill-switch) in the background. Fire-and-forget
+        // by design: the cached/default values are already live, so a slow or failed fetch never
+        // holds up start.
+        val remoteFlags: RemoteFeatureFlags by inject()
+        CoroutineScope(Dispatchers.Default).launch { remoteFlags.refresh() }
     }
 
     /**

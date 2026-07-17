@@ -1,5 +1,7 @@
 package com.budgetmaster.core.ai
 
+import com.budgetmaster.core.config.RemoteFeatureFlags
+
 /**
  * A platform text-generation client, with **no business logic** — callers own the prompt and the
  * shape they want back.
@@ -82,5 +84,8 @@ sealed interface GenAiSchema {
  * An expect *function* rather than an expect class: the Android implementation needs constructor
  * arguments the other targets have no concept of, and callers only ever want "the one for this
  * platform".
+ *
+ * @param flags the remote kill-switch. The Android client reports [GenAiClient.isAvailable] false
+ *   when AI is remotely disabled, so every AI surface goes dark without per-feature wiring.
  */
-expect fun createGenAiClient(): GenAiClient
+expect fun createGenAiClient(flags: RemoteFeatureFlags): GenAiClient

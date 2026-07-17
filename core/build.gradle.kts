@@ -69,6 +69,7 @@ kotlin {
             // Firebase AI Logic: Android-only, so iOS/Wasm get the unavailable GenAiClient.
             implementation(project.dependencies.platform(libs.firebase.bom))
             implementation(libs.firebase.ai)
+            implementation(libs.firebase.config)
         }
         
         iosMain.dependencies {

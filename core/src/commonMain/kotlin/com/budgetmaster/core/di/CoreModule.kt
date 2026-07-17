@@ -6,6 +6,7 @@ import com.budgetmaster.core.db.UserDataEraser
 import com.budgetmaster.core.db.DatabaseProvider
 import com.budgetmaster.core.ai.GenAiClient
 import com.budgetmaster.core.ai.createGenAiClient
+import com.budgetmaster.core.config.createRemoteFeatureFlags
 import com.budgetmaster.core.currency.ExchangeRateFetcher
 import com.budgetmaster.core.currency.ExchangeRateRepository
 import com.budgetmaster.core.currency.RefreshExchangeRatesUseCase
@@ -38,7 +39,10 @@ val coreModule = module {
     // The platform's AI client: Firebase AI Logic on Android, "unavailable" elsewhere until those
     // SDKs are bridged. Lives in core so every feature (dashboard insights, transaction quick-add)
     // shares one instance. No API key is involved on any target.
-    single<GenAiClient> { createGenAiClient() }
+    single { createRemoteFeatureFlags() }
+    // The AI client consults the remote kill-switch, so every AI surface (which all check
+    // isAvailable) respects it with no per-feature wiring.
+    single<GenAiClient> { createGenAiClient(get()) }
     single { NotificationRepository(get(), get()) }
 }
 
