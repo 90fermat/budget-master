@@ -769,7 +769,20 @@ Phase 8 screenshots.
     tags, heatmaps, PDF export and automatic sync — none of which exist** ("receipt" was a
     `ReceiptLong` icon; `tags` is a column always written null). Corrected, with an explicit
     "Honest scope" section, since these are exactly the claims that end up in a store listing.
-- [ ] Store readiness: privacy policy, data-safety forms, screenshots, listing copy.
+- [x] **Store readiness — drafted from the code** in `docs/`: `PRIVACY_POLICY.md`,
+  `PLAY_DATA_SAFETY.md` (answers *with the reason beside each*, since a wrong answer here is how
+  apps get pulled), and `STORE_LISTING.md`. Every claim is one the app actually delivers —
+  the listing even carries an explicit "what it is not" section, because the README's old feature
+  list advertised receipt scanning, tags and sync that never existed, and a store listing is
+  where that becomes a refund request.
+  - **Blocker found while writing them: there is no account-deletion route.** Play requires one
+    for any app with accounts. Needs a "delete my account" action (or a hosted web form) before
+    submission — it is a destructive, user-facing feature, so it wants a deliberate design rather
+    than being bolted on.
+  - Also needs a human: a **contact email**, a **hosted URL** for the policy (Play requires a
+    public link), the **feature graphic/icon**, and a decision on Gemini retention for the
+    "processed ephemerally" checkbox.
+- [ ] Screenshots for the listing (Phase 8).
 
 ### Phase 7 — AI intelligence layer (free-tier Gemini via Firebase) (2–2.5 weeks)
 
