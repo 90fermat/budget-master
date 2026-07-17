@@ -51,6 +51,8 @@ class FirebaseAuthRepository(
 
     override suspend fun signOut() = runMapping { firebaseAuth.signOut() }
 
+    override suspend fun deleteAccount() = runMapping { firebaseAuth.currentUser?.delete() ?: Unit }
+
     override suspend fun sendPasswordReset(email: String) = runMapping {
         firebaseAuth.sendPasswordResetEmail(email)
     }

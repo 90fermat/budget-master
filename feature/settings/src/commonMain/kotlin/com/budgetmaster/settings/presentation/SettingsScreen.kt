@@ -24,8 +24,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -73,6 +75,12 @@ import budgetmaster.core.generated.resources.guide_tips_title
 import budgetmaster.core.generated.resources.settings_ai_title
 import budgetmaster.core.generated.resources.settings_ai_enable
 import budgetmaster.core.generated.resources.settings_ai_enable_desc
+import budgetmaster.core.generated.resources.action_cancel
+import budgetmaster.core.generated.resources.settings_delete_account
+import budgetmaster.core.generated.resources.settings_delete_account_title
+import budgetmaster.core.generated.resources.settings_delete_account_body
+import budgetmaster.core.generated.resources.settings_delete_account_confirm
+import budgetmaster.core.generated.resources.settings_delete_account_failed
 import com.budgetmaster.core.designsystem.components.GuidanceHost
 import com.budgetmaster.core.designsystem.components.GuidanceSheet
 import com.budgetmaster.core.designsystem.components.rememberGuidance
@@ -106,6 +114,12 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = koinViewModel(),
     onSignOut: () -> Unit = {},
     onReplayOnboarding: () -> Unit = {},
+    /**
+     * Runs account deletion. Returns success once the account and its data are gone (the shell
+     * then navigates away); a failure — e.g. the provider needs a recent login — is shown inline
+     * so the user knows to sign in again and retry.
+     */
+    onDeleteAccount: suspend () -> Result<Unit> = { Result.success(Unit) },
 ) {
     val state by viewModel.state.collectAsState()
     val scrollState = rememberScrollState()
@@ -257,6 +271,70 @@ fun SettingsScreen(
                 style = MaterialTheme.typography.titleMedium
             )
         }
+
+        Spacer(modifier = Modifier.height(Spacing.medium))
+        DeleteAccountAction(onDeleteAccount = onDeleteAccount)
+    }
+}
+
+/**
+ * The "Delete account" destructive action, with a confirmation dialog spelling out that it's
+ * permanent — this is the Play-required account-deletion path, and it wipes the ledger, not just
+ * the session, so a mis-tap must not be enough to trigger it.
+ */
+@Composable
+private fun DeleteAccountAction(onDeleteAccount: suspend () -> Result<Unit>) {
+    val scope = rememberCoroutineScope()
+    var showConfirm by remember { mutableStateOf(false) }
+    var deleting by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    val failedMsg = stringResource(Res.string.settings_delete_account_failed)
+
+    TextButton(
+        onClick = { showConfirm = true },
+        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+    ) {
+        Text(
+            text = stringResource(Res.string.settings_delete_account),
+            color = MaterialTheme.colorScheme.error,
+            fontWeight = FontWeight.SemiBold,
+        )
+    }
+    error?.let {
+        Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+    }
+
+    if (showConfirm) {
+        AlertDialog(
+            onDismissRequest = { if (!deleting) showConfirm = false },
+            title = { Text(stringResource(Res.string.settings_delete_account_title)) },
+            text = { Text(stringResource(Res.string.settings_delete_account_body)) },
+            confirmButton = {
+                TextButton(
+                    enabled = !deleting,
+                    onClick = {
+                        deleting = true
+                        error = null
+                        scope.launch {
+                            onDeleteAccount()
+                                .onSuccess { showConfirm = false } // shell navigates away
+                                .onFailure { error = failedMsg; showConfirm = false }
+                            deleting = false
+                        }
+                    },
+                ) {
+                    Text(
+                        stringResource(Res.string.settings_delete_account_confirm),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(enabled = !deleting, onClick = { showConfirm = false }) {
+                    Text(stringResource(Res.string.action_cancel))
+                }
+            },
+        )
     }
 }
 

@@ -45,6 +45,12 @@ class WasmAuthRepository(
         store.remove(KEY_EMAIL)
     }
 
+    override suspend fun deleteAccount() {
+        // Web is a local-only profile: there is no remote credential to delete, so clearing the
+        // stored session is the whole of it. The caller still wipes the local data.
+        store.remove(KEY_EMAIL)
+    }
+
     override suspend fun sendPasswordReset(email: String) {
         // Local-only mode: no email is actually sent; treated as a successful no-op.
     }

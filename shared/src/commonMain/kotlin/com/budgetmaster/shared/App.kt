@@ -72,6 +72,7 @@ import com.budgetmaster.auth.presentation.register.RegisterScreen
 import com.budgetmaster.auth.presentation.register.RegisterViewModel
 import com.budgetmaster.auth.domain.model.AuthStatus
 import com.budgetmaster.auth.domain.usecase.CheckAuthStatusUseCase
+import com.budgetmaster.auth.domain.usecase.DeleteAccountUseCase
 import com.budgetmaster.auth.domain.usecase.SignOutUseCase
 import com.budgetmaster.auth.presentation.splash.SplashScreen
 import com.budgetmaster.auth.presentation.splash.SplashViewModel
@@ -507,6 +508,7 @@ private fun MainNavGraph(navController: androidx.navigation.NavHostController) {
 
         composable<AuthRoute.Settings> {
             val signOutUseCase = koinInject<SignOutUseCase>()
+            val deleteAccountUseCase = koinInject<DeleteAccountUseCase>()
             val signOutScope = rememberCoroutineScope()
             SettingsScreen(
                 onSignOut = {
@@ -515,6 +517,15 @@ private fun MainNavGraph(navController: androidx.navigation.NavHostController) {
                         // Unauthenticated; otherwise the next launch would route straight
                         // back to the dashboard.
                         signOutUseCase()
+                        navController.navigate(AuthRoute.Login) {
+                            popUpTo(AuthRoute.Dashboard) { inclusive = true }
+                        }
+                    }
+                },
+                onDeleteAccount = {
+                    // Runs the credential + local-data deletion; on success, route to Login the
+                    // same way sign-out does. The failure is returned for Settings to show inline.
+                    deleteAccountUseCase().onSuccess {
                         navController.navigate(AuthRoute.Login) {
                             popUpTo(AuthRoute.Dashboard) { inclusive = true }
                         }

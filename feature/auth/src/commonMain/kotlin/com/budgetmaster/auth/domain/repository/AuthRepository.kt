@@ -35,6 +35,16 @@ interface AuthRepository {
     suspend fun signOut()
 
     /**
+     * Permanently deletes the currently authenticated user's account with the auth provider.
+     *
+     * This removes the *credential*; wiping the user's local data is a separate step the caller
+     * owns. May fail with a re-authentication requirement if the session is old — the caller
+     * should surface that and ask the user to sign in again. A no-op where there is no remote
+     * account (the Web local-only profile).
+     */
+    suspend fun deleteAccount()
+
+    /**
      * Sends a password reset link to the specified email address.
      */
     suspend fun sendPasswordReset(email: String)

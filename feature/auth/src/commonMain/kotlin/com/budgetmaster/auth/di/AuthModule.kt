@@ -9,6 +9,7 @@ import com.budgetmaster.auth.domain.usecase.LoginUseCase
 import com.budgetmaster.auth.domain.usecase.ResetPasswordUseCase
 import com.budgetmaster.auth.domain.usecase.SignInUseCase
 import com.budgetmaster.auth.domain.usecase.SignInWithGoogleUseCase
+import com.budgetmaster.auth.domain.usecase.DeleteAccountUseCase
 import com.budgetmaster.auth.domain.usecase.SignOutUseCase
 import com.budgetmaster.auth.domain.usecase.SignUpUseCase
 import com.budgetmaster.auth.domain.usecase.ToggleBiometricUseCase
@@ -35,6 +36,7 @@ val authModule = module {
     factory { SignInUseCase(get()) }
     factory { SignUpUseCase(get()) }
     factory { SignOutUseCase(get()) }
+    factory { DeleteAccountUseCase(get(), get(), get()) }
     factory { ResetPasswordUseCase(get()) }
     factory { CheckBiometricSupportUseCase(get()) }
     factory { ToggleBiometricUseCase(get()) }

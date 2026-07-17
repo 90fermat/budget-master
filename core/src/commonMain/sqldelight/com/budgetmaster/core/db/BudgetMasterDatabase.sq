@@ -363,6 +363,35 @@ deleteAllInsights:
 DELETE FROM InsightEntity;
 
 
+-- ==========================================
+-- Account deletion: wipe every trace of a user's data.
+-- Run in a transaction, transactions/recurring BEFORE accounts (they resolve through the
+-- account subquery). Play requires an in-app account-deletion path for any app with accounts.
+-- ==========================================
+deleteTransactionsByUser:
+DELETE FROM TransactionEntity
+WHERE accountId IN (SELECT id FROM AccountEntity WHERE userId = ?);
+
+deleteRecurringByUser:
+DELETE FROM RecurringTransactionEntity
+WHERE accountId IN (SELECT id FROM AccountEntity WHERE userId = ?);
+
+deleteAccountsByUser:
+DELETE FROM AccountEntity WHERE userId = ?;
+
+deleteCategoriesByUser:
+DELETE FROM CategoryEntity WHERE userId = ?;
+
+deleteBudgetsByUser:
+DELETE FROM BudgetEntity WHERE userId = ?;
+
+deleteGoalsByUser:
+DELETE FROM SavingsGoalEntity WHERE userId = ?;
+
+deleteNotificationsByUser:
+DELETE FROM NotificationEntity WHERE userId = ?;
+
+
 -- Additional Transactions Queries
 selectTransactionsSince:
 SELECT * FROM TransactionEntity WHERE timestamp >= ? ORDER BY timestamp DESC;

@@ -191,6 +191,13 @@
 
     <string name="transactions_recurring_detected">Prélèvements récurrents détectés</string>
 
+    <!-- Suppression du compte (exigence Play) -->
+    <string name="settings_delete_account">Supprimer le compte</string>
+    <string name="settings_delete_account_title">Supprimer votre compte ?</string>
+    <string name="settings_delete_account_body">Cela supprime définitivement votre compte et efface toutes vos données sur cet appareil — transactions, budgets, objectifs et comptes. Cette action est irréversible.</string>
+    <string name="settings_delete_account_confirm">Supprimer</string>
+    <string name="settings_delete_account_failed">Impossible de supprimer votre compte. Reconnectez-vous, puis réessayez.</string>
+
     <string name="dashboard_transaction_subtitle">%1$s • %2$s</string>
     <string name="dashboard_budget_spent_of">%1$s sur %2$s</string>
     <string name="date_month_day">%2$d %1$s</string>

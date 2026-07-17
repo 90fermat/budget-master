@@ -791,10 +791,13 @@ Phase 8 screenshots.
   the listing even carries an explicit "what it is not" section, because the README's old feature
   list advertised receipt scanning, tags and sync that never existed, and a store listing is
   where that becomes a refund request.
-  - **Blocker found while writing them: there is no account-deletion route.** Play requires one
-    for any app with accounts. Needs a "delete my account" action (or a hosted web form) before
-    submission — it is a destructive, user-facing feature, so it wants a deliberate design rather
-    than being bolted on.
+  - [x] **Account-deletion route — done.** Play requires one for any app with accounts.
+    `DeleteAccountUseCase` deletes the auth credential first (so a re-auth failure leaves data
+    intact rather than orphaning it) then `UserDataEraser` wipes every user-scoped table in one
+    transaction — transactions/recurring included, resolved through the account rows, plus the
+    derived insight cache. Settings has a destructive "Delete account" action behind a
+    confirmation dialog; the shell routes to Login on success and Settings shows the re-auth
+    hint inline on failure. Eraser test proves the wipe is complete and spares other users.
   - Also needs a human: a **contact email**, a **hosted URL** for the policy (Play requires a
     public link), the **feature graphic/icon**, and a decision on Gemini retention for the
     "processed ephemerally" checkbox.

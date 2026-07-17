@@ -23,6 +23,7 @@ class RegisterUseCaseTest {
         override suspend fun signUp(email: String, password: String): User = fakeUser
         override suspend fun signInWithGoogle(idToken: String): User = fakeUser
         override suspend fun signOut() {}
+        override suspend fun deleteAccount() {}
         override suspend fun sendPasswordReset(email: String) {}
         override fun isOnboardingCompleted(): Flow<Boolean> = flowOf(false)
         override suspend fun setOnboardingCompleted(completed: Boolean) {}
@@ -46,6 +47,7 @@ class RegisterUseCaseTest {
             override suspend fun signUp(email: String, password: String): User = throw RuntimeException("Registration failed")
             override suspend fun signInWithGoogle(idToken: String): User = fakeUser
             override suspend fun signOut() {}
+        override suspend fun deleteAccount() {}
             override suspend fun sendPasswordReset(email: String) {}
             override fun isOnboardingCompleted(): Flow<Boolean> = flowOf(false)
             override suspend fun setOnboardingCompleted(completed: Boolean) {}

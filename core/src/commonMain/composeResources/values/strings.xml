@@ -190,6 +190,13 @@
 
     <string name="transactions_recurring_detected">Recurring charges detected</string>
 
+    <!-- Account deletion (Play requirement) -->
+    <string name="settings_delete_account">Delete account</string>
+    <string name="settings_delete_account_title">Delete your account?</string>
+    <string name="settings_delete_account_body">This permanently deletes your account and erases all your data on this device — transactions, budgets, goals, and accounts. This cannot be undone.</string>
+    <string name="settings_delete_account_confirm">Delete</string>
+    <string name="settings_delete_account_failed">Couldn't delete your account. You may need to sign in again first, then retry.</string>
+
     <string name="dashboard_transaction_subtitle">%1$s • %2$s</string>
     <string name="dashboard_budget_spent_of">%1$s of %2$s</string>
     <string name="date_month_day">%1$s %2$d</string>

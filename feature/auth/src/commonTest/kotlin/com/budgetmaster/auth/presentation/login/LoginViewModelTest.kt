@@ -49,6 +49,7 @@ class LoginViewModelTest {
         override suspend fun signUp(email: String, password: String): User = fakeUser
         override suspend fun signInWithGoogle(idToken: String): User = fakeUser
         override suspend fun signOut() {}
+        override suspend fun deleteAccount() {}
         override suspend fun sendPasswordReset(email: String) {}
         override fun isOnboardingCompleted(): Flow<Boolean> = flowOf(true)
         override suspend fun setOnboardingCompleted(completed: Boolean) {}
@@ -62,6 +63,7 @@ class LoginViewModelTest {
         override suspend fun signUp(email: String, password: String): User = throw RuntimeException("Registration failed")
         override suspend fun signInWithGoogle(idToken: String): User = throw RuntimeException("Google failed")
         override suspend fun signOut() {}
+        override suspend fun deleteAccount() {}
         override suspend fun sendPasswordReset(email: String) {}
         override fun isOnboardingCompleted(): Flow<Boolean> = flowOf(false)
         override suspend fun setOnboardingCompleted(completed: Boolean) {}
@@ -151,6 +153,7 @@ class LoginViewModelTest {
             override suspend fun signUp(email: String, password: String): User = fakeUser
             override suspend fun signInWithGoogle(idToken: String): User = fakeUser
             override suspend fun signOut() {}
+        override suspend fun deleteAccount() {}
             override suspend fun sendPasswordReset(email: String) {}
             override fun isOnboardingCompleted(): Flow<Boolean> = flowOf(false)
             override suspend fun setOnboardingCompleted(completed: Boolean) {}
