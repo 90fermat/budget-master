@@ -17,6 +17,7 @@ import com.budgetmaster.transactions.domain.usecase.ObserveTransactionsUseCase
 import com.budgetmaster.transactions.domain.usecase.RestoreTransactionUseCase
 import com.budgetmaster.transactions.domain.usecase.DetectRecurringChargesUseCase
 import com.budgetmaster.transactions.domain.usecase.ParseQuickEntryUseCase
+import com.budgetmaster.transactions.domain.usecase.SuggestCategoryUseCase
 import com.budgetmaster.transactions.domain.usecase.SaveTransactionUseCase
 import com.budgetmaster.core.ai.GenAiClient
 import com.budgetmaster.core.ai.GenAiException
@@ -79,6 +80,14 @@ class TransactionsViewModelTest {
             },
         ),
         detectRecurringCharges = DetectRecurringChargesUseCase(),
+        suggestCategory = SuggestCategoryUseCase(
+            object : GenAiClient {
+                override val isAvailable = false
+                override suspend fun generateJson(prompt: String, schema: GenAiSchema) =
+                    throw GenAiException.Unavailable()
+            },
+            InMemoryKeyValueStore(),
+        ),
     )
 
     @BeforeTest fun setUp() = Dispatchers.setMain(dispatcher)

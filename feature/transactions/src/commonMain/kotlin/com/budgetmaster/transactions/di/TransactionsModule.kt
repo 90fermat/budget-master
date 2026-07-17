@@ -17,6 +17,7 @@ import com.budgetmaster.transactions.domain.usecase.RestoreTransactionUseCase
 import com.budgetmaster.transactions.domain.usecase.SaveTransactionUseCase
 import com.budgetmaster.transactions.domain.usecase.DetectRecurringChargesUseCase
 import com.budgetmaster.transactions.domain.usecase.ParseQuickEntryUseCase
+import com.budgetmaster.transactions.domain.usecase.SuggestCategoryUseCase
 import com.budgetmaster.transactions.presentation.TransactionsViewModel
 import com.budgetmaster.transactions.presentation.recurring.RecurringViewModel
 import org.koin.core.module.dsl.viewModel
@@ -57,6 +58,7 @@ val transactionsModule = module {
     factory { RestoreTransactionUseCase(get()) }
     factory { ParseQuickEntryUseCase(get()) }
     factory { DetectRecurringChargesUseCase() }
+    factory { SuggestCategoryUseCase(get(), get()) }
 
     viewModel {
         TransactionsViewModel(
@@ -70,6 +72,7 @@ val transactionsModule = module {
             restoreTransaction = get(),
             parseQuickEntry = get(),
             detectRecurringCharges = get(),
+            suggestCategory = get(),
         )
     }
 }

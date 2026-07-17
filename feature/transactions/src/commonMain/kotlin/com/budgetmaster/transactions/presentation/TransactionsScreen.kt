@@ -209,6 +209,7 @@ fun TransactionsScreen(
                                 onCancel = { viewModel.onIntent(TransactionsIntent.EditorDismissed) },
                                 quickAddEnabled = state.quickAddEnabled,
                                 onQuickParse = viewModel::parseQuickEntry,
+                                onSuggestCategory = viewModel::suggestCategory,
                             )
                         }
                     }
@@ -405,6 +406,7 @@ private fun TransactionEditor(state: TransactionsState, viewModel: TransactionsV
                 onCancel = { viewModel.onIntent(TransactionsIntent.EditorDismissed) },
                 quickAddEnabled = state.quickAddEnabled,
                 onQuickParse = viewModel::parseQuickEntry,
+                                onSuggestCategory = viewModel::suggestCategory,
             )
         }
         if (isCompact) {

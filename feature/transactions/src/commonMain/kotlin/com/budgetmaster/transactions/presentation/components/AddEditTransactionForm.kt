@@ -20,6 +20,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
@@ -35,6 +36,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -53,6 +55,7 @@ import budgetmaster.core.generated.resources.transactions_quick_add_failed
 import budgetmaster.core.generated.resources.transactions_quick_add_label
 import budgetmaster.core.generated.resources.transactions_quick_add_no_amount
 import budgetmaster.core.generated.resources.transactions_quick_add_placeholder
+import budgetmaster.core.generated.resources.transactions_category_suggested
 import budgetmaster.core.generated.resources.transactions_account_label
 import budgetmaster.core.generated.resources.transactions_add_title
 import budgetmaster.core.generated.resources.transactions_amount_label
@@ -80,6 +83,7 @@ import com.budgetmaster.transactions.domain.model.TransactionItem
 import com.budgetmaster.transactions.domain.usecase.QuickEntryDraft
 import com.budgetmaster.transactions.domain.usecase.QuickEntryError
 import com.budgetmaster.transactions.domain.usecase.QuickEntryException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Clock
@@ -104,6 +108,9 @@ internal fun AddEditTransactionForm(
     // "coffee 4.50 yesterday" and fills the fields below; the user still reviews and saves.
     quickAddEnabled: Boolean = false,
     onQuickParse: suspend (String) -> Result<QuickEntryDraft> = { Result.failure(NotImplementedError()) },
+    // Suggests a category from a typed description (cached per merchant). Returns null when it
+    // can't tell or AI is off — the suggestion chip simply doesn't appear.
+    onSuggestCategory: suspend (String) -> String? = { null },
 ) {
     var isExpense by remember { mutableStateOf(editing?.isExpense ?: true) }
     var amountText by remember {
@@ -215,6 +222,37 @@ internal fun AddEditTransactionForm(
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+
+        // AI category suggestion: only when the user has typed a description and not yet picked a
+        // category. Debounced so it doesn't fire on every keystroke, and it clears the moment the
+        // user chooses anything themselves.
+        var suggestedCategoryId by remember { mutableStateOf<String?>(null) }
+        LaunchedEffect(description, categoryId, quickAddEnabled) {
+            suggestedCategoryId = null
+            if (!quickAddEnabled || categoryId != null || description.isBlank()) return@LaunchedEffect
+            delay(600)
+            suggestedCategoryId = onSuggestCategory(description)?.takeIf { it != categoryId }
+        }
+        suggestedCategoryId?.let { suggestion ->
+            val category = categories.firstOrNull { it.id == suggestion }
+            if (category != null) {
+                AssistChip(
+                    onClick = { categoryId = suggestion; suggestedCategoryId = null },
+                    label = {
+                        Text(
+                            stringResource(
+                                Res.string.transactions_category_suggested,
+                                categoryNameFor(category.id, category.name),
+                            ),
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(16.dp))
+                    },
+                )
+            }
+        }
+
         FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.small)) {
             categories.forEach { category ->
                 FilterChip(

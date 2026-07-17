@@ -17,6 +17,7 @@ import com.budgetmaster.transactions.domain.usecase.ObserveTransactionsUseCase
 import com.budgetmaster.transactions.domain.usecase.ParseQuickEntryUseCase
 import com.budgetmaster.transactions.domain.usecase.QuickEntryDraft
 import com.budgetmaster.transactions.domain.usecase.RestoreTransactionUseCase
+import com.budgetmaster.transactions.domain.usecase.SuggestCategoryUseCase
 import com.budgetmaster.transactions.domain.usecase.SaveTransactionUseCase
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -52,6 +53,7 @@ class TransactionsViewModel(
     private val restoreTransaction: RestoreTransactionUseCase,
     private val parseQuickEntry: ParseQuickEntryUseCase,
     private val detectRecurringCharges: DetectRecurringChargesUseCase,
+    private val suggestCategory: SuggestCategoryUseCase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(TransactionsState())
@@ -148,6 +150,11 @@ class TransactionsViewModel(
      */
     suspend fun parseQuickEntry(text: String): Result<QuickEntryDraft> =
         parseQuickEntry.invoke(text, _state.value.categories)
+
+    /** Suggests a category for a typed description, or null. Cached per merchant; safe to call
+     *  as the user types. */
+    suspend fun suggestCategory(description: String): String? =
+        suggestCategory.invoke(description, _state.value.categories)
 
     private fun delete(id: String) {
         val target = _state.value.groups.flatMap { it.items }.firstOrNull { it.id == id } ?: return

@@ -189,6 +189,7 @@
     <string name="budgets_ai_dismiss">Dismiss</string>
 
     <string name="transactions_recurring_detected">Recurring charges detected</string>
+    <string name="transactions_category_suggested">Suggested: %1$s</string>
 
     <!-- Account deletion (Play requirement) -->
     <string name="settings_delete_account">Delete account</string>
