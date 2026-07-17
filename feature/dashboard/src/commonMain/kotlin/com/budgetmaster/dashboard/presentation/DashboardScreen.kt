@@ -21,9 +21,11 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import budgetmaster.core.generated.resources.action_retry
 import budgetmaster.core.generated.resources.Res
 import budgetmaster.core.generated.resources.dashboard_greeting
 import budgetmaster.core.generated.resources.dashboard_greeting_fallback
+import budgetmaster.core.generated.resources.dashboard_notifications
 import com.budgetmaster.core.designsystem.components.GuidanceHost
 import com.budgetmaster.core.designsystem.components.HelpIconButton
 import com.budgetmaster.core.designsystem.components.rememberGuidance
@@ -111,7 +113,7 @@ fun DashboardContent(
             Snackbar(
                 action = {
                     TextButton(onClick = { onIntent(DashboardIntent.RefreshRequested) }) {
-                        Text("Retry")
+                        Text(stringResource(Res.string.action_retry))
                     }
                 },
                 modifier = Modifier
@@ -197,7 +199,7 @@ private fun DashboardScrollableBody(
             IconButton(onClick = { onIntent(DashboardIntent.NotificationsClicked) }) {
                 Icon(
                     imageVector = Icons.Default.Notifications,
-                    contentDescription = "Notifications",
+                    contentDescription = stringResource(Res.string.dashboard_notifications),
                     tint = MaterialTheme.colorScheme.onBackground
                 )
             }

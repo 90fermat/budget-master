@@ -4,6 +4,7 @@ package com.budgetmaster.core.util
 
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.minus
@@ -24,6 +25,12 @@ object DateUtils {
         timestamp: Long,
         timeZone: TimeZone = TimeZone.currentSystemDefault(),
     ): LocalDate = Instant.fromEpochMilliseconds(timestamp).toLocalDateTime(timeZone).date
+
+    /** Converts an epoch-millisecond [timestamp] to a [LocalDateTime] in the given [timeZone]. */
+    fun toLocalDateTime(
+        timestamp: Long,
+        timeZone: TimeZone = TimeZone.currentSystemDefault(),
+    ): LocalDateTime = Instant.fromEpochMilliseconds(timestamp).toLocalDateTime(timeZone)
 
     /** Classifies [date] as today, yesterday, or older relative to the current day. */
     fun relativeDay(

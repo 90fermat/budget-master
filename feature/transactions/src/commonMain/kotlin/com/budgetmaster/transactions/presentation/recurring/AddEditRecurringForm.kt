@@ -55,6 +55,7 @@ import com.budgetmaster.core.designsystem.Spacing
 import com.budgetmaster.core.designsystem.pressScale
 import com.budgetmaster.core.util.DateUtils
 import com.budgetmaster.core.util.rememberHaptics
+import com.budgetmaster.core.designsystem.categoryNameFor
 import com.budgetmaster.transactions.domain.model.Frequency
 import com.budgetmaster.transactions.domain.model.RecurringDraft
 import com.budgetmaster.transactions.domain.model.RecurringTransaction
@@ -168,7 +169,7 @@ internal fun AddEditRecurringForm(
                 FilterChip(
                     selected = categoryId == category.id,
                     onClick = { categoryId = if (categoryId == category.id) null else category.id },
-                    label = { Text(category.name) },
+                    label = { Text(categoryNameFor(category.id, category.name)) },
                 )
             }
         }

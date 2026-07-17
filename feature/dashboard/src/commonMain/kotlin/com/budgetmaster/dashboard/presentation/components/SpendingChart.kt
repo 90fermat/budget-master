@@ -15,7 +15,9 @@ enum class ChartAnimation {
 /**
  * Premium personal finance interactive cash flow chart.
  * Allows toggling between a Line chart (balance) and a Column chart (income/expenses).
- * Integrates Vico 2.0 with a custom touch marker highlighting amount details.
+ *
+ * Android renders this with Vico, which brings axes and a touch marker. Vico ships Android
+ * artifacts only, so iOS and web share a Compose Canvas rendering instead.
  *
  * @param chartData The cash-flow data points to plot.
  * @param modifier The modifier to be applied to the layout.

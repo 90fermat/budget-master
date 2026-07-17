@@ -144,8 +144,7 @@ fun OnboardingScreen(
             Button(
                 onClick = { viewModel.onIntent(OnboardingIntent.NextPage) },
                 shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)
-                    .semantics { contentDescription = "Next onboarding page" },
+                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
             ) {
                 Text(
                     text = stringResource(

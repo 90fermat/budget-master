@@ -130,7 +130,7 @@ fun LoginScreen(
                 singleLine = true,
                 isError = state.error != null,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
-                modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Email input field" },
+                modifier = Modifier.fillMaxWidth(),
             )
 
             OutlinedTextField(
@@ -164,7 +164,7 @@ fun LoginScreen(
                         )
                     }
                 },
-                modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Password input field" },
+                modifier = Modifier.fillMaxWidth(),
             )
 
             AnimatedVisibility(visible = state.error != null) {
@@ -189,7 +189,7 @@ fun LoginScreen(
                     viewModel.onIntent(LoginIntent.LoginClicked)
                 },
                 enabled = !state.isLoading,
-                modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp).semantics { contentDescription = "Login button" },
+                modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp),
             ) {
                 if (state.isLoading) {
                     CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
@@ -202,8 +202,7 @@ fun LoginScreen(
                 OutlinedButton(
                     onClick = { launchGoogleSignIn() },
                     enabled = !state.isLoading,
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp)
-                        .semantics { contentDescription = "Google sign in button" },
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp),
                 ) {
                     Text(text = stringResource(Res.string.login_google_btn_text))
                 }
@@ -211,8 +210,7 @@ fun LoginScreen(
 
             OutlinedButton(
                 onClick = { viewModel.onIntent(LoginIntent.BiometricLoginClicked) },
-                modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp)
-                    .semantics { contentDescription = "Biometric login button" },
+                modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp),
             ) {
                 Icon(imageVector = Icons.Default.Fingerprint, contentDescription = null)
                 Spacer(Modifier.width(8.dp))

@@ -11,6 +11,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import budgetmaster.core.generated.resources.Res
+import budgetmaster.core.generated.resources.dashboard_total_balance
+import budgetmaster.core.generated.resources.dashboard_this_month
+import budgetmaster.core.generated.resources.dashboard_income
+import budgetmaster.core.generated.resources.dashboard_expenses
+import budgetmaster.core.generated.resources.dashboard_trend_positive
+import budgetmaster.core.generated.resources.dashboard_trend_negative
+import org.jetbrains.compose.resources.stringResource
 import com.budgetmaster.core.designsystem.animateCounter
 import com.budgetmaster.core.designsystem.financialColors
 import com.budgetmaster.core.util.MoneyFormatter
@@ -60,7 +68,7 @@ fun BalanceCard(
                 .padding(24.dp)
         ) {
             Text(
-                text = "TOTAL BALANCE",
+                text = stringResource(Res.string.dashboard_total_balance),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
                 fontWeight = FontWeight.Bold
@@ -80,7 +88,9 @@ fun BalanceCard(
             ) {
                 Icon(
                     imageVector = if (isPositive) Icons.Default.TrendingUp else Icons.Default.TrendingDown,
-                    contentDescription = if (isPositive) "Positive Trend" else "Negative Trend",
+                    contentDescription = stringResource(
+                        if (isPositive) Res.string.dashboard_trend_positive else Res.string.dashboard_trend_negative
+                    ),
                     tint = if (isPositive) MaterialTheme.financialColors.income else MaterialTheme.financialColors.expense,
                     modifier = Modifier.size(18.dp)
                 )
@@ -93,7 +103,7 @@ fun BalanceCard(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "this month",
+                    text = stringResource(Res.string.dashboard_this_month),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f)
                 )
@@ -110,7 +120,7 @@ fun BalanceCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Income",
+                        text = stringResource(Res.string.dashboard_income),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f)
                     )
@@ -125,7 +135,7 @@ fun BalanceCard(
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Expenses",
+                        text = stringResource(Res.string.dashboard_expenses),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f)
                     )

@@ -35,6 +35,7 @@ import com.budgetmaster.budgets.domain.model.BudgetStatus
 import com.budgetmaster.core.designsystem.FinancialTextStyles
 import com.budgetmaster.core.designsystem.Spacing
 import com.budgetmaster.core.designsystem.categoryIconFor
+import com.budgetmaster.core.designsystem.categoryNameFor
 import com.budgetmaster.core.designsystem.parseHexColor
 import com.budgetmaster.core.designsystem.financialColors
 import com.budgetmaster.core.util.MoneyFormatter
@@ -79,9 +80,10 @@ internal fun BudgetCard(
             BudgetStatus.EXCEEDED -> Res.string.budgets_status_exceeded
         },
     )
+    val categoryName = categoryNameFor(item.category.id, item.category.name)
     val gaugeDescription = stringResource(
         Res.string.a11y_budget_gauge,
-        item.category.name,
+        categoryName,
         MoneyFormatter.format(item.spent, currencyCode),
         MoneyFormatter.format(item.limit, currencyCode),
         (item.ratio * 100).roundToInt(),
@@ -121,7 +123,7 @@ internal fun BudgetCard(
                 }
                 Spacer(Modifier.width(Spacing.compact))
                 Text(
-                    text = item.category.name,
+                    text = categoryName,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,

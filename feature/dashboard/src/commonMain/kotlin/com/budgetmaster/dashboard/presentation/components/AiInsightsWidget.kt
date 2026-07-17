@@ -23,6 +23,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import budgetmaster.core.generated.resources.Res
+import budgetmaster.core.generated.resources.dashboard_ai_insights
+import budgetmaster.core.generated.resources.dashboard_no_insights
+import budgetmaster.core.generated.resources.action_retry
+import budgetmaster.core.generated.resources.dashboard_insight_open
+import budgetmaster.core.generated.resources.dashboard_insight_dismiss
+import org.jetbrains.compose.resources.stringResource
 import com.budgetmaster.core.designsystem.components.rememberShimmerBrush
 import com.budgetmaster.core.designsystem.financialColors
 import com.budgetmaster.dashboard.domain.model.Insight
@@ -51,7 +58,7 @@ fun AiInsightsWidget(
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
-            text = "AI Insights",
+            text = stringResource(Res.string.dashboard_ai_insights),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground,
@@ -71,7 +78,7 @@ fun AiInsightsWidget(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "No insights at the moment. Keep tracking!",
+                            text = stringResource(Res.string.dashboard_no_insights),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                         )
@@ -189,7 +196,7 @@ private fun InsightCard(
                     if (insight.actionRoute != null) {
                         Icon(
                             imageVector = Icons.Default.ArrowForward,
-                            contentDescription = "Navigate to action",
+                            contentDescription = stringResource(Res.string.dashboard_insight_open),
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(20.dp)
                         )
@@ -201,7 +208,7 @@ private fun InsightCard(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,
-                            contentDescription = "Dismiss Insight",
+                            contentDescription = stringResource(Res.string.dashboard_insight_dismiss),
                             tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
                             modifier = Modifier.size(16.dp)
                         )
@@ -257,7 +264,7 @@ private fun ErrorState(
                     contentColor = MaterialTheme.colorScheme.onError
                 )
             ) {
-                Text("Retry")
+                Text(stringResource(Res.string.action_retry))
             }
         }
     }

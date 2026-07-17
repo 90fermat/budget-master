@@ -87,7 +87,7 @@ fun ForgotPasswordScreen(
                 singleLine = true,
                 isError = state.error != null,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Email input" },
+                modifier = Modifier.fillMaxWidth(),
             )
 
             AnimatedVisibility(visible = state.error != null) {
@@ -109,7 +109,7 @@ fun ForgotPasswordScreen(
             Button(
                 onClick = { viewModel.onIntent(ForgotPasswordIntent.SendResetClicked) },
                 enabled = !state.isLoading && !state.isSuccess,
-                modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp).semantics { contentDescription = "Send reset button" },
+                modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp),
             ) {
                 if (state.isLoading) {
                     CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)

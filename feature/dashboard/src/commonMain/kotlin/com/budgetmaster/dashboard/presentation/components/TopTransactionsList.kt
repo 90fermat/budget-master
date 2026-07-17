@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalTime::class)
-
 package com.budgetmaster.dashboard.presentation.components
 
 import androidx.compose.animation.animateColorAsState
@@ -21,15 +19,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import budgetmaster.core.generated.resources.Res
+import budgetmaster.core.generated.resources.dashboard_recent_transactions
+import budgetmaster.core.generated.resources.dashboard_no_recent_transactions
+import budgetmaster.core.generated.resources.dashboard_view_all
+import budgetmaster.core.generated.resources.action_delete
+import budgetmaster.core.generated.resources.dashboard_transaction_subtitle
+import org.jetbrains.compose.resources.stringResource
 import com.budgetmaster.core.designsystem.categoryAccentFor
 import com.budgetmaster.core.designsystem.financialColors
 import com.budgetmaster.core.designsystem.categoryIconFor
+import com.budgetmaster.core.designsystem.categoryNameFor
 import com.budgetmaster.core.model.Transaction
+import com.budgetmaster.core.util.dateTimeLabel
 import com.budgetmaster.core.util.rememberHaptics
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
-import kotlin.time.ExperimentalTime
-import kotlin.time.Instant
 
 /**
  * Icon and accent for a transaction's category, from the shared design system.
@@ -41,24 +44,6 @@ import kotlin.time.Instant
 @Composable
 private fun categoryVisualsFor(categoryId: String): Pair<ImageVector, Color> =
     categoryIconFor(categoryId) to categoryAccentFor(categoryId)
-
-/**
- * Formats an epoch millisecond timestamp into a clean user-facing format.
- *
- * @param timestamp The timestamp in epoch milliseconds.
- * @return Formatted string (e.g. "Jun 20, 10:45 AM").
- */
-fun formatTimestamp(timestamp: Long): String {
-    val instant = Instant.fromEpochMilliseconds(timestamp)
-    val localDateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
-    val month = localDateTime.month.name.lowercase().replaceFirstChar { it.uppercase() }.take(3)
-    val day = localDateTime.dayOfMonth
-    val hour = localDateTime.hour
-    val minute = localDateTime.minute.toString().padStart(2, '0')
-    val amPm = if (hour >= 12) "PM" else "AM"
-    val hourFormatted = if (hour % 12 == 0) 12 else hour % 12
-    return "$month $day, $hourFormatted:$minute $amPm"
-}
 
 /**
  * Renders a list of the user's most recent transactions within an ElevatedCard.
@@ -96,7 +81,7 @@ fun TopTransactionsList(
                 .padding(20.dp)
         ) {
             Text(
-                text = "Recent Transactions",
+                text = stringResource(Res.string.dashboard_recent_transactions),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground,
@@ -111,7 +96,7 @@ fun TopTransactionsList(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "No recent transactions",
+                        text = stringResource(Res.string.dashboard_no_recent_transactions),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                     )
@@ -143,7 +128,7 @@ fun TopTransactionsList(
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             ) {
                 Text(
-                    text = "Voir tout",
+                    text = stringResource(Res.string.dashboard_view_all),
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -199,7 +184,7 @@ fun DismissibleTransactionItem(
             ) {
                 Icon(
                     imageVector = Icons.Default.Delete,
-                    contentDescription = "Delete Transaction",
+                    contentDescription = stringResource(Res.string.action_delete),
                     tint = MaterialTheme.colorScheme.onError
                 )
             }
@@ -258,7 +243,11 @@ fun DismissibleTransactionItem(
                                 color = MaterialTheme.colorScheme.onBackground
                             )
                             Text(
-                                text = "${transaction.category} • ${formatTimestamp(transaction.timestamp)}",
+                                text = stringResource(
+                                    Res.string.dashboard_transaction_subtitle,
+                                    categoryNameFor(transaction.category, transaction.category),
+                                    dateTimeLabel(transaction.timestamp),
+                                ),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                             )

@@ -18,7 +18,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import budgetmaster.core.generated.resources.Res
+import budgetmaster.core.generated.resources.dashboard_budget_spent_of
+import budgetmaster.core.generated.resources.dashboard_budgets
+import budgetmaster.core.generated.resources.dashboard_no_budgets
+import org.jetbrains.compose.resources.stringResource
 import com.budgetmaster.core.designsystem.categoryIconFor
+import com.budgetmaster.core.designsystem.categoryNameFor
 import com.budgetmaster.core.designsystem.financialColors
 import com.budgetmaster.dashboard.domain.model.BudgetProgress
 import com.budgetmaster.dashboard.domain.model.BudgetStatus
@@ -54,7 +60,7 @@ fun BudgetProgressList(
                 .padding(20.dp)
         ) {
             Text(
-                text = "Budgets",
+                text = stringResource(Res.string.dashboard_budgets),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground,
@@ -69,7 +75,7 @@ fun BudgetProgressList(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "No active budgets set",
+                        text = stringResource(Res.string.dashboard_no_budgets),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                     )
@@ -131,7 +137,8 @@ fun BudgetProgressItem(
         ) {
             Icon(
                 imageVector = categoryIconFor(budget.categoryId),
-                contentDescription = budget.categoryName,
+                // Decorative: the row's own label names the category right beside it.
+                contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp)
             )
@@ -146,13 +153,17 @@ fun BudgetProgressItem(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = budget.categoryName,
+                    text = categoryNameFor(budget.categoryId, budget.categoryName),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
-                    text = "${formatCurrency(budget.spent, currencyCode)} of ${formatCurrency(budget.limit, currencyCode)}",
+                    text = stringResource(
+                        Res.string.dashboard_budget_spent_of,
+                        formatCurrency(budget.spent, currencyCode),
+                        formatCurrency(budget.limit, currencyCode),
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
                     color = if (isOverBudget) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)

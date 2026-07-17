@@ -99,7 +99,7 @@ fun RegisterScreen(
                 singleLine = true,
                 isError = state.error != null,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Email input" },
+                modifier = Modifier.fillMaxWidth(),
             )
 
             OutlinedTextField(
@@ -128,7 +128,7 @@ fun RegisterScreen(
                         )
                     }
                 },
-                modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Password input" },
+                modifier = Modifier.fillMaxWidth(),
             )
 
             OutlinedTextField(
@@ -142,7 +142,7 @@ fun RegisterScreen(
                 } else {
                     PasswordVisualTransformation()
                 },
-                modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Confirm password input" },
+                modifier = Modifier.fillMaxWidth(),
             )
 
             AnimatedVisibility(visible = state.error != null) {
@@ -156,7 +156,7 @@ fun RegisterScreen(
             Button(
                 onClick = { viewModel.onIntent(RegisterIntent.RegisterClicked) },
                 enabled = !state.isLoading,
-                modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp).semantics { contentDescription = "Register button" },
+                modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp),
             ) {
                 if (state.isLoading) {
                     CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)

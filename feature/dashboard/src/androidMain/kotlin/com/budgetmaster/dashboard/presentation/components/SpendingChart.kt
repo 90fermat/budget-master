@@ -12,6 +12,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import budgetmaster.core.generated.resources.Res
+import budgetmaster.core.generated.resources.chart_no_data
+import budgetmaster.core.generated.resources.chart_series_balance
+import budgetmaster.core.generated.resources.chart_series_cash_flow
+import budgetmaster.core.generated.resources.chart_title
+import org.jetbrains.compose.resources.stringResource
 import com.budgetmaster.dashboard.domain.model.ChartPoint
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
 import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
@@ -95,7 +101,7 @@ actual fun SpendingChart(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Analytics",
+                    text = stringResource(Res.string.chart_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground
@@ -107,7 +113,7 @@ actual fun SpendingChart(
                     FilterChip(
                         selected = isLineChart,
                         onClick = { isLineChart = true },
-                        label = { Text("Balance") },
+                        label = { Text(stringResource(Res.string.chart_series_balance)) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = MaterialTheme.colorScheme.primary,
                             selectedLabelColor = MaterialTheme.colorScheme.onPrimary
@@ -116,7 +122,7 @@ actual fun SpendingChart(
                     FilterChip(
                         selected = !isLineChart,
                         onClick = { isLineChart = false },
-                        label = { Text("Cash Flow") },
+                        label = { Text(stringResource(Res.string.chart_series_cash_flow)) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = MaterialTheme.colorScheme.primary,
                             selectedLabelColor = MaterialTheme.colorScheme.onPrimary
@@ -153,7 +159,7 @@ actual fun SpendingChart(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "No chart data available",
+                            text = stringResource(Res.string.chart_no_data),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                         )

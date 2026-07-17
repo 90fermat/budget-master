@@ -62,7 +62,7 @@ import budgetmaster.core.generated.resources.reports_title
 import budgetmaster.core.generated.resources.reports_transfers_note
 import budgetmaster.core.generated.resources.reports_trend
 import budgetmaster.core.generated.resources.reports_trend_a11y
-import budgetmaster.core.generated.resources.reports_vs_previous
+import budgetmaster.core.generated.resources.reports_change_vs_previous
 import com.budgetmaster.core.designsystem.components.GuidanceHost
 import com.budgetmaster.core.designsystem.components.HelpIconButton
 import com.budgetmaster.core.designsystem.components.rememberGuidance
@@ -264,8 +264,10 @@ private fun Metric(label: String, value: String, change: Float?, positiveIsGood:
             // Rising income is good; rising spend is not — colour by meaning, not by sign.
             val isGood = if (positiveIsGood) change >= 0 else change <= 0
             Text(
-                text = "${if (change >= 0) "+" else ""}${(change * 100).roundToInt()}% " +
-                    stringResource(Res.string.reports_vs_previous),
+                text = stringResource(
+                    Res.string.reports_change_vs_previous,
+                    "${if (change >= 0) "+" else ""}${(change * 100).roundToInt()}%",
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 color = if (isGood) MaterialTheme.financialColors.income else MaterialTheme.financialColors.expense,
             )

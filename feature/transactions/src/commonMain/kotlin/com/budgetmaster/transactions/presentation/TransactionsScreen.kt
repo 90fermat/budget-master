@@ -78,6 +78,7 @@ import com.budgetmaster.core.designsystem.categoryIconFor
 import com.budgetmaster.core.util.MoneyFormatter
 import com.budgetmaster.core.util.RelativeDay
 import com.budgetmaster.core.util.formatSigned
+import com.budgetmaster.core.designsystem.categoryNameFor
 import com.budgetmaster.transactions.domain.model.TypeFilter
 import com.budgetmaster.transactions.presentation.components.AddEditTransactionForm
 import com.budgetmaster.transactions.presentation.components.TransactionRowItem
@@ -246,7 +247,7 @@ private fun TypeAndCategoryFilters(state: TransactionsState, viewModel: Transact
                         val next = if (state.categoryFilterId == category.id) null else category.id
                         viewModel.onIntent(TransactionsIntent.CategoryFilterChanged(next))
                     },
-                    label = { Text(category.name) },
+                    label = { Text(categoryNameFor(category.id, category.name)) },
                     leadingIcon = {
                         Icon(
                             imageVector = categoryIconFor(category.id),

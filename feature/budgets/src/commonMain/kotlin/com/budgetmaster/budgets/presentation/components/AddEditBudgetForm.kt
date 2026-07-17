@@ -48,6 +48,7 @@ import com.budgetmaster.budgets.domain.model.BudgetCategory
 import com.budgetmaster.budgets.domain.model.BudgetItem
 import com.budgetmaster.core.designsystem.Spacing
 import com.budgetmaster.core.designsystem.categoryIconFor
+import com.budgetmaster.core.designsystem.categoryNameFor
 import org.jetbrains.compose.resources.stringResource
 
 /** Create/edit budget form used inside a bottom sheet (phone) or dialog (wide). */
@@ -103,7 +104,7 @@ internal fun AddEditBudgetForm(
                 FilterChip(
                     selected = categoryId == category.id,
                     onClick = { categoryId = category.id },
-                    label = { Text(category.name) },
+                    label = { Text(categoryNameFor(category.id, category.name)) },
                     leadingIcon = {
                         Icon(
                             imageVector = categoryIconFor(category.id),

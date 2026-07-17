@@ -16,7 +16,19 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import budgetmaster.core.generated.resources.Res
+import budgetmaster.core.generated.resources.category_entertainment
+import budgetmaster.core.generated.resources.category_food
+import budgetmaster.core.generated.resources.category_groceries
+import budgetmaster.core.generated.resources.category_health
+import budgetmaster.core.generated.resources.category_housing
+import budgetmaster.core.generated.resources.category_other
+import budgetmaster.core.generated.resources.category_salary
+import budgetmaster.core.generated.resources.category_shopping
+import budgetmaster.core.generated.resources.category_transport
+import budgetmaster.core.generated.resources.category_travel
 import com.budgetmaster.core.db.DefaultData
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * Maps a category to a Material vector icon.
@@ -58,4 +70,32 @@ fun categoryAccentFor(categoryId: String?): Color {
     val fallback = MaterialTheme.colorScheme.primary
     val hex = DefaultData.categories.firstOrNull { it.id == categoryId }?.colorHex ?: return fallback
     return parseHexColor(hex, fallback)
+}
+
+/**
+ * The display name for a category, localized for the built-in ones.
+ *
+ * `DefaultData` seeds English names into the database, so a stored name is only translated for
+ * categories the app itself created. Resolving seeded ids through string resources keeps them in
+ * the app's language; anything the user named is theirs, so [storedName] is returned untouched.
+ *
+ * @param categoryId A seeded id from `DefaultData.categories`, or any user-defined id.
+ * @param storedName The name held in the database, used for user-created categories.
+ */
+@Composable
+fun categoryNameFor(categoryId: String?, storedName: String): String {
+    val resource = when (categoryId) {
+        "cat_food" -> Res.string.category_food
+        "cat_groceries" -> Res.string.category_groceries
+        "cat_housing" -> Res.string.category_housing
+        "cat_transport" -> Res.string.category_transport
+        "cat_shopping" -> Res.string.category_shopping
+        "cat_travel" -> Res.string.category_travel
+        "cat_entertainment" -> Res.string.category_entertainment
+        "cat_health" -> Res.string.category_health
+        "cat_salary" -> Res.string.category_salary
+        "cat_other" -> Res.string.category_other
+        else -> null
+    }
+    return resource?.let { stringResource(it) } ?: storedName
 }

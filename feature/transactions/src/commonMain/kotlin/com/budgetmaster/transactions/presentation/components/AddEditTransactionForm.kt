@@ -61,6 +61,7 @@ import com.budgetmaster.core.designsystem.categoryIconFor
 import com.budgetmaster.core.designsystem.pressScale
 import com.budgetmaster.core.util.DateUtils
 import com.budgetmaster.core.util.rememberHaptics
+import com.budgetmaster.core.designsystem.categoryNameFor
 import com.budgetmaster.transactions.domain.model.TransactionAccount
 import com.budgetmaster.transactions.domain.model.TransactionCategory
 import com.budgetmaster.transactions.domain.model.TransactionDraft
@@ -185,7 +186,7 @@ internal fun AddEditTransactionForm(
                 FilterChip(
                     selected = categoryId == category.id,
                     onClick = { categoryId = if (categoryId == category.id) null else category.id },
-                    label = { Text(category.name) },
+                    label = { Text(categoryNameFor(category.id, category.name)) },
                     leadingIcon = {
                         Icon(
                             imageVector = categoryIconFor(category.id),

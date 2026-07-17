@@ -42,6 +42,10 @@
     <string name="biometric_setup_success">Biometric login configured successfully</string>
     <string name="biometric_setup_disabled_msg">Biometric login has been deactivated</string>
     <string name="biometric_auth_failed">Verification failed. Try again.</string>
+    <string name="biometric_enable_title">Enable Biometric Login</string>
+    <string name="biometric_enable_subtitle">Use your fingerprint or face to sign in quickly and securely.</string>
+    <string name="biometric_enable_btn">Enable Biometric</string>
+    <string name="biometric_skip">Skip for Now</string>
     <string name="btn_back">Back</string>
 
     <!-- Onboarding Screen Strings -->
@@ -89,6 +93,24 @@
     <string name="month_12">December</string>
     <string name="dashboard_total_balance">TOTAL BALANCE</string>
     <string name="dashboard_recent_transactions">Recent Transactions</string>
+    <string name="dashboard_this_month">this month</string>
+    <string name="dashboard_income">Income</string>
+    <string name="dashboard_expenses">Expenses</string>
+    <string name="dashboard_view_all">View all</string>
+    <string name="dashboard_no_recent_transactions">No recent transactions</string>
+    <string name="dashboard_budgets">Budgets</string>
+    <string name="dashboard_no_budgets">No active budgets set</string>
+    <string name="dashboard_ai_insights">AI Insights</string>
+    <string name="dashboard_no_insights">No insights at the moment. Keep tracking!</string>
+    <string name="dashboard_trend_positive">Positive trend</string>
+    <string name="dashboard_trend_negative">Negative trend</string>
+    <string name="chart_title">Analytics</string>
+    <string name="chart_series_balance">Balance</string>
+    <string name="chart_series_cash_flow">Cash Flow</string>
+    <string name="chart_no_data">No chart data available</string>
+    <string name="dashboard_notifications">Notifications</string>
+    <string name="dashboard_insight_open">Open</string>
+    <string name="dashboard_insight_dismiss">Dismiss insight</string>
 
     <!-- Transactions Strings -->
     <string name="transactions_title">Transactions</string>
@@ -115,6 +137,28 @@
     <string name="transactions_save">Save</string>
     <string name="transactions_cancel">Cancel</string>
     <string name="transactions_uncategorized">Uncategorized</string>
+
+    <!-- Display names for the seeded categories. The database stores an English name (it is
+         seed data), so the UI resolves built-in ids through these instead. -->
+    <string name="category_food">Food &amp; Dining</string>
+    <string name="category_groceries">Groceries</string>
+    <string name="category_housing">Housing &amp; Bills</string>
+    <string name="category_transport">Transport</string>
+    <string name="category_shopping">Shopping</string>
+    <string name="category_travel">Travel</string>
+    <string name="category_entertainment">Entertainment</string>
+    <string name="category_health">Health</string>
+    <string name="category_salary">Salary</string>
+    <string name="category_other">Other</string>
+    <string name="dashboard_transaction_subtitle">%1$s • %2$s</string>
+    <string name="dashboard_budget_spent_of">%1$s of %2$s</string>
+    <string name="date_month_day">%1$s %2$d</string>
+    <string name="date_day_at_time">%1$s, %2$s</string>
+    <!-- Args: 1=24-hour clock, 2=12-hour clock, 3=minute, 4=AM/PM. Each locale picks the
+         placeholders its convention uses; English is a 12-hour locale, so it ignores arg 1. -->
+    <string name="time_hour_minute">%2$s:%3$s %4$s</string>
+    <string name="time_am">AM</string>
+    <string name="time_pm">PM</string>
 
     <!-- Generic actions -->
     <string name="action_save">Save</string>
@@ -348,7 +392,8 @@
     <string name="reports_export_csv">Export CSV</string>
     <string name="reports_export_started">Export ready.</string>
     <string name="reports_export_unavailable">Export isn't available on this device.</string>
-    <string name="reports_vs_previous">vs previous period</string>
+    <!-- Arg 1 is a signed percentage, e.g. "+12%". -->
+    <string name="reports_change_vs_previous">%1$s vs previous period</string>
     <string name="reports_transfers_note">Transfers between your accounts are excluded.</string>
     <string name="reports_chart_a11y">Spending by category: %1$s</string>
     <string name="reports_trend_a11y">Income %1$s, expenses %2$s over %3$d days.</string>

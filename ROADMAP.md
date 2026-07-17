@@ -119,9 +119,10 @@ token objects; adaptive brand logo; 600/1240dp breakpoints (NavigationBar/Rail/D
 - **Month names come from resources, not a platform formatter** — a formatter follows the
   *system* locale, but the app has its own language setting, so resources follow the language
   the user actually chose.
-- **Open (Phase 5):** a sweep for any remaining hardcoded English in feature UI (several
-  dashboard section titles are still literals), pseudo-locale truncation pass, and an RTL
-  smoke test.
+- **Built-in category names come from resources too** — the database is seeded in English, so
+  a stored name is only ever translated for categories the user created (Phase 5).
+- ✅ The hardcoded-English sweep is done (Phase 5). Still open: a pseudo-locale truncation pass.
+  An RTL smoke test only becomes meaningful once an RTL language is added — EN and FR are LTR.
 
 ### Production infrastructure
 - ✅ GitHub Actions CI (build + host tests + Roborazzi screenshots); ✅ detekt + ktlint wired
@@ -176,7 +177,13 @@ Phases are ordered so each ships a coherent increment. Estimates assume one deve
 - Wasm default font lacks emoji glyphs (tofu boxes) — fixed by bundling fonts (above).
 - Web database is **in-memory** (sql.js) — data resets on page reload. Follow-up:
   persist via IndexedDB (e.g. absolute-fs/OPFS worker) or sync (Phase 6).
-- iOS target not yet compiled/verified (requires a macOS host).
+- iOS: the Kotlin target now **compiles** (`:shared:compileKotlinIosArm64`, verified from the
+  Windows host — only linking and running the app need macOS/Xcode). It had never compiled:
+  `iosMain/SpendingChart.kt` was a copy of the Android/Vico implementation, and Vico publishes
+  Android artifacts only, so `iosMain` even declared a Vico dependency that could not resolve.
+  iOS and Wasm now share one `CanvasSpendingChart` in `commonMain`; **Android keeps Vico**,
+  which gives it axes and a touch marker the Canvas rendering does not have. CI does not build
+  iOS, which is why this went unnoticed — worth adding a compile-only iOS job.
 
 **Deliverable:** every existing screen renders through `AppTheme` with zero hardcoded
 colors/strings; CI green.
@@ -632,11 +639,27 @@ appear once, never nag, and can be replayed from Settings; fully EN/FR.
 before Phase 5 so the localization audit covers this copy. The guides also make good
 Phase 8 screenshots.
 
-### Phase 5 — Localization (0.5–1 week)
-- [ ] Extract remaining strings; add **French** (`values-fr/strings.xml`) as second locale —
+### Phase 5 — Localization ✅
+- [x] Extract remaining strings; add **French** (`values-fr/strings.xml`) as second locale —
   CMP resources handle runtime locale switching.
-- [ ] Locale-aware date/number/currency formatting everywhere (no `$` literals).
-- [ ] Pseudo-locale pass for truncation/wrapping; RTL smoke test.
+- [x] Locale-aware date/number/currency formatting everywhere (no `$` literals).
+- [x] **Built-in category names are localized.** `DefaultData` seeds English names into the
+  database, so every category chip, budget card, and dashboard row read "Food & Dining" in
+  French. `categoryNameFor` resolves seeded ids through `category_*` resources and leaves
+  user-created names alone. A test pins every seeded id to a string in every locale.
+- [x] **Day/month order and the 12- vs 24-hour clock live in the locale files**, not in code:
+  `dateTimeLabel` supplies every component and each translation uses the placeholders its
+  convention calls for ("January 20, 10:45 PM" / "20 janvier à 22:45").
+- [x] Dropped English `contentDescription` overrides that replaced localized button labels
+  with an English accessible name regardless of app language (16 in total across Phases 4.5–5).
+- [ ] **Deferred — pseudo-locale truncation pass.** Needs a running app per locale; French
+  averages ~20% longer than English, so it is worth doing before any store build.
+- [ ] **Not applicable yet — RTL smoke test.** EN and FR are both LTR; this becomes real work
+  the day an RTL language (Arabic/Hebrew) is added, and `Modifier.padding` start/end usage
+  should be audited then.
+
+> Not verified on device: the dashboard sits behind sign-in, so the localized category names
+> and date format are covered by compile + guard tests rather than a screenshot.
 
 ### Phase 6 — Production hardening & release (1.5–2 weeks)
 - [ ] **Gemini key removal**: migrate `GeminiInsightsService` from direct REST + embedded

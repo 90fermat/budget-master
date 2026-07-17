@@ -24,10 +24,14 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import budgetmaster.core.generated.resources.Res
+import budgetmaster.core.generated.resources.biometric_enable_btn
+import budgetmaster.core.generated.resources.biometric_enable_subtitle
+import budgetmaster.core.generated.resources.biometric_enable_title
+import budgetmaster.core.generated.resources.biometric_skip
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * Biometric setup screen offering the user the option to enable biometric authentication.
@@ -62,13 +66,17 @@ fun BiometricScreen(
         ) {
             Icon(
                 imageVector = Icons.Default.Fingerprint,
-                contentDescription = "Biometric icon",
+                // Decorative: the headline below already names the screen.
+                contentDescription = null,
                 modifier = Modifier.size(96.dp),
                 tint = MaterialTheme.colorScheme.primary
             )
-            Text("Enable Biometric Login", style = MaterialTheme.typography.headlineMedium)
             Text(
-                "Use your fingerprint or face to sign in quickly and securely.",
+                stringResource(Res.string.biometric_enable_title),
+                style = MaterialTheme.typography.headlineMedium,
+            )
+            Text(
+                stringResource(Res.string.biometric_enable_subtitle),
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
@@ -83,16 +91,15 @@ fun BiometricScreen(
             Button(
                 onClick = { viewModel.onIntent(BiometricIntent.EnableBiometric) },
                 modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp)
-                    .semantics { contentDescription = "Enable biometric button" }
             ) {
-                Text("Enable Biometric")
+                Text(stringResource(Res.string.biometric_enable_btn))
             }
 
             TextButton(
                 onClick = { viewModel.onIntent(BiometricIntent.SkipBiometric) },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Skip for Now")
+                Text(stringResource(Res.string.biometric_skip))
             }
         }
     }
