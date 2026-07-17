@@ -1,9 +1,12 @@
 [versions]
 # Core Tooling - Stable matrix (verified against Maven Central / Google Maven, 2026-07)
 # AGP 9.x: KMP modules use com.android.kotlin.multiplatform.library; requires Gradle 9.5+.
+activity-compose = "1.13.0"
 agp = "9.3.0"
+appcompat = "1.7.1"
 kotlin = "2.4.10"
 compose-multiplatform = "1.11.1"
+compose-foundation = "1.11.4"
 
 # Libraries - Latest Stable Compatible
 koin = "4.2.2"
@@ -11,6 +14,9 @@ ktor = "3.5.1"
 material-icons-extended = "1.7.3"
 sqldelight = "2.3.2"
 navigation-compose = "2.9.2"
+ui-test-junit4 = "1.11.4"
+ui-test-manifest = "1.11.4"
+ui-tooling = "1.11.1"
 vico = "2.5.2"
 firebase-kotlin-sdk = "2.5.0"
 firebase-bom = "34.16.0"
@@ -32,11 +38,21 @@ googleid = "1.1.1"
 # Architecture assertions (module graph, MVI naming, no hardcoded colors).
 konsist = "0.17.3"
 androidx-lifecycle = "2.11.0"
-androidx-work = "2.10.1"
+androidx-work = "2.11.2"
 kotlinx-datetime = "0.8.0"
 kotlinx-coroutines = "1.11.0"
 
 [libraries]
+#androidx compose
+androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity-compose" }
+androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
+
+androidx-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4", version.ref = "ui-test-junit4" }
+androidx-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest", version.ref = "ui-test-manifest" }
+ui-tooling = { module = "org.jetbrains.compose.ui:ui-tooling", version.ref = "ui-tooling" }
+compose-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "compose-foundation" }
+
+
 # Koin
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
 koin-compose = { module = "io.insert-koin:koin-compose", version.ref = "koin" }
@@ -72,8 +88,10 @@ vico-core = { module = "com.patrykandpatrick.vico:core", version.ref = "vico" }
 # Firebase Kotlin SDK
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebase-bom" }
 firebase-common = { module = "dev.gitlive:firebase-common", version.ref = "firebase-kotlin-sdk" }
-firebase-firestore = { module = "dev.gitlive:firebase-firestore", version.ref = "firebase-kotlin-sdk" }
 firebase-auth = { module = "dev.gitlive:firebase-auth", version.ref = "firebase-kotlin-sdk" }
+# Declared but intentionally unused: no module depends on it. Kept for the sync work sketched in
+# ROADMAP.md; the app is local-only today.
+firebase-firestore = { module = "dev.gitlive:firebase-firestore", version.ref = "firebase-kotlin-sdk" }
 
 # Google sign-in (Android only)
 androidx-credentials = { module = "androidx.credentials:credentials", version.ref = "androidx-credentials" }

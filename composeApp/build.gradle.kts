@@ -54,9 +54,9 @@ dependencies {
     implementation(project(":feature:transactions"))
     implementation(libs.koin.android)
     implementation(libs.androidx.work.runtime)
-    implementation("androidx.activity:activity-compose:1.10.0")
-    implementation("androidx.appcompat:appcompat:1.7.1")
-    debugImplementation("org.jetbrains.compose.ui:ui-tooling:1.11.1")
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.appcompat)
+    debugImplementation(libs.ui.tooling)
 
     // Screenshot tests (Roborazzi + Robolectric) for shared Compose UI.
     testImplementation(project(":feature:dashboard"))
@@ -66,9 +66,9 @@ dependencies {
     testImplementation(libs.roborazzi.compose)
     testImplementation(libs.roborazzi.junit.rule)
     // Jetpack Compose test artifacts matching CMP 1.11.1 (maps to Jetpack Compose 1.11.2)
-    testImplementation("androidx.compose.ui:ui-test-junit4:1.11.2")
+    testImplementation(libs.androidx.ui.test.junit4)
     // debugImplementation so the ComponentActivity test host is merged into the debug manifest
-    debugImplementation("androidx.compose.ui:ui-test-manifest:1.11.2")
-    testImplementation("androidx.compose.foundation:foundation:1.11.2")
+    debugImplementation(libs.androidx.ui.test.manifest)
+    testImplementation(libs.compose.foundation)
     testImplementation(libs.kotlinx.datetime)
 }
