@@ -34,10 +34,12 @@ crashlytics-build.properties
 fabric.properties
 
 # Firebase
-# NOTE: composeApp/google-services.json is currently *tracked* (committed in edb33c2) and CI
-# needs it to build, so it is not ignored here. It is client config rather than a true secret —
-# the API key in it is restricted by package name + SHA-1 — but see ROADMAP.md Phase 6 for
-# moving it to a CI secret. iOS config is local-only:
+# composeApp/google-services.json is tracked *on purpose*, but what is committed is a **dummy**
+# placeholder (project budgetmaster-dummy): the google-services plugin needs a well-formed file
+# for any clone or CI run to build, while the real project config stays on the developer's
+# machine and is never committed. So: do not ignore it, and do not commit changes to it —
+# `git update-index --skip-worktree composeApp/google-services.json` keeps a local real config
+# from showing up as a pending change. The iOS config has no such constraint, so it is ignored:
 iosApp/GoogleService-Info.plist
 
 # Signing — never commit a keystore or its passwords

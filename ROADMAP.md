@@ -673,7 +673,16 @@ Phase 8 screenshots.
   unreachable guard (`isGoogleSignInSupported` is false on Wasm, so the Login screen never
   offers the button). Firebase JS interop stays unbuilt on purpose — a browser-only account
   with no sync is what the local profile already gives.
-- [ ] Firebase per-platform config hygiene (google-services.json per build type, iOS plist).
+- [x] **Firebase config hygiene** — already correct, confirmed rather than changed. A **dummy**
+  `google-services.json` (project `budgetmaster-dummy`) is committed so the google-services
+  plugin can build any clone and CI; the real `budget-master-4c24f` config — API key, OAuth
+  client ids, SHA-1 hash — stays on the developer's machine and is never committed. The iOS
+  plist is gitignored. Use `git update-index --skip-worktree composeApp/google-services.json`
+  so a local real config stops showing up as a pending change and cannot be committed by
+  accident.
+  - Per-**build-type** config is deliberately not added: it would need `applicationIdSuffix`,
+    and the registered SHA-1 is bound to `com.budgetmaster` (see the release-engineering note
+    above). Revisit only if a separate Firebase project for debug is ever wanted.
 - [ ] Crashlytics + analytics events; performance monitoring; Android Baseline Profiles.
 - [x] **Release engineering.** `isMinifyEnabled = true` + `isShrinkResources = true` with a
   written `proguard-rules.pro` (kotlinx.serialization's reflective `.serializer()` lookup, Ktor's
