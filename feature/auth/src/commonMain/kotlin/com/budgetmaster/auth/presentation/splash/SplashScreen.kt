@@ -47,6 +47,7 @@ import com.budgetmaster.core.util.isReducedMotionEnabled
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
+import kotlin.time.Duration.Companion.milliseconds
 
 /** Minimum time the splash stays visible so its entrance animation is appreciated. */
 private const val MIN_SPLASH_MILLIS = 2000L
@@ -89,20 +90,20 @@ fun SplashScreen(
             }
             launch { contentAlpha.animateTo(1f, tween(600, easing = EaseOutCubic)) }
             launch {
-                delay(280)
+                delay(280.milliseconds)
                 wordmarkAlpha.animateTo(1f, tween(500, easing = EaseOutCubic))
             }
             launch {
-                delay(520)
+                delay(520.milliseconds)
                 accentScale.animateTo(1f, tween(500, easing = EaseOutCubic))
             }
             launch {
-                delay(820)
+                delay(820.milliseconds)
                 creditAlpha.animateTo(1f, tween(500))
             }
         }
 
-        delay(MIN_SPLASH_MILLIS)
+        delay(MIN_SPLASH_MILLIS.milliseconds)
         viewModel.effects.collect { effect ->
             when (effect) {
                 SplashEffect.NavigateToOnboarding -> onNavigateToOnboarding()

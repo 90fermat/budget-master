@@ -188,6 +188,8 @@
     <string name="budgets_ai_apply">Apply</string>
     <string name="budgets_ai_dismiss">Dismiss</string>
 
+    <string name="transactions_recurring_detected">Recurring charges detected</string>
+
     <string name="dashboard_transaction_subtitle">%1$s • %2$s</string>
     <string name="dashboard_budget_spent_of">%1$s of %2$s</string>
     <string name="date_month_day">%1$s %2$d</string>

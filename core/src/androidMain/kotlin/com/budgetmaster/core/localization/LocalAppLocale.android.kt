@@ -5,6 +5,8 @@ import androidx.compose.runtime.ProvidedValue
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import java.util.Locale
+import androidx.compose.ui.platform.LocalLocale
+import androidx.compose.ui.platform.LocalResources
 
 /**
  * Android implementation: swaps the JVM default locale and the active resource
@@ -15,19 +17,19 @@ actual object LocalAppLocale {
     private var default: Locale? = null
 
     actual val current: String
-        @Composable get() = Locale.getDefault().toString()
+        @Composable get() = LocalLocale.current.platformLocale.toString()
 
     @Composable
     actual infix fun provides(value: String?): ProvidedValue<*> {
         if (default == null) {
-            default = Locale.getDefault()
+            default = LocalLocale.current.platformLocale
         }
         val newLocale = if (value == null) default!! else Locale.forLanguageTag(value)
         Locale.setDefault(newLocale)
 
         val configuration = LocalConfiguration.current
         configuration.setLocale(newLocale)
-        val resources = LocalContext.current.resources
+        val resources = LocalResources.current
         @Suppress("DEPRECATION")
         resources.updateConfiguration(configuration, resources.displayMetrics)
 

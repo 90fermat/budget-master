@@ -19,7 +19,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Autorenew
@@ -65,6 +67,7 @@ import budgetmaster.core.generated.resources.transactions_search_placeholder
 import budgetmaster.core.generated.resources.transactions_title
 import budgetmaster.core.generated.resources.transactions_today
 import budgetmaster.core.generated.resources.transactions_uncategorized
+import budgetmaster.core.generated.resources.transactions_recurring_detected
 import budgetmaster.core.generated.resources.transactions_undo
 import budgetmaster.core.generated.resources.transactions_yesterday
 import com.budgetmaster.core.designsystem.Spacing
@@ -76,6 +79,7 @@ import com.budgetmaster.core.designsystem.components.rememberGuidance
 import com.budgetmaster.core.guidance.GuidanceKey
 import com.budgetmaster.core.designsystem.categoryIconFor
 import com.budgetmaster.core.util.MoneyFormatter
+import com.budgetmaster.transactions.domain.usecase.RecurringCharge
 import com.budgetmaster.core.util.RelativeDay
 import com.budgetmaster.core.util.formatSigned
 import com.budgetmaster.core.designsystem.categoryNameFor
@@ -267,6 +271,11 @@ private fun TypeAndCategoryFilters(state: TransactionsState, viewModel: Transact
 private fun TransactionList(state: TransactionsState, viewModel: TransactionsViewModel) {
     val uncategorized = stringResource(Res.string.transactions_uncategorized)
     LazyColumn(verticalArrangement = Arrangement.spacedBy(Spacing.small)) {
+        if (state.recurringCharges.isNotEmpty()) {
+            item(key = "recurring_charges") {
+                RecurringChargesCard(state.recurringCharges, state.currencyCode)
+            }
+        }
         state.groups.forEach { group ->
             item(key = "header_${group.date}") {
                 DayHeader(group, state.currencyCode)
@@ -285,6 +294,57 @@ private fun TransactionList(state: TransactionsState, viewModel: TransactionsVie
         item {
             LaunchedEffect(state.groups.size) { viewModel.onIntent(TransactionsIntent.LoadMore) }
             Spacer(Modifier.height(80.dp))
+        }
+    }
+}
+
+/**
+ * A compact "we noticed these repeat" card for locally-detected subscriptions. Detection is
+ * entirely on device, so this shows whether or not AI is enabled — it's a fact about the ledger,
+ * not a model output.
+ */
+@Composable
+private fun RecurringChargesCard(charges: List<RecurringCharge>, currencyCode: String) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+            .padding(Spacing.medium),
+        verticalArrangement = Arrangement.spacedBy(Spacing.micro),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                Icons.Default.Autorenew,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = MaterialTheme.colorScheme.primary,
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = stringResource(Res.string.transactions_recurring_detected),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+        // Cap the list so a long history doesn't push the actual transactions off-screen.
+        charges.take(5).forEach { charge ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = charge.description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = "${MoneyFormatter.format(charge.typicalAmount, currencyCode)} · ${charge.occurrences}×",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.budgetmaster.transactions.presentation
 
 import com.budgetmaster.core.util.RelativeDay
+import com.budgetmaster.transactions.domain.usecase.RecurringCharge
 import com.budgetmaster.transactions.domain.model.TransactionAccount
 import com.budgetmaster.transactions.domain.model.TransactionCategory
 import com.budgetmaster.transactions.domain.model.TransactionDraft
@@ -80,6 +81,8 @@ data class TransactionsState(
     val editor: EditorState = EditorState(),
     /** True when AI quick-add is available and the user has opted in; shows the parse field. */
     val quickAddEnabled: Boolean = false,
+    /** Locally-detected likely subscriptions; empty until enough history exists. No AI involved. */
+    val recurringCharges: List<RecurringCharge> = emptyList(),
 ) {
     val isEmpty: Boolean get() = !isLoading && groups.isEmpty()
 }

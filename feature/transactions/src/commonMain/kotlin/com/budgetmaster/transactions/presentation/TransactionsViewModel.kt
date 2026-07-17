@@ -10,6 +10,7 @@ import com.budgetmaster.core.util.DateUtils
 import com.budgetmaster.transactions.domain.model.TransactionFilter
 import com.budgetmaster.transactions.domain.model.TransactionItem
 import com.budgetmaster.transactions.domain.usecase.DeleteTransactionUseCase
+import com.budgetmaster.transactions.domain.usecase.DetectRecurringChargesUseCase
 import com.budgetmaster.transactions.domain.usecase.ObserveCategoriesUseCase
 import com.budgetmaster.transactions.domain.usecase.ObserveTransactionAccountsUseCase
 import com.budgetmaster.transactions.domain.usecase.ObserveTransactionsUseCase
@@ -50,6 +51,7 @@ class TransactionsViewModel(
     private val deleteTransaction: DeleteTransactionUseCase,
     private val restoreTransaction: RestoreTransactionUseCase,
     private val parseQuickEntry: ParseQuickEntryUseCase,
+    private val detectRecurringCharges: DetectRecurringChargesUseCase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(TransactionsState())
@@ -95,6 +97,15 @@ class TransactionsViewModel(
             .catch { e -> emitEffect(TransactionsEffect.ShowError(e.message ?: "Failed to load transactions.")) }
             .onEach { items ->
                 _state.update { it.copy(isLoading = false, groups = groupByDay(items)) }
+            }
+            .launchIn(viewModelScope)
+
+        // Recurring-charge detection runs over the *unfiltered* history (search/category filters
+        // would hide the very repeats we're looking for) and is entirely local — no AI, no
+        // network. Kept in its own flow so filtering the list doesn't recompute it.
+        observeTransactions(TransactionFilter())
+            .onEach { items ->
+                _state.update { it.copy(recurringCharges = detectRecurringCharges(items)) }
             }
             .launchIn(viewModelScope)
     }

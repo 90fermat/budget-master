@@ -15,6 +15,7 @@ import com.budgetmaster.transactions.domain.usecase.ObserveTransactionAccountsUs
 import com.budgetmaster.transactions.domain.usecase.ObserveTransactionsUseCase
 import com.budgetmaster.transactions.domain.usecase.RestoreTransactionUseCase
 import com.budgetmaster.transactions.domain.usecase.SaveTransactionUseCase
+import com.budgetmaster.transactions.domain.usecase.DetectRecurringChargesUseCase
 import com.budgetmaster.transactions.domain.usecase.ParseQuickEntryUseCase
 import com.budgetmaster.transactions.presentation.TransactionsViewModel
 import com.budgetmaster.transactions.presentation.recurring.RecurringViewModel
@@ -55,6 +56,7 @@ val transactionsModule = module {
     factory { DeleteTransactionUseCase(get()) }
     factory { RestoreTransactionUseCase(get()) }
     factory { ParseQuickEntryUseCase(get()) }
+    factory { DetectRecurringChargesUseCase() }
 
     viewModel {
         TransactionsViewModel(
@@ -67,6 +69,7 @@ val transactionsModule = module {
             deleteTransaction = get(),
             restoreTransaction = get(),
             parseQuickEntry = get(),
+            detectRecurringCharges = get(),
         )
     }
 }

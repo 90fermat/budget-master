@@ -189,6 +189,8 @@
     <string name="budgets_ai_apply">Appliquer</string>
     <string name="budgets_ai_dismiss">Ignorer</string>
 
+    <string name="transactions_recurring_detected">Prélèvements récurrents détectés</string>
+
     <string name="dashboard_transaction_subtitle">%1$s • %2$s</string>
     <string name="dashboard_budget_spent_of">%1$s sur %2$s</string>
     <string name="date_month_day">%2$d %1$s</string>
