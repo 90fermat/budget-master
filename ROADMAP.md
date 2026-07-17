@@ -445,8 +445,18 @@ wasm canvas).
    before shipping). Then **re-download `google-services.json`**.
 - [ ] **iOS**: add the Google Sign-In SDK (`GIDSignIn`) + reversed-client-id URL scheme in
   Xcode and flip `isGoogleSignInSupported` to true — needs macOS.
-- [ ] **Verify on a real device** once the console setup above is done (not verifiable from
-  the current Windows host / without the SHA-1 registered).
+- [~] **On-device verification — the code path is verified; the flow needs a Google account to
+  finish.** On the Pixel 4 API 33 emulator, tapping "Sign in with Google" reaches Google Play
+  Services (logcat shows `auth.api.identity.service.signin.START`) and comes back with no
+  credential, which the app handles exactly right: typed `GoogleUnavailable`, localized inline
+  message, no crash. Two facts confirmed: the debug SHA-1
+  (`0A:80:35:0D:EE:D8:B4:47:6E:12:57:46:B9:55:76:54:AC:67:71:F2`) is the registered one, and the
+  emulator has **no Google account signed in** — which is why Credential Manager returns nothing.
+  - **To finish the check (needs you):** on the emulator, Settings → Passwords & accounts → Add
+    account → Google, sign in with a Google account, then retry. Requires entering your Google
+    password, so it's yours to do — I can't. Once an account is present the flow should complete;
+    if it still fails, the next suspect is the OAuth **web client** / Google provider enablement
+    in the Firebase console.
 
 ### Status: Phases 0–5 are done; Phase 6 is next
 
