@@ -683,7 +683,19 @@ Phase 8 screenshots.
   - Per-**build-type** config is deliberately not added: it would need `applicationIdSuffix`,
     and the registered SHA-1 is bound to `com.budgetmaster` (see the release-engineering note
     above). Revisit only if a separate Firebase project for debug is ever wanted.
-- [ ] Crashlytics + analytics events; performance monitoring; Android Baseline Profiles.
+- [x] **Crashlytics + analytics** wired on Android (`composeApp`), with the Crashlytics Gradle
+  plugin so the R8 mapping file is uploaded — without it every release stack trace is obfuscated
+  and the reports are worthless. Collection is **off in debug builds**: a crash while someone is
+  developing is not a signal about the shipped app, and letting those through buries the real
+  reports. Crashlytics gets stack traces and device metadata only — nothing logs a transaction,
+  an amount, or an email, and that must stay true.
+  - The App Check provider moved into **variant source sets** (`src/debug` vs `src/release`).
+    `firebase-appcheck-debug` is a `debugImplementation` dependency, so referencing
+    `DebugAppCheckProviderFactory` from `src/main` compiled fine in debug and broke the release
+    build — found by actually building release, not by reading.
+  - Verified on the emulator: clean start, Crashlytics initializes, no crash; both `assembleDebug`
+    and `assembleRelease` build.
+- [ ] Performance monitoring; Android Baseline Profiles.
 - [x] **Release engineering.** `isMinifyEnabled = true` + `isShrinkResources = true` with a
   written `proguard-rules.pro` (kotlinx.serialization's reflective `.serializer()` lookup, Ktor's
   ServiceLoader engines, Koin, SQLDelight, GitLive/Firebase, and the `@Serializable` nav routes —

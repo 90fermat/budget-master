@@ -5,8 +5,7 @@ import com.budgetmaster.core.db.AppContextHolder
 import com.budgetmaster.shared.di.initKoin
 import com.google.firebase.FirebaseApp
 import com.google.firebase.appcheck.appCheck
-import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
-import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
+import com.google.firebase.crashlytics.crashlytics
 import com.google.firebase.Firebase
 import org.koin.android.ext.koin.androidContext
 
@@ -21,6 +20,7 @@ class BudgetMasterApplication : Application() {
         AppContextHolder.context = this
 
         initializeAppCheck()
+        initializeCrashReporting()
 
         // Initialize Koin DI
         initKoin {
@@ -39,19 +39,24 @@ class BudgetMasterApplication : Application() {
      * 2026), so without a provider the insights calls are rejected — this is not optional
      * hardening, it is what makes the feature work at all.
      *
-     * Debug builds use the debug provider, whose token must be registered once per machine or
-     * emulator under **App Check → Apps → Manage debug tokens** in the Firebase console; the
-     * token is printed to logcat on first run. Release builds use Play Integrity, which needs no
-     * setup beyond the app being distributed by Play.
+     * The provider comes from the variant's source set — debug token vs Play Integrity — because
+     * the debug App Check artifact is a `debugImplementation` dependency and referencing it from
+     * here would compile in debug and break the release build.
      */
     private fun initializeAppCheck() {
         FirebaseApp.initializeApp(this)
-        Firebase.appCheck.installAppCheckProviderFactory(
-            if (BuildConfig.DEBUG) {
-                DebugAppCheckProviderFactory.getInstance()
-            } else {
-                PlayIntegrityAppCheckProviderFactory.getInstance()
-            },
-        )
+        Firebase.appCheck.installAppCheckProviderFactory(appCheckProviderFactory())
+    }
+
+    /**
+     * Crash reporting, off in debug builds.
+     *
+     * A crash while someone is developing is not a signal about the shipped app, and letting
+     * those through buries the real reports. Crashlytics collects stack traces and device
+     * metadata only — nothing here ever logs a transaction, an amount, or an email, and it must
+     * stay that way: this is a finance app, and a crash report is not a place for the ledger.
+     */
+    private fun initializeCrashReporting() {
+        Firebase.crashlytics.isCrashlyticsCollectionEnabled = !BuildConfig.DEBUG
     }
 }

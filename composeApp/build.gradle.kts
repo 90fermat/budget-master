@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.google.services)
+    alias(libs.plugins.firebase.crashlytics)
     alias(libs.plugins.roborazzi)
 }
 
@@ -132,6 +133,11 @@ dependencies {
     implementation(project.dependencies.platform(libs.firebase.bom))
     implementation(libs.firebase.appcheck.playintegrity)
     debugImplementation(libs.firebase.appcheck.debug)
+
+    // Crash reporting. Analytics comes with Crashlytics and gives it the breadcrumbs that make
+    // a crash report worth reading.
+    implementation(libs.firebase.crashlytics)
+    implementation(libs.firebase.analytics)
     debugImplementation(libs.ui.tooling)
 
     // Screenshot tests (Roborazzi + Robolectric) for shared Compose UI.
