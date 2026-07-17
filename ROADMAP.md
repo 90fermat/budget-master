@@ -1,13 +1,13 @@
 # BudgetMaster — Production Roadmap & Deliverable State
 
-> Original audit baseline: 2026-07-14. **Status refreshed: 2026-07-15** after Phases 0, 1,
-> and 1.5. Derived from the codebase against `ARCHITECTURE.md` and `DESIGN_SYSTEM.md`.
+> Original audit baseline: 2026-07-14. **Status refreshed: 2026-07-16** after Phases 0–4.5.
+> Derived from the codebase against `ARCHITECTURE.md` and `DESIGN_SYSTEM.md`.
 
 ---
 
 ## 1. Where the app stands today
 
-### Feature maturity matrix (refreshed 2026-07-15)
+### Feature maturity matrix (refreshed 2026-07-16)
 
 | Feature | Domain | Data | MVI ViewModel | UI | Tests | Verdict |
 |---|---|---|---|---|---|---|
@@ -19,7 +19,7 @@
 | **Goals** | ✅ models, repo, 4 use cases | ✅ SqlDelight over SavingsGoalEntity | ✅ Full MVI | ✅ Progress cards, contribute, create/edit/delete | ✅ repo | **~85% (was ~10%)** |
 | **Accounts** | ✅ models, repo, 9 use cases | ✅ SqlDelight, **live balance** = opening + own transactions; transfers, reconcile, FX conversion | ✅ Full MVI | ✅ Wallet list, net worth, global switcher, CRUD/archive, transfer, reconcile | ✅ repo (9) | **~90%** |
 | **Reports** | ✅ models, repo, 2 use cases | ✅ SqlDelight, wallet-scoped, transfers excluded | ✅ Full MVI | ✅ Totals + period comparison, category donut, trend chart, CSV export | ✅ repo (4) | **~85% (was ~15%)** |
-| **Recurring** | ✅ models, repo, 5 use cases | ✅ SqlDelight, calendar-correct, idempotent catch-up | ➖ (engine) | ⚠️ no management screen yet | ✅ repo (5) | **~70% (new)** |
+| **Recurring** | ✅ models, repo, 5 use cases | ✅ SqlDelight, calendar-correct, idempotent catch-up + WorkManager daily job | ✅ Full MVI | ✅ Schedule list, pause/resume, delete, editor | ✅ repo (5) | **~90%** |
 
 **Design system:** ✅ done — `AppTheme` with **5 palettes** (incl. Material You Dynamic),
 bundled **Outfit + Inter** fonts, adaptive brand **logo**, `Spacing`/`Motion` tokens, and
@@ -75,13 +75,11 @@ signed-in uid is now the data owner.
 5. ~~Konsist does not enforce architecture rules~~ — **fixed**: `:shared` androidHostTest runs
    4 Konsist rules (no feature→feature imports; no hardcoded colors outside the design
    system; ViewModels in `presentation`; Repository interfaces in `domain`).
-6. **Hardcoded colors — partially open.** An earlier entry claimed these were gone from
-   features; that was inaccurate. The dashboard's semantic colors now use
-   `MaterialTheme.financialColors`, and the Konsist rule enforces the rest, but four files
-   are explicitly allow-listed with reasons: the two `ColorHex` parsers (literal fallback for
-   malformed stored hex), `ReportsScreen` (Phase 3 rewrite), `TopTransactionsList` +
-   `AiInsightsWidget` (category/accent palettes pending the shared component library,
-   Phase 4). Shrinking that allowlist is Phase 4 work.
+6. ~~Hardcoded colors — partially open~~ — **closed** (Phase 4). The Konsist allowlist is
+   empty and the rule asserts with no exceptions: the hex parser moved to
+   `core.designsystem.parseHexColor`, category accents to `categoryAccentFor` (reading the
+   seeded hex rather than restating a palette), and insight accents to semantic tokens. A
+   second rule now also forbids fading `outline`/`surfaceVariant` below usability.
 
 7. **Security (open)**: Gemini is still called directly from the client with an embedded
    API key — extractable from any APK/wasm bundle. Must move behind Firebase AI Logic /
@@ -95,18 +93,35 @@ token objects; adaptive brand logo; 600/1240dp breakpoints (NavigationBar/Rail/D
 1200dp max-width container; budget gauge thresholds; premium animated splash.
 
 **Still missing ❌**
-1. Shared component library is only partial — `BalanceCard`/`TransactionRow` exist per
-   feature; no single reusable set yet.
-2. Motion system partial — splash + skeleton shimmer done; count-up, press-to-scale, and
-   screen transitions pending.
-3. A11y: no semantics on gauges/charts; touch-target & 200% font-scale audits not done.
-4. Placeholder nav icons (Info/Favorite/Star for Budgets/Reports/Goals).
-5. Colored-emoji font not bundled for Web → category emoji render as tofu on Wasm.
+1. Shared component library is **partial** — `EmptyState`/`ErrorState`/`ShimmerListPlaceholder`,
+   the motion primitives, `Haptics`, `parseHexColor`, and `categoryIconFor`/`categoryAccentFor`
+   are shared in `:core`, but `BalanceCard`/`TransactionRow` still live per-feature.
+
+**Closed since the original audit ✅**
+- ~~Motion system partial~~ — count-up, press-to-scale, and screen transitions landed in
+  Phase 4, all honouring reduced motion.
+- ~~A11y: no semantics on gauges/charts~~ — charts carry generated summaries (Phase 3); both
+  gauges speak, and budget status exists as words, not only colour (Phase 4).
+- ~~Touch-target & 200% font-scale audits not done~~ — both audited in Phase 4. Touch targets
+  were already clean (everything goes through `IconButton`); buttons moved to `heightIn` so
+  labels can't clip at 200%.
+- ~~Placeholder nav icons~~ — replaced in Phase 4 (Reports was literally a heart).
+- ~~Colored-emoji font not bundled for Web~~ — solved *without* bundling a font: category
+  emoji became Material vectors, so nothing renders as tofu and the bundle didn't grow. A
+  sweep confirms no emoji remain in UI code; `DefaultData` still stores them as data.
 
 ### Localization & formatting
-- EN/FR for the shell, transactions, settings, and onboarding; **login/register/forgot
-  still hardcoded English**. `MoneyFormatter` is locale/currency-aware, but the user's
-  currency isn't wired end-to-end yet (screens default to USD).
+- **EN/FR across every screen**, including auth (Phase 1.6) and the in-app guides (Phase 4.5,
+  authored in both rather than retrofitted). A test pins EN/FR key parity.
+- The user's **currency is wired end-to-end** — transactions, dashboard, budgets, goals,
+  accounts, reports all format with it (Phase 3/4); `MoneyFormatter` stays the single
+  formatter.
+- **Month names come from resources, not a platform formatter** — a formatter follows the
+  *system* locale, but the app has its own language setting, so resources follow the language
+  the user actually chose.
+- **Open (Phase 5):** a sweep for any remaining hardcoded English in feature UI (several
+  dashboard section titles are still literals), pseudo-locale truncation pass, and an RTL
+  smoke test.
 
 ### Production infrastructure
 - ✅ GitHub Actions CI (build + host tests + Roborazzi screenshots); ✅ detekt + ktlint wired
@@ -459,19 +474,120 @@ networking) and **OS-level notification delivery** (rides with the Phase 3 recur
   `contentDescription` summarising the data (top categories with shares; income/expense
   totals over N days), and the legend repeats the numbers as real text.
 
-### Phase 4 — Premium polish: motion, adaptive, delight (1–1.5 weeks)
-- [ ] Motion tokens applied: balance count-up, press-to-scale on primary buttons, shimmer
-  loading everywhere lists load, animated progress fills, `AnimatedContent` screen transitions.
-- [ ] List-detail split layout for Transactions on ≥600dp (material3-adaptive is already in
-  the version catalog — use it).
-- [ ] Proper iconography (custom or extended Material set) for nav + categories;
-  app icon + splash polish.
-- [ ] Empty states with illustration + CTA for every list; error states with retry.
-- [ ] Haptics on key actions (Android/iOS `expect/actual`).
-- [ ] Font-scale 200% + small-screen audit; 48dp touch-target audit; contrast check
-  (the 0.05f-alpha borders and 0.1f surface tints will need revisiting).
+### Phase 4 — Premium polish: motion, adaptive, delight (1–1.5 weeks) — **done**
+- [x] **Motion tokens applied**: `core.designsystem.pressScale(interactionSource)` (takes the
+  caller's source, so it tracks the same press the clickable sees) and `animateCounter()`
+  (animates from the *previous* value, so an update reads as a change, not a re-count) — on the
+  dashboard balance and accounts net worth. `NavHost` gained fade+scale transitions; a
+  directional slide was rejected because the bottom bar jumps between unrelated tabs, where
+  left/right implies an order that isn't there. Shimmer promoted out of `AiInsightsWidget`
+  (which `DashboardSkeleton` was reaching across to borrow) into
+  `core.designsystem.components`, plus a `ShimmerListPlaceholder` shaped like the real rows;
+  the transactions list previously showed **nothing** while loading. **All of it honours
+  `isReducedMotionEnabled()`** — press-scale no-ops, the counter snaps, transitions disable,
+  and shimmer flattens to a static tint instead of looping.
+- [x] **List-detail split for Transactions ≥600dp**: the editor docks beside the list instead
+  of covering it. *Built on the app's existing `BoxWithConstraints` breakpoint, not
+  material3-adaptive* — that catalog entry is declared but **wired into no module**, and is
+  still `1.3.0-beta02`; adopting a beta pane scaffold for one screen would add a second
+  adaptive idiom next to the one the shell and every editor already use. (Catalog entry left
+  in place and still unused — delete or adopt it deliberately later.)
+- [x] **Iconography**: nav icons were placeholders — Budgets used `Info`, Goals `Star`, and
+  Reports a **heart** (`Favorite`); now PieChart / Flag / BarChart. Categories resolve through
+  `categoryIconFor` + a new `categoryAccentFor`, which reads the same seeded hex the database
+  holds rather than restating a palette in UI code.
+- [x] **Empty + error states**: shared `EmptyState`/`ErrorState` in `core.designsystem`
+  (illustration badge, title, explanation, optional CTA / retry), adopted by Transactions,
+  Goals, Accounts, Budgets, and Recurring. The CTA is suppressed when a list is empty only
+  because a filter matched nothing — offering "Add a transaction" there answers a question
+  nobody asked.
+- [x] **Haptics**: `core.util.Haptics`, intent-named (confirm / reject / toggle / longPress),
+  on transaction save, swipe-to-delete, and the recurring pause switch. *No `expect/actual`,
+  contrary to the original plan* — Compose Multiplatform 1.11 exposes `HapticFeedbackType` in
+  common code with Android/iOS/skiko backends and already respects the system haptic setting,
+  so the platform split would have been redundant.
+- [x] **A11y — gauges**: both now speak. `BudgetCard` merges into one description stating the
+  numbers and status in words; `GoalCard` scopes its description to the progress bar so the
+  Add funds / Withdraw buttons stay separate targets. Budget status exists as localized words,
+  not only as a colour. (Chart a11y landed in Phase 3.)
+- [x] **Audit — contrast**: the roadmap's suspicion was right. The dashboard drew 1dp borders
+  at `outline.copy(alpha = 0.05f)` — mathematically present, visually nothing — and tinted card
+  containers at 15–20% `surfaceVariant`. The right tokens (`outlineVariant`, `surface`) already
+  existed and every newer feature used them; the dashboard was just the oldest code. Fixed and
+  pinned with a Konsist rule (skeletons exempt — a placeholder is meant to be low-contrast).
+- [x] **Audit — font scale**: buttons pinned to `height(50/52.dp)` clip their label at 200%
+  font scale. Now `heightIn(min = …)`: same visual floor, free to grow.
+- [x] **Audit — touch targets**: already clean. Every interactive icon goes through
+  `IconButton` (48dp minimum) and there are no small clickable boxes. Recorded so it isn't
+  re-audited.
+- [x] **Recurring management screen** (absorbed from Phase 3): list with next-run date,
+  pause/resume, delete, and a full editor. Saving or resuming materializes immediately rather
+  than waiting for the next launch — safe because `materializeDue()` is idempotent.
+- [x] **WorkManager daily job** (absorbed from Phase 3): recurring entries land on their own
+  day instead of at next launch. Android-only by design — iOS background execution is far more
+  restrictive and Web has none; both keep open-time catch-up, which stays correct because
+  entries carry their true occurrence dates regardless of when they were materialized.
+- [x] **Konsist colour allowlist emptied**: carried since Phase 0, now zero exceptions. Closing
+  it surfaced a real bug — `TopTransactionsList` matched category *names* ("food",
+  "starbucks") while `Transaction.category` carries the *id* ("cat_food"), so every dashboard
+  row silently drew a generic grey fallback.
+- [x] **Schema migrations** (found by running the app, not by tests): three `.sq` edits had
+  added columns with no version bump, so `Schema.create()` covered fresh installs while every
+  *existing* one crashed with "no such column". Added `1.sqm` (v1 → v2) and `:core` tests that
+  recreate the original v1 schema and migrate it — a fresh database proves nothing, since
+  `create()` always emits the newest columns.
+- [ ] **Deferred — shared component library**: `EmptyState`/`ErrorState`/`ShimmerListPlaceholder`
+  and the motion/haptics primitives are shared now, but `BalanceCard`/`TransactionRow` still
+  live per-feature. Cosmetic rather than structural; folds into later component work.
 
-### Phase 4.5 — In-app guidance: explain every screen (1 week)
+### Phase 4.5 — In-app guidance: explain every screen (1 week) — **done**
+
+**Approach — a per-screen guide sheet (as planned).** A `?` in each header opens a sheet
+listing that screen's features: icon + name + one line each. It opens itself once on a
+screen's first visit, then waits to be asked.
+
+*Rejected: coach-mark/spotlight overlays.* They anchor to exact layout, and this app has three
+adaptive layouts, five palettes, and a Wasm target — fragile, fights reduced-motion, and
+interrupts rather than answers. *Also rejected: hints in empty states only* — they vanish
+exactly when the screen has data and the questions start.
+
+- [x] **`core.guidance`**: `GuidanceKey` per screen; `ScreenGuide` = title + intro +
+  `List<FeatureNote>` (icon, title, body) holding **`StringResource`s rather than resolved
+  text**, so the registry is a plain value and the copy follows the app's own language setting
+  rather than the build locale. `GuidanceRegistry` keeps all seven guides in one file — Settings
+  can list them without depending on seven feature modules, and a missing guide is a gap in one
+  place instead of on the screen that lacks it. (Content is strings, and strings already live
+  in `:core`, so there's no feature→feature edge.)
+- [x] **`GuidancePreferences`** over `KeyValueStore`, mirroring `OnboardingPreferences`:
+  per-screen "seen" flags + a global **"Show tips"** toggle. A guide is marked seen when it
+  **opens**, not when dismissed — it *was* shown, and swiping it away is an answer. Reset
+  deliberately leaves the toggle alone: someone who turned tips off and then reset shouldn't be
+  nagged again.
+- [x] **Shared UI**: `GuidanceSheet` (bottom sheet on phone, dialog ≥600dp — the same adaptive
+  rule as every editor), `HelpIconButton`, and a `rememberGuidance` / `GuidanceHost` pair that
+  costs each screen two lines.
+- [x] **All 7 screens wired**, each note written against what the screen actually does,
+  favouring the non-obvious: the switcher re-scopes the app, undo restores to the *original*
+  account, budget spend is counted for you, transfers are excluded from income, goals project a
+  finish date, the CSV includes transfers while the charts don't.
+- [x] **Settings → "Help & tips"**: browse every guide on demand (enumerated from the registry,
+  so a new screen's guide appears automatically), toggle auto-open, and **"Reset tips"** — next
+  to the existing "Replay intro" row.
+- [x] **Localized EN/FR as authored**, not retrofitted.
+- [x] **A11y + motion**: notes are real text (screen-reader friendly, no image-only content);
+  the sheet reuses the reduced-motion-aware primitives; every `?` has a content description.
+- [x] Tests (6): every `GuidanceKey` has a guide and every guide explains something — so a new
+  screen fails the build rather than shipping a `?` that opens nothing — plus seen/reset/toggle.
+- [x] **Fixed `\'` rendering literally** (found by reading the running app). Compose resources
+  are **not** Android XML: `aapt` unescapes `\'` and `\"`, compose-resources renders the
+  backslash. The app had shipped "Don\'t have an account?" since Phase 0 — 69 escapes across 55
+  strings, worst in French, which uses apostrophes constantly. Every phase compiled green
+  because nothing ever read the screens. Fixed all, plus a test that scans the resource files.
+
+**Deliverable:** every screen answers "what can I do here?" without leaving the app; tips
+appear once, never nag, and can be replayed from Settings; fully EN/FR. Verified on device.
+
+### Phase 4.5 — original plan (superseded by the section above)
 
 > The app has grown features that aren't self-evident — the account switcher re-scopes the
 > whole app, swipe-to-delete has undo, transfers are deliberately excluded from income, a
@@ -648,8 +764,8 @@ The app is "production-ready premium" when all of the following hold:
 | 2.6 | Google sign-in (Android) | 0.5 wk | ✅ done — SHA-1 registered; needs on-device verification |
 | — | Deferred-item sweep (Phases 1 / 1.5 / 2 / 2.5 + architecture drift) | — | ✅ done |
 | 3 | Reports + recurring engine | 1.5 wk | ✅ done (WorkManager job + recurring UI deferred to 4) |
-| 4 | Motion & premium polish | 1–1.5 wk | ⬜ |
-| 4.5 | In-app guidance — every screen explains its features | 1 wk | ⬜ |
+| 4 | Motion & premium polish | 1–1.5 wk | ✅ done |
+| 4.5 | In-app guidance — every screen explains its features | 1 wk | ✅ done |
 | 5 | Localization | 0.5–1 wk | ⬜ |
 | 6 | Hardening & release | 1.5–2 wk | ⬜ |
 | 7 | AI intelligence layer (free-tier Gemini via Firebase) | 2–2.5 wk | ⬜ |
