@@ -190,22 +190,22 @@ class DashboardScreenshotTest {
 
     @Test
     fun balanceCard_positive_light() = snapshot("balanceCard_positive_light", darkTheme = false) {
-        Box(modifier = Modifier.padding(16.dp)) { BalanceCard(balanceSummary = positiveBalance) }
+        Box(modifier = Modifier.padding(16.dp)) { BalanceCard(balanceSummary = positiveBalance, currencyCode = "USD") }
     }
 
     @Test
     fun balanceCard_positive_dark() = snapshot("balanceCard_positive_dark", darkTheme = true) {
-        Box(modifier = Modifier.padding(16.dp)) { BalanceCard(balanceSummary = positiveBalance) }
+        Box(modifier = Modifier.padding(16.dp)) { BalanceCard(balanceSummary = positiveBalance, currencyCode = "USD") }
     }
 
     @Test
     fun balanceCard_negative_light() = snapshot("balanceCard_negative_light", darkTheme = false) {
-        Box(modifier = Modifier.padding(16.dp)) { BalanceCard(balanceSummary = negativeBalance) }
+        Box(modifier = Modifier.padding(16.dp)) { BalanceCard(balanceSummary = negativeBalance, currencyCode = "USD") }
     }
 
     @Test
     fun balanceCard_negative_dark() = snapshot("balanceCard_negative_dark", darkTheme = true) {
-        Box(modifier = Modifier.padding(16.dp)) { BalanceCard(balanceSummary = negativeBalance) }
+        Box(modifier = Modifier.padding(16.dp)) { BalanceCard(balanceSummary = negativeBalance, currencyCode = "USD") }
     }
 
     // ─── AiInsightsWidget ────────────────────────────────────────────────────

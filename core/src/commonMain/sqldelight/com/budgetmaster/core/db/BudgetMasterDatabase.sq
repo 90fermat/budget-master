@@ -328,6 +328,11 @@ VALUES (?, ?, ?, ?);
 selectExchangeRate:
 SELECT * FROM ExchangeRateEntity WHERE baseCurrency = ? AND targetCurrency = ?;
 
+-- When this base's rates were last refreshed, so a fetch only happens once a day.
+-- NULL when nothing has ever been stored for it.
+selectNewestRateTimestamp:
+SELECT MAX(timestamp) AS newest FROM ExchangeRateEntity WHERE baseCurrency = ?;
+
 deleteExchangeRate:
 DELETE FROM ExchangeRateEntity WHERE baseCurrency = ? AND targetCurrency = ?;
 

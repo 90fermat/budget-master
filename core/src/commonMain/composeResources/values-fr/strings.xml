@@ -158,6 +158,14 @@
     <string name="settings_ai_unavailable">Les analyses IA ne sont pas disponibles dans cette version.</string>
     <string name="ai_disclaimer">Généré par IA. Ne constitue pas un conseil financier.</string>
 
+    <string name="dashboard_add_expense">Ajouter une dépense</string>
+    <string name="dashboard_add_income">Ajouter un revenu</string>
+    <string name="dashboard_transfer">Transférer</string>
+    <string name="period_week">Semaine</string>
+    <string name="period_month">Mois</string>
+    <string name="period_year">Année</string>
+    <string name="period_all">Tout</string>
+
     <string name="dashboard_transaction_subtitle">%1$s • %2$s</string>
     <string name="dashboard_budget_spent_of">%1$s sur %2$s</string>
     <string name="date_month_day">%2$d %1$s</string>
@@ -357,6 +365,8 @@
     <string name="accounts_edit">Modifier le compte</string>
     <string name="accounts_all">Tous les comptes</string>
     <string name="accounts_net_worth">Valeur nette</string>
+    <!-- Credit exige par les conditions du fournisseur de taux de change (nom propre). -->
+    <string name="accounts_rates_attribution">Rates By Exchange Rate API</string>
     <string name="accounts_multi_currency_note">Plusieurs devises — le total est approximatif.</string>
     <string name="accounts_active_section">Actifs</string>
     <string name="accounts_archived_section">Archivés</string>

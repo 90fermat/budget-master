@@ -40,6 +40,7 @@ import budgetmaster.core.generated.resources.accounts_delete_confirm
 import budgetmaster.core.generated.resources.accounts_empty
 import budgetmaster.core.generated.resources.empty_accounts_cta
 import budgetmaster.core.generated.resources.accounts_net_worth
+import budgetmaster.core.generated.resources.accounts_rates_attribution
 import budgetmaster.core.generated.resources.accounts_multi_currency_note
 import budgetmaster.core.generated.resources.accounts_title
 import budgetmaster.core.generated.resources.accounts_transfer
@@ -228,6 +229,15 @@ private fun NetWorthCard(state: AccountsState) {
                     stringResource(Res.string.accounts_multi_currency_note),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+            }
+            if (state.isMultiCurrency) {
+                // The rate provider's terms require a visible credit. It may be discreet, but it
+                // has to be here — and only when converted rates actually contributed.
+                Text(
+                    stringResource(Res.string.accounts_rates_attribution),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
                 )
             }
         }

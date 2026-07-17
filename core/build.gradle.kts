@@ -82,6 +82,8 @@ kotlin {
                 implementation(kotlin("test"))
                 implementation(libs.kotlinx.coroutines.test)
                 implementation(libs.sqldelight.driver.sqlite)
+                // Scripts the exchange-rate endpoint without touching the network.
+                implementation(libs.ktor.client.mock)
             }
         }
 

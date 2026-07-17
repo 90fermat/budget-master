@@ -85,6 +85,7 @@ import com.budgetmaster.core.db.DefaultData
 import com.budgetmaster.core.session.SessionStore
 import com.budgetmaster.core.session.SessionUser
 import com.budgetmaster.core.util.isReducedMotionEnabled
+import com.budgetmaster.core.currency.RefreshExchangeRatesUseCase
 import com.budgetmaster.transactions.domain.usecase.MaterializeDueRecurringUseCase
 import com.budgetmaster.core.designsystem.AppLogo
 import com.budgetmaster.core.designsystem.Motion
@@ -126,6 +127,7 @@ fun App() {
     val sessionStore = koinInject<SessionStore>()
     val checkAuthStatus = koinInject<CheckAuthStatusUseCase>()
     val materializeDueRecurring = koinInject<MaterializeDueRecurringUseCase>()
+    val refreshExchangeRates = koinInject<RefreshExchangeRatesUseCase>()
     LaunchedEffect(Unit) {
         checkAuthStatus().collect { status ->
             if (status is AuthStatus.Authenticated) {
@@ -146,6 +148,13 @@ fun App() {
             // re-run: each occurrence has a deterministic id.
             materializeDueRecurring()
         }
+    }
+
+    // Rates are what make a multi-currency net worth mean anything; nothing populated the cache
+    // before, so a second-currency wallet was always "approximate". Re-keyed on the currency so
+    // switching it fetches the new base. Fetches at most daily and fails silently.
+    LaunchedEffect(settings.currency) {
+        refreshExchangeRates(settings.currency)
     }
 
     val darkTheme = when (settings.darkMode) {

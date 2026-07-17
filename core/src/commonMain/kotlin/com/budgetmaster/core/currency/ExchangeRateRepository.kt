@@ -37,6 +37,18 @@ class ExchangeRateRepository(private val databaseProvider: DatabaseProvider) {
     suspend fun convert(amount: Double, base: String, target: String): Double? =
         rate(base, target)?.let { amount * it }
 
+    /**
+     * When [base]'s rates were last stored, or `null` if never.
+     *
+     * Lets a caller skip a fetch it doesn't need — the upstream data only changes once a day and
+     * the endpoint is rate-limited.
+     */
+    suspend fun lastUpdated(base: String): Long? =
+        databaseProvider.getDatabase().budgetMasterDatabaseQueries
+            .selectNewestRateTimestamp(base)
+            .awaitAsOneOrNull()
+            ?.newest
+
     /** Stores (or refreshes) a conversion rate. */
     suspend fun putRate(base: String, target: String, rate: Double) {
         databaseProvider.getDatabase().budgetMasterDatabaseQueries.insertExchangeRate(

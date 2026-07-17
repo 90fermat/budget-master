@@ -33,9 +33,9 @@ import budgetmaster.core.generated.resources.action_save
 import com.budgetmaster.accounts.domain.model.Account
 import com.budgetmaster.accounts.domain.model.AccountDraft
 import com.budgetmaster.accounts.domain.model.AccountType
+import com.budgetmaster.core.currency.SUPPORTED_CURRENCY_CODES
 import org.jetbrains.compose.resources.stringResource
 
-private val CURRENCIES = listOf("USD", "EUR", "GBP", "XAF", "CAD", "NGN")
 
 /** Create/edit dialog for a wallet. [existing] non-null means editing. */
 @Composable
@@ -94,7 +94,7 @@ fun AddEditAccountForm(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                 ) {
-                    CURRENCIES.forEach { code ->
+                    SUPPORTED_CURRENCY_CODES.forEach { code ->
                         FilterChip(
                             selected = currency == code,
                             onClick = { currency = code },

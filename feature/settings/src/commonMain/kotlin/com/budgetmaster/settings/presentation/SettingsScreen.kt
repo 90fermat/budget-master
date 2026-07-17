@@ -88,12 +88,11 @@ import com.budgetmaster.core.designsystem.DynamicSwatchColors
 import com.budgetmaster.core.designsystem.Spacing
 import com.budgetmaster.core.designsystem.colorScheme
 import com.budgetmaster.core.localization.AppLanguage
+import com.budgetmaster.core.currency.SUPPORTED_CURRENCY_CODES
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
-/** Currency codes offered in the picker. */
-private val CURRENCIES = listOf("USD", "EUR", "GBP", "XAF", "CAD", "NGN")
 
 /**
  * Settings screen: appearance (theme mode, brand palette, language), preferences,
@@ -209,7 +208,7 @@ fun SettingsScreen(
             )
             Spacer(modifier = Modifier.height(Spacing.small))
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.small)) {
-                CURRENCIES.forEach { code ->
+                SUPPORTED_CURRENCY_CODES.forEach { code ->
                     FilterChip(
                         selected = state.currency == code,
                         onClick = { viewModel.onIntent(SettingsIntent.CurrencySelected(code)) },

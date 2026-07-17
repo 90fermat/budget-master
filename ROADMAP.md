@@ -397,9 +397,25 @@ wasm canvas).
   previously-unused `ExchangeRateEntity` (cached pairs, reciprocal fallback, 1:1 for
   identical codes) + `CalculateNetWorthUseCase`. Wallets with no known rate are added at face
   value and the total is labelled approximate rather than silently mixing currencies.
-- [ ] **Rate source**: rates are read from the local cache; nothing populates it yet. A
-  fetcher (free FX endpoint, refreshed daily) is needed before multi-currency totals are
-  meaningful in the wild — tracked with Phase 6 networking/hardening.
+- [x] **Rate source — done.** `ExchangeRateFetcher` + `RefreshExchangeRatesUseCase` finally write
+  to `ExchangeRateEntity`, which until now was **only ever read**: nothing populated it, so any
+  wallet in a second currency was permanently unconvertible and net worth permanently
+  "approximate".
+  - Source is **ExchangeRate-API's open endpoint**: no API key (one embedded secret was enough)
+    and it covers every code in `SUPPORTED_CURRENCY_CODES`. The ECB-backed free APIs
+    (Frankfurter et al.) were the obvious alternative but publish neither **XAF nor NGN**, which
+    would leave two of the app's six currencies permanently unconvertible.
+  - Refreshes at most **once a day** (upstream updates daily and the endpoint is rate-limited),
+    re-keyed on the user's currency, and **fails silently** — rates are a nicety and an offline
+    launch must not be slower or noisier than an online one. A failed fetch never wipes the cache.
+  - Only supported pairs are stored: the endpoint returns ~160, which would bloat the table with
+    currencies the app cannot select.
+  - Attribution ("Rates By Exchange Rate API") is required by the provider's terms and sits on the
+    net-worth card, shown only when converted rates actually contributed.
+  - `SUPPORTED_CURRENCY_CODES` now lives in `:core`: the list was duplicated in the Settings
+    picker and the account editor, so adding a currency in one silently left the other behind.
+  - 9 tests: supported-pair filtering, the daily throttle, cache preserved on failure, and the
+    reciprocal path.
 
 ### Phase 2.6 — Google sign-in (0.5 week) — **code done, blocked on console setup**
 
@@ -642,10 +658,32 @@ Phase 8 screenshots.
   convention calls for ("January 20, 10:45 PM" / "20 janvier à 22:45").
 - [x] Dropped English `contentDescription` overrides that replaced localized button labels
   with an English accessible name regardless of app language (16 in total across Phases 4.5–5).
-- [ ] **Pseudo-locale truncation pass** — French averages ~20% longer than English. Done via
-  Roborazzi screenshot tests per locale (no sign-in needed), not by eyeballing a device.
-- [ ] **RTL smoke test** — render key screens with `LocalLayoutDirection = Rtl` to catch
-  hardcoded left/right padding before an RTL language is ever added.
+- [x] **Truncation pass — done, and it found real gaps.** `LocalizationScreenshotTest` renders the
+  dashboard in EN and FR via Roborazzi (no sign-in needed).
+  - Android's `en-XA` pseudo-locale was **not** used: it inflates strings at the *framework*
+    resource layer, but this app's strings come from compose-resources, which would fall back to
+    English and prove nothing. French is the real second locale and ~20% longer — the honest test.
+  - **Caught: the quick actions ("Add Expense"/"Add Income"/"Transfer") and the period chips
+    ("Week/Month/Year/All") were hardcoded English** and rendered so in a French UI. The Phase 5
+    grep sweep missed them because they are `label =` arguments and a `when` returning bare
+    strings, not `Text("…")`. Now localized; French wraps to two lines rather than clipping.
+  - The golden deliberately uses an **empty chart**: Vico populates through a coroutine, so
+    Robolectric captured whichever state it happened to be in and the image flickered between
+    runs with no code change. Empty is deterministic *and* covers the localized "no data" string.
+- [x] **RTL smoke test — done, and it found latent BiDi bugs.** Key screens render with
+  `LocalLayoutDirection = Rtl`. Layout mirroring is clean (no hardcoded left/right padding), but
+  bidirectional text reordering mangles number+symbol strings:
+  - `+2.4%` renders as `2.4%+` — the sign moves to the wrong end.
+  - `450,00 $US sur 500,00 $US` scrambles to `US sur 500,00 $US$ 450,00`, and clips.
+  - The balance flips from `12 450,80 $US` to `US$ 12 450,80`.
+  - **Not fixed, on purpose:** EN and FR are both LTR, so none of this is user-visible today. The
+    fix is Unicode BiDi isolation (FSI/PDI) around formatted amounts in `MoneyFormatter` and the
+    trend/percentage strings. Doing it now would be speculative work against a language the app
+    doesn't ship; the snapshots exist so whoever adds an RTL language starts from a known list
+    rather than a surprise.
+- [x] **The screenshot job was silently broken.** `DashboardScreenshotTest` stopped compiling when
+  `BalanceCard` gained a `currencyCode` parameter, so `verifyRoborazziDebug` — which CI does run —
+  could not have passed since the Phase 3 currency work. Fixed.
 
 > Not verified on device: the dashboard sits behind sign-in, so the localized category names
 > and date format are covered by compile + guard tests rather than a screenshot.

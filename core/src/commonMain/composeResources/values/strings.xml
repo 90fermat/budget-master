@@ -157,6 +157,14 @@
     <string name="settings_ai_unavailable">AI insights are not available in this build.</string>
     <string name="ai_disclaimer">AI-generated. Not financial advice.</string>
 
+    <string name="dashboard_add_expense">Add Expense</string>
+    <string name="dashboard_add_income">Add Income</string>
+    <string name="dashboard_transfer">Transfer</string>
+    <string name="period_week">Week</string>
+    <string name="period_month">Month</string>
+    <string name="period_year">Year</string>
+    <string name="period_all">All</string>
+
     <string name="dashboard_transaction_subtitle">%1$s • %2$s</string>
     <string name="dashboard_budget_spent_of">%1$s of %2$s</string>
     <string name="date_month_day">%1$s %2$d</string>
@@ -358,6 +366,8 @@
     <string name="accounts_edit">Edit account</string>
     <string name="accounts_all">All accounts</string>
     <string name="accounts_net_worth">Net worth</string>
+    <!-- Credit required by the exchange-rate provider's terms of use. -->
+    <string name="accounts_rates_attribution">Rates By Exchange Rate API</string>
     <string name="accounts_multi_currency_note">Across multiple currencies — total is approximate.</string>
     <string name="accounts_active_section">Active</string>
     <string name="accounts_archived_section">Archived</string>

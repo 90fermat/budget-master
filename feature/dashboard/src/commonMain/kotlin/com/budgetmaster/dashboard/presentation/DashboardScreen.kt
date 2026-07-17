@@ -26,6 +26,13 @@ import budgetmaster.core.generated.resources.Res
 import budgetmaster.core.generated.resources.dashboard_greeting
 import budgetmaster.core.generated.resources.dashboard_greeting_fallback
 import budgetmaster.core.generated.resources.dashboard_notifications
+import budgetmaster.core.generated.resources.dashboard_add_expense
+import budgetmaster.core.generated.resources.dashboard_add_income
+import budgetmaster.core.generated.resources.dashboard_transfer
+import budgetmaster.core.generated.resources.period_week
+import budgetmaster.core.generated.resources.period_month
+import budgetmaster.core.generated.resources.period_year
+import budgetmaster.core.generated.resources.period_all
 import com.budgetmaster.core.designsystem.components.GuidanceHost
 import com.budgetmaster.core.designsystem.components.HelpIconButton
 import com.budgetmaster.core.designsystem.components.rememberGuidance
@@ -230,7 +237,7 @@ private fun DashboardScrollableBody(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             QuickActionButton(
-                label = "Add Expense",
+                label = stringResource(Res.string.dashboard_add_expense),
                 icon = Icons.Default.Add,
                 backgroundColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -238,7 +245,7 @@ private fun DashboardScrollableBody(
                 onClick = { onIntent(DashboardIntent.QuickActionClicked(TransactionType.EXPENSE)) }
             )
             QuickActionButton(
-                label = "Add Income",
+                label = stringResource(Res.string.dashboard_add_income),
                 icon = Icons.Default.Add,
                 backgroundColor = MaterialTheme.colorScheme.secondary,
                 contentColor = MaterialTheme.colorScheme.onSecondary,
@@ -246,7 +253,7 @@ private fun DashboardScrollableBody(
                 onClick = { onIntent(DashboardIntent.QuickActionClicked(TransactionType.INCOME)) }
             )
             QuickActionButton(
-                label = "Transfer",
+                label = stringResource(Res.string.dashboard_transfer),
                 icon = Icons.Default.Refresh,
                 backgroundColor = MaterialTheme.colorScheme.surfaceVariant,
                 contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -369,10 +376,10 @@ private fun PeriodFilterRow(
                 label = {
                     Text(
                         text = when (period) {
-                            Period.WEEK -> "Week"
-                            Period.MONTH -> "Month"
-                            Period.YEAR -> "Year"
-                            Period.ALL -> "All"
+                            Period.WEEK -> stringResource(Res.string.period_week)
+                            Period.MONTH -> stringResource(Res.string.period_month)
+                            Period.YEAR -> stringResource(Res.string.period_year)
+                            Period.ALL -> stringResource(Res.string.period_all)
                         }
                     )
                 },
