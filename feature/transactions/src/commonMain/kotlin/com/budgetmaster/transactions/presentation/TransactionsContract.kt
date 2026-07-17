@@ -78,6 +78,8 @@ data class TransactionsState(
     val accounts: List<TransactionAccount> = emptyList(),
     val activeAccountId: String? = null,
     val editor: EditorState = EditorState(),
+    /** True when AI quick-add is available and the user has opted in; shows the parse field. */
+    val quickAddEnabled: Boolean = false,
 ) {
     val isEmpty: Boolean get() = !isLoading && groups.isEmpty()
 }

@@ -3,6 +3,8 @@ plugins {
     alias(libs.plugins.android.kmp.library)
     alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.compose.compiler)
+    // For @Serializable on the AI quick-add response DTO.
+    alias(libs.plugins.kotlin.serialization)
 }
 
 kotlin {
@@ -42,6 +44,8 @@ kotlin {
             implementation(project(":core"))
             implementation(libs.kotlinx.datetime)
             implementation(libs.kotlinx.coroutines.core)
+            // Parses the AI quick-add JSON response.
+            implementation(libs.ktor.serialization.kotlinx.json)
 
             // SQLDelight
             implementation(libs.sqldelight.runtime)

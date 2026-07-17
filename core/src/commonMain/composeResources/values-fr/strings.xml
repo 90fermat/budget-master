@@ -166,6 +166,13 @@
     <string name="period_year">Année</string>
     <string name="period_all">Tout</string>
 
+    <!-- Ajout rapide en langage naturel (IA) -->
+    <string name="transactions_quick_add_label">Ajout rapide avec l'IA</string>
+    <string name="transactions_quick_add_placeholder">ex. café 4,50 hier</string>
+    <string name="transactions_quick_add_action">Analyser</string>
+    <string name="transactions_quick_add_no_amount">Montant introuvable. Ajoutez un nombre, comme « déjeuner 12 ».</string>
+    <string name="transactions_quick_add_failed">Lecture impossible. Remplissez plutôt les champs ci-dessous.</string>
+
     <string name="dashboard_transaction_subtitle">%1$s • %2$s</string>
     <string name="dashboard_budget_spent_of">%1$s sur %2$s</string>
     <string name="date_month_day">%2$d %1$s</string>

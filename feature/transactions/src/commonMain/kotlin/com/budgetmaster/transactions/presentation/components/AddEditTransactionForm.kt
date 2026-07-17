@@ -16,8 +16,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -34,14 +38,21 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import budgetmaster.core.generated.resources.Res
 import budgetmaster.core.generated.resources.action_cancel
 import budgetmaster.core.generated.resources.action_ok
+import budgetmaster.core.generated.resources.transactions_quick_add_action
+import budgetmaster.core.generated.resources.transactions_quick_add_failed
+import budgetmaster.core.generated.resources.transactions_quick_add_label
+import budgetmaster.core.generated.resources.transactions_quick_add_no_amount
+import budgetmaster.core.generated.resources.transactions_quick_add_placeholder
 import budgetmaster.core.generated.resources.transactions_account_label
 import budgetmaster.core.generated.resources.transactions_add_title
 import budgetmaster.core.generated.resources.transactions_amount_label
@@ -66,6 +77,10 @@ import com.budgetmaster.transactions.domain.model.TransactionAccount
 import com.budgetmaster.transactions.domain.model.TransactionCategory
 import com.budgetmaster.transactions.domain.model.TransactionDraft
 import com.budgetmaster.transactions.domain.model.TransactionItem
+import com.budgetmaster.transactions.domain.usecase.QuickEntryDraft
+import com.budgetmaster.transactions.domain.usecase.QuickEntryError
+import com.budgetmaster.transactions.domain.usecase.QuickEntryException
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
@@ -85,6 +100,10 @@ internal fun AddEditTransactionForm(
     onSave: (TransactionDraft) -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
+    // AI quick-add: only shown when a provider exists and the user opted in. Parses a note like
+    // "coffee 4.50 yesterday" and fills the fields below; the user still reviews and saves.
+    quickAddEnabled: Boolean = false,
+    onQuickParse: suspend (String) -> Result<QuickEntryDraft> = { Result.failure(NotImplementedError()) },
 ) {
     var isExpense by remember { mutableStateOf(editing?.isExpense ?: true) }
     var amountText by remember {
@@ -140,6 +159,21 @@ internal fun AddEditTransactionForm(
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
         )
+
+        // Quick-add is for new entries only: prefilling the fields of an edit would fight the
+        // values the user is already correcting.
+        if (quickAddEnabled && editing == null) {
+            QuickAddField(
+                onParse = onQuickParse,
+                onParsed = { draft ->
+                    isExpense = draft.isExpense
+                    amountText = draft.amountAbs.toString()
+                    description = draft.description
+                    draft.categoryId?.let { categoryId = it }
+                    timestamp = draft.timestamp
+                },
+            )
+        }
 
         // Expense / Income toggle
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.small)) {
@@ -291,3 +325,74 @@ internal fun AddEditTransactionForm(
         Spacer(Modifier.height(Spacing.small))
     }
 }
+
+/**
+ * The natural-language quick-add field: type "coffee 4.50 yesterday", tap parse, and the fields
+ * below fill in for review. It fills the form rather than saving — AI drafts an entry, it never
+ * records money on its own.
+ */
+@Composable
+private fun QuickAddField(
+    onParse: suspend (String) -> Result<QuickEntryDraft>,
+    onParsed: (QuickEntryDraft) -> Unit,
+) {
+    var text by remember { mutableStateOf("") }
+    var parsing by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+
+    // Resolved here because a coroutine callback can't call stringResource.
+    val noAmountMsg = stringResource(Res.string.transactions_quick_add_no_amount)
+    val failedMsg = stringResource(Res.string.transactions_quick_add_failed)
+
+    val submit: () -> Unit = submit@{
+        if (parsing || text.isBlank()) return@submit
+        parsing = true
+        error = null
+        scope.launch {
+            onParse(text)
+                .onSuccess { draft ->
+                    onParsed(draft)
+                    text = ""
+                }
+                .onFailure {
+                    error = if ((it as? QuickEntryException)?.error == QuickEntryError.NoAmount) {
+                        noAmountMsg
+                    } else {
+                        failedMsg
+                    }
+                }
+            parsing = false
+        }
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.micro)) {
+        OutlinedTextField(
+            value = text,
+            onValueChange = { text = it; error = null },
+            label = { Text(stringResource(Res.string.transactions_quick_add_label)) },
+            placeholder = { Text(stringResource(Res.string.transactions_quick_add_placeholder)) },
+            singleLine = true,
+            enabled = !parsing,
+            isError = error != null,
+            shape = RoundedCornerShape(14.dp),
+            leadingIcon = { Icon(Icons.Default.AutoAwesome, contentDescription = null) },
+            trailingIcon = {
+                if (parsing) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                } else {
+                    TextButton(onClick = submit, enabled = text.isNotBlank()) {
+                        Text(stringResource(Res.string.transactions_quick_add_action))
+                    }
+                }
+            },
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { submit() }),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        error?.let {
+            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+        }
+    }
+}
+

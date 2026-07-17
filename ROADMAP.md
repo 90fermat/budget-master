@@ -851,13 +851,19 @@ Phase 8 screenshots.
   server-side — console-gated, and worth less than the master switch above until then.
 
 **7.1 — Smart capture** (needs Phase 1 transactions)
-- [ ] **Auto-categorization**: merchant/description → category. Gemini Nano on-device when
-  available, Flash-Lite free tier otherwise, rule-based fallback offline. Learned
-  merchant→category pairs cached locally so each merchant is asked once.
-- [ ] **Natural-language quick add**: "coffee 4.50 yesterday" → parsed amount/category/date
-  pre-filling the add-transaction sheet.
-- [ ] **Receipt scan**: ML Kit on-device text recognition (free) + Gemini multimodal parse
-  into a draft transaction — powers the existing Transactions FAB.
+- [x] **Natural-language quick add — done.** `ParseQuickEntryUseCase` turns "coffee 4.50
+  yesterday" into draft fields (amount, expense/income, description, category, date) that prefill
+  the add-transaction form for the user to confirm — AI drafts an entry, it never records money.
+  Built on the shared `GenAiClient` seam with a structured schema, so `categoryId` can only be a
+  real seeded id and the date is resolved **on device** from a relative `daysAgo` the model
+  returns (never a wall-clock timestamp it would guess wrong). Same consent gate as every AI
+  surface: the field shows only when a provider exists *and* the user opted in, and the prompt
+  carries only the note the user just typed plus the category list — no ledger. 9 tests.
+- [ ] **Auto-categorization** (description → category on its own, cached per merchant) — largely
+  subsumed by quick-add, which already returns a category. The standalone version (suggest a
+  category while typing a normal entry, learned pairs cached locally) is the remaining slice.
+- [ ] **Receipt scan** — needs ML Kit on-device OCR **and a camera**, so it can't be built or
+  verified in this environment. Genuinely blocked on hardware, not just deferred.
 
 **7.2 — Coaching & analysis** (needs Phases 2–3 budgets/reports)
 - [ ] **Monthly narrative summary**: locally computed aggregates → Gemini writes the

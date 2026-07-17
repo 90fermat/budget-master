@@ -1,7 +1,5 @@
 package com.budgetmaster.dashboard.di
 
-import com.budgetmaster.core.ai.GenAiClient
-import com.budgetmaster.core.ai.createGenAiClient
 import com.budgetmaster.dashboard.data.repository.SqlDelightDashboardRepository
 import com.budgetmaster.dashboard.data.service.GeminiInsightsService
 import com.budgetmaster.dashboard.domain.repository.DashboardRepository
@@ -19,9 +17,7 @@ import org.koin.dsl.module
  */
 val dashboardModule = module {
     // Data & Service Layer
-    // The platform's GenAiClient: Firebase AI Logic on Android, "unavailable" elsewhere until
-    // those SDKs are bridged. No API key is involved on any target.
-    single<GenAiClient> { createGenAiClient() }
+    // GenAiClient is provided by coreModule (shared across features); we just consume it here.
     single { GeminiInsightsService(databaseProvider = get(), genAiClient = get()) }
     single<DashboardRepository> { SqlDelightDashboardRepository(get(), get(), get(), get()) }
 

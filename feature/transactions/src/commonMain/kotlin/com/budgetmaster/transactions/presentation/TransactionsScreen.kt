@@ -203,6 +203,8 @@ fun TransactionsScreen(
                                 activeAccountId = state.activeAccountId,
                                 onSave = { viewModel.onIntent(TransactionsIntent.SaveTransaction(it)) },
                                 onCancel = { viewModel.onIntent(TransactionsIntent.EditorDismissed) },
+                                quickAddEnabled = state.quickAddEnabled,
+                                onQuickParse = viewModel::parseQuickEntry,
                             )
                         }
                     }
@@ -341,6 +343,8 @@ private fun TransactionEditor(state: TransactionsState, viewModel: TransactionsV
                 activeAccountId = state.activeAccountId,
                 onSave = { viewModel.onIntent(TransactionsIntent.SaveTransaction(it)) },
                 onCancel = { viewModel.onIntent(TransactionsIntent.EditorDismissed) },
+                quickAddEnabled = state.quickAddEnabled,
+                onQuickParse = viewModel::parseQuickEntry,
             )
         }
         if (isCompact) {

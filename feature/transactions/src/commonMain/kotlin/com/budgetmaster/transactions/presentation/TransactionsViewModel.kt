@@ -13,6 +13,8 @@ import com.budgetmaster.transactions.domain.usecase.DeleteTransactionUseCase
 import com.budgetmaster.transactions.domain.usecase.ObserveCategoriesUseCase
 import com.budgetmaster.transactions.domain.usecase.ObserveTransactionAccountsUseCase
 import com.budgetmaster.transactions.domain.usecase.ObserveTransactionsUseCase
+import com.budgetmaster.transactions.domain.usecase.ParseQuickEntryUseCase
+import com.budgetmaster.transactions.domain.usecase.QuickEntryDraft
 import com.budgetmaster.transactions.domain.usecase.RestoreTransactionUseCase
 import com.budgetmaster.transactions.domain.usecase.SaveTransactionUseCase
 import kotlinx.coroutines.flow.map
@@ -47,6 +49,7 @@ class TransactionsViewModel(
     private val saveTransaction: SaveTransactionUseCase,
     private val deleteTransaction: DeleteTransactionUseCase,
     private val restoreTransaction: RestoreTransactionUseCase,
+    private val parseQuickEntry: ParseQuickEntryUseCase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(TransactionsState())
@@ -70,8 +73,17 @@ class TransactionsViewModel(
             .launchIn(viewModelScope)
 
         settingsRepository.settings
-            .map { it.currency }
-            .onEach { currency -> _state.update { it.copy(currencyCode = currency) } }
+            .onEach { settings ->
+                _state.update {
+                    it.copy(
+                        currencyCode = settings.currency,
+                        // Quick-add appears only when a provider exists *and* the user opted in —
+                        // it sends the typed text to the model, so it obeys the same consent gate
+                        // as every other AI surface.
+                        quickAddEnabled = parseQuickEntry.isAvailable && settings.aiEnabled,
+                    )
+                }
+            }
             .launchIn(viewModelScope)
 
         activeAccountStore.activeAccountId
@@ -118,6 +130,13 @@ class TransactionsViewModel(
                 _state.update { it.copy(editor = EditorState(visible = false)) }
         }
     }
+
+    /**
+     * Parses a natural-language note ("coffee 4.50 yesterday") into draft fields the editor
+     * prefills. Suspends for the form to await; nothing is saved — the user still confirms.
+     */
+    suspend fun parseQuickEntry(text: String): Result<QuickEntryDraft> =
+        parseQuickEntry.invoke(text, _state.value.categories)
 
     private fun delete(id: String) {
         val target = _state.value.groups.flatMap { it.items }.firstOrNull { it.id == id } ?: return

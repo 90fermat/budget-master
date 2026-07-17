@@ -15,7 +15,11 @@ import com.budgetmaster.transactions.domain.usecase.ObserveCategoriesUseCase
 import com.budgetmaster.transactions.domain.usecase.ObserveTransactionAccountsUseCase
 import com.budgetmaster.transactions.domain.usecase.ObserveTransactionsUseCase
 import com.budgetmaster.transactions.domain.usecase.RestoreTransactionUseCase
+import com.budgetmaster.transactions.domain.usecase.ParseQuickEntryUseCase
 import com.budgetmaster.transactions.domain.usecase.SaveTransactionUseCase
+import com.budgetmaster.core.ai.GenAiClient
+import com.budgetmaster.core.ai.GenAiException
+import com.budgetmaster.core.ai.GenAiSchema
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -65,6 +69,14 @@ class TransactionsViewModelTest {
         saveTransaction = SaveTransactionUseCase(repository),
         deleteTransaction = DeleteTransactionUseCase(repository),
         restoreTransaction = RestoreTransactionUseCase(repository),
+        // No AI provider in unit tests; quick-add stays disabled, which these tests don't exercise.
+        parseQuickEntry = ParseQuickEntryUseCase(
+            object : GenAiClient {
+                override val isAvailable = false
+                override suspend fun generateJson(prompt: String, schema: GenAiSchema) =
+                    throw GenAiException.Unavailable()
+            },
+        ),
     )
 
     @BeforeTest fun setUp() = Dispatchers.setMain(dispatcher)
