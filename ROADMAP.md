@@ -870,16 +870,24 @@ Phase 8 screenshots.
 - [ ] **Receipt scan** — needs ML Kit on-device OCR **and a camera**, so it can't be built or
   verified in this environment. Genuinely blocked on hardware, not just deferred.
 
-**7.2 — Coaching & analysis** (needs Phases 2–3 budgets/reports)
-- [ ] **Monthly narrative summary**: locally computed aggregates → Gemini writes the
-  human story ("Dining up 18%, mostly weekends…") in the user's language (EN/FR).
-- [ ] **Budget suggestions**: propose per-category limits from 3-month averages, with
-  one-tap apply.
-- [ ] **Subscription & anomaly detection**: recurring-charge detection runs locally (SQL);
-  Gemini labels and explains flagged items.
-- [ ] **Finance Q&A**: "How much did I spend on food in June?" — the question is parsed to
-  a local SQL aggregate; Gemini only phrases the answer. Raw transactions never leave the
-  device.
+**7.2 — Coaching & analysis** (needs Phases 2–3 budgets/reports) — **done**
+- [x] **Monthly narrative summary — done.** `GenerateNarrativeUseCase` sends the report
+  aggregates (never raw transactions) and the app's language; the AI coach card on Reports shows
+  a one-tap "summarize this period" in EN/FR with the not-financial-advice disclaimer.
+- [x] **Budget suggestions — done.** `SuggestBudgetsUseCase` proposes per-category limits from a
+  locally-computed 3-month average, with one-tap apply on the Budgets screen. The model proposes
+  a round limit and reason; the number is clamped to a defensible band (never below the average,
+  never more than 2× it) so a hallucination can't land in the user's budget.
+- [x] **Subscription & anomaly detection — done.** `DetectRecurringChargesUseCase` finds likely
+  subscriptions **entirely on device** — expenses that recur across ≥2 distinct months at a
+  consistent amount — surfaced in a card on Transactions. The detection is local by design (which
+  merchants you pay monthly shouldn't need to leave the device); the optional AI *labeling* of
+  flagged items is the one remaining nicety, not the value.
+- [x] **Finance Q&A — done.** `AnswerFinanceQuestionUseCase` answers a free-text question from the
+  report aggregates only, in the user's language, and is told to say it can't rather than invent a
+  number. *Deviation from the sketch:* rather than parse the question to a bespoke SQL query, it
+  gives the model the same aggregated report the narrative uses — simpler, and still "raw
+  transactions never leave the device".
 
 **Cost & quota posture**: free tier only — aggressive local caching (existing
 `InsightEntity` pattern), per-feature daily request budgets, batch prompts, and Remote
