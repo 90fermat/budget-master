@@ -872,11 +872,14 @@ Phase 8 screenshots.
   returns (never a wall-clock timestamp it would guess wrong). Same consent gate as every AI
   surface: the field shows only when a provider exists *and* the user opted in, and the prompt
   carries only the note the user just typed plus the category list — no ledger. 9 tests.
-- [ ] **Auto-categorization** (description → category on its own, cached per merchant) — largely
-  subsumed by quick-add, which already returns a category. The standalone version (suggest a
-  category while typing a normal entry, learned pairs cached locally) is the remaining slice.
-- [ ] **Receipt scan** — needs ML Kit on-device OCR **and a camera**, so it can't be built or
-  verified in this environment. Genuinely blocked on hardware, not just deferred.
+- [x] **Auto-categorization — done.** `SuggestCategoryUseCase` suggests a category from a typed
+  description as a dismissible chip in the editor, with the learned `description → categoryId` pair
+  cached in `KeyValueStore` so each merchant is asked once (a cache hit never calls the model).
+  Enum schema so it can't invent a category; failures swallowed to null. 5 tests.
+- [ ] **Receipt scan** — the one remaining Phase 7 item. Needs ML Kit on-device OCR **and a
+  camera**: the OCR→parse step is buildable and testable (it's `ParseQuickEntry` over OCR text),
+  but the capture path (camera permission + image capture UI) is Android-only and can't be
+  *verified* without a device camera. Left for a focused pass on real hardware.
 
 **7.2 — Coaching & analysis** (needs Phases 2–3 budgets/reports) — **done**
 - [x] **Monthly narrative summary — done.** `GenerateNarrativeUseCase` sends the report
