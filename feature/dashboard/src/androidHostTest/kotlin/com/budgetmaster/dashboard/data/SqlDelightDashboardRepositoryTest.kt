@@ -4,6 +4,9 @@ package com.budgetmaster.dashboard.data
 
 import app.cash.sqldelight.async.coroutines.synchronous
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
+import com.budgetmaster.core.ai.GenAiClient
+import com.budgetmaster.core.ai.GenAiException
+import com.budgetmaster.core.ai.GenAiSchema
 import com.budgetmaster.core.db.BudgetMasterDatabase
 import com.budgetmaster.core.db.DatabaseProvider
 import com.budgetmaster.core.model.Transaction
@@ -34,7 +37,15 @@ class SqlDelightDashboardRepositoryTest {
     fun setUp() {
         database = TestDatabaseHelper.createInMemoryDatabase()
         databaseProvider = DatabaseProvider(database)
-        mockInsightsService = GeminiInsightsService(databaseProvider, apiKeyProvider = { "" })
+        // These tests cover the repository's other queries; AI is off, so insights stay empty.
+        mockInsightsService = GeminiInsightsService(
+            databaseProvider = databaseProvider,
+            genAiClient = object : GenAiClient {
+                override val isAvailable = false
+                override suspend fun generateJson(prompt: String, schema: GenAiSchema): String =
+                    throw GenAiException.Unavailable()
+            },
+        )
         repository = SqlDelightDashboardRepository(
             databaseProvider,
             mockInsightsService,

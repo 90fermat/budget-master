@@ -66,6 +66,9 @@ kotlin {
             implementation(libs.sqldelight.driver.android)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.androidx.datastore.preferences)
+            // Firebase AI Logic: Android-only, so iOS/Wasm get the unavailable GenAiClient.
+            implementation(project.dependencies.platform(libs.firebase.bom))
+            implementation(libs.firebase.ai)
         }
         
         iosMain.dependencies {

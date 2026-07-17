@@ -77,6 +77,9 @@ android {
 
     buildFeatures {
         compose = true
+        // For BuildConfig.DEBUG, which selects the App Check provider (debug token vs Play
+        // Integrity). AGP does not generate BuildConfig unless asked.
+        buildConfig = true
     }
 
     packaging {
@@ -123,6 +126,12 @@ dependencies {
     implementation(libs.androidx.work.runtime)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.appcompat)
+
+    // App Check, required by Firebase AI Logic. Play Integrity attests real release installs;
+    // debug builds use a token registered in the console (see BudgetMasterApplication).
+    implementation(project.dependencies.platform(libs.firebase.bom))
+    implementation(libs.firebase.appcheck.playintegrity)
+    debugImplementation(libs.firebase.appcheck.debug)
     debugImplementation(libs.ui.tooling)
 
     // Screenshot tests (Roborazzi + Robolectric) for shared Compose UI.

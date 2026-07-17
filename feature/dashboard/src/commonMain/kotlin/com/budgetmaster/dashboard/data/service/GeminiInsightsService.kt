@@ -3,53 +3,39 @@
 package com.budgetmaster.dashboard.data.service
 
 import app.cash.sqldelight.async.coroutines.awaitAsList
+import com.budgetmaster.core.ai.GenAiClient
+import com.budgetmaster.core.ai.GenAiException
+import com.budgetmaster.core.ai.GenAiSchema
 import com.budgetmaster.core.db.DatabaseProvider
 import com.budgetmaster.core.model.Transaction
-import com.budgetmaster.dashboard.config.BuildConfig
+import com.budgetmaster.dashboard.data.remote.model.GeminiInsightDto
 import com.budgetmaster.dashboard.domain.model.Insight
 import com.budgetmaster.dashboard.domain.model.InsightType
-import com.budgetmaster.dashboard.data.remote.model.*
-import io.ktor.client.*
-import io.ktor.client.call.*
-import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
-import io.ktor.http.*
-import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.withTimeout
-
 import kotlinx.serialization.json.Json
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 /**
- * Service calling the Gemini API to analyze transactions and generate spending insights.
- * Implements local caching with SQLDelight and error resilience (timeout, rate limiting).
+ * Turns a user's spending into insights, via whatever model provider [GenAiClient] wraps.
+ *
+ * Caches results for 24 h in SQLDelight and never crashes the dashboard: any failure falls back
+ * to the cache, or to nothing.
  *
  * **Only aggregates leave the device.** The prompt carries per-category totals and the period's
  * income/expense sums — never descriptions (free text, and users put names in them), timestamps,
  * or ids. Sending the raw ledger to a third party is not something a finance app should do, and
  * the aggregates are what the model actually reasons about anyway.
  *
- * When no API key is configured the service is [isConfigured] `false` and returns nothing: it
- * used to answer with hardcoded "mock" insights that stated invented figures ("coffee spending
- * up 15%") as though they were real analysis of the user's money.
+ * Two behaviours worth keeping: without a provider this returns nothing rather than the
+ * hardcoded "mock" insights it used to invent ("coffee spending up 15%") and present as real
+ * analysis; and the request goes through Firebase AI Logic, so no API key ships in the app.
  */
 class GeminiInsightsService(
     private val databaseProvider: DatabaseProvider,
-    private val httpClient: HttpClient = HttpClient {
-        install(ContentNegotiation) {
-            json(Json {
-                ignoreUnknownKeys = true
-                prettyPrint = true
-                isLenient = true
-            })
-        }
-    },
-    private val apiKeyProvider: () -> String = { BuildConfig.GEMINI_API_KEY },
-    /** Waits between 429 retries. Tests override it so they don't actually sleep. */
+    private val genAiClient: GenAiClient,
+    /** Waits between rate-limit retries. Tests override it so they don't actually sleep. */
     private val retryBackoffMs: List<Long> = RETRY_BACKOFF_MS,
 ) {
     private val jsonConfiguration = Json {
@@ -59,14 +45,11 @@ class GeminiInsightsService(
     }
 
     /**
-     * Whether a usable API key is present. False in any build that did not supply one — which is
-     * every release build, since shipping the key would put it in the bundle for anyone to
-     * extract. Callers should hide the AI surface entirely rather than show an empty section.
+     * Whether a provider is wired on this platform. False on iOS and Web until their SDKs are
+     * bridged. Callers should hide the AI surface entirely rather than show an empty section.
      */
     val isConfigured: Boolean
-        get() = apiKeyProvider().let { key ->
-            key.isNotBlank() && key !in PLACEHOLDER_KEYS
-        }
+        get() = genAiClient.isAvailable
 
     /**
      * Retrieves insights either from local cache (if age < 24h) or generates them via Gemini.
@@ -100,13 +83,12 @@ class GeminiInsightsService(
             }
         }
 
-        // 2. Fetch from Gemini API
+        // 2. Generate
         try {
-            val apiKey = apiKeyProvider()
             if (!isConfigured) {
-                // No key: answer with the cache if we have one, otherwise nothing at all. Never
-                // invent insights — a fabricated "your coffee spending rose 15%" is worse than
-                // silence in an app whose whole job is telling the user the truth about money.
+                // No provider: answer with the cache if we have one, otherwise nothing at all.
+                // Never invent insights — a fabricated "your coffee spending rose 15%" is worse
+                // than silence in an app whose whole job is telling the truth about money.
                 return cachedEntities.map { entity ->
                     Insight(
                         id = entity.id,
@@ -119,7 +101,7 @@ class GeminiInsightsService(
             }
 
             val prompt = buildPrompt(transactions, languageTag)
-            val responseText = requestInsightsWithBackoff(apiKey, prompt)
+            val responseText = requestInsightsWithBackoff(prompt)
 
             // Parse response json string to DTOs
             val dtos = jsonConfiguration.decodeFromString<List<GeminiInsightDto>>(responseText)
@@ -184,48 +166,26 @@ class GeminiInsightsService(
     }
 
     /**
-     * Posts the prompt, retrying a 429 with exponential backoff.
+     * Generates, retrying a rate limit with exponential backoff.
      *
-     * The free tier rate-limits per minute, so a 429 usually means "wait", not "give up" — the
-     * previous behaviour fell straight back to a stale cache on the first one. Only 429 is
-     * retried: a 400 or a 403 will fail identically however long we wait. The timeout wraps each
-     * attempt rather than the whole loop, so a retry gets a full budget instead of inheriting
-     * whatever the first attempt left.
+     * The free tier rate-limits per minute, so being rate-limited usually means "wait", not "give
+     * up" — the previous behaviour fell straight back to a stale cache on the first one. Only
+     * [GenAiException.RateLimited] is retried; every other failure will fail identically however
+     * long we wait.
      */
-    private suspend fun requestInsightsWithBackoff(apiKey: String, prompt: String): String {
-        var lastRateLimit: RateLimitException? = null
+    private suspend fun requestInsightsWithBackoff(prompt: String): String {
+        var lastRateLimit: GenAiException.RateLimited? = null
 
         // One initial attempt plus one per backoff step.
         repeat(retryBackoffMs.size + 1) { attempt ->
             if (attempt > 0) delay(retryBackoffMs[attempt - 1])
             try {
-                return withTimeout(REQUEST_TIMEOUT_MS) {
-                    val httpResponse: HttpResponse = httpClient.post(GENERATE_CONTENT_URL) {
-                        parameter("key", apiKey)
-                        contentType(ContentType.Application.Json)
-                        setBody(
-                            GeminiRequest(
-                                contents = listOf(Content(parts = listOf(Part(text = prompt)))),
-                                generationConfig = GenerationConfig(
-                                    responseMimeType = "application/json",
-                                    responseSchema = INSIGHTS_SCHEMA,
-                                ),
-                            ),
-                        )
-                    }
-
-                    if (httpResponse.status == HttpStatusCode.TooManyRequests) throw RateLimitException()
-                    if (!httpResponse.status.isSuccess()) throw ApiException("HTTP error: ${httpResponse.status}")
-
-                    httpResponse.body<GeminiResponse>()
-                        .candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
-                        ?: throw ParseException("Empty response from Gemini")
-                }
-            } catch (e: RateLimitException) {
+                return genAiClient.generateJson(prompt, INSIGHTS_SCHEMA)
+            } catch (e: GenAiException.RateLimited) {
                 lastRateLimit = e
             }
         }
-        throw lastRateLimit ?: RateLimitException()
+        throw lastRateLimit ?: GenAiException.RateLimited()
     }
 
     /** Two decimals is all the precision an insight needs, and it keeps the prompt small. */
@@ -288,40 +248,23 @@ class GeminiInsightsService(
     private class ParseException(msg: String) : Exception(msg)
 
     private companion object {
-        /** Values that look like a key but aren't one; treated the same as "no key". */
-        val PLACEHOLDER_KEYS = setOf(
-            "MOCK_IOS_API_KEY",
-            "MOCK_WASM_API_KEY",
-            "YOUR_WASM_API_KEY",
-            "YOUR_IOS_API_KEY",
-        )
-
         /**
-         * The exact shape [GeminiInsightDto] parses, enforced by the API rather than requested in
-         * prose. `actionRoute` is an enum so the model cannot invent a screen that does not exist.
+         * The exact shape [GeminiInsightDto] parses, enforced by the provider rather than
+         * requested in prose. `actionRoute` is an enum so the model cannot invent a screen that
+         * does not exist, and is optional because not every insight leads somewhere.
          */
-        val INSIGHTS_SCHEMA = Schema(
-            type = "ARRAY",
-            items = Schema(
-                type = "OBJECT",
+        val INSIGHTS_SCHEMA = GenAiSchema.Arr(
+            items = GenAiSchema.Obj(
                 properties = mapOf(
-                    "type" to Schema(type = "STRING", enum = listOf("SPENDING", "SAVING", "TREND")),
-                    "message" to Schema(type = "STRING", description = "At most 80 characters."),
-                    "actionRoute" to Schema(
-                        type = "STRING",
-                        nullable = true,
-                        enum = listOf("transactions", "budgets", "goals"),
-                    ),
+                    "type" to GenAiSchema.Enumeration(listOf("SPENDING", "SAVING", "TREND")),
+                    "message" to GenAiSchema.Str(description = "At most 80 characters."),
+                    "actionRoute" to GenAiSchema.Enumeration(listOf("transactions", "budgets", "goals")),
                 ),
-                required = listOf("type", "message"),
+                optional = listOf("actionRoute"),
             ),
         )
 
-        /** Free-tier 429s are common and transient; these are the waits between retries. */
+        /** Free-tier rate limits are common and transient; these are the waits between retries. */
         val RETRY_BACKOFF_MS = listOf(1_000L, 4_000L)
-
-        const val REQUEST_TIMEOUT_MS = 10_000L
-        const val GENERATE_CONTENT_URL =
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
     }
 }

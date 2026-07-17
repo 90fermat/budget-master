@@ -2,30 +2,48 @@
 
 package com.budgetmaster.dashboard.data
 
-import app.cash.sqldelight.async.coroutines.synchronous
-import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
+import com.budgetmaster.core.ai.GenAiClient
+import com.budgetmaster.core.ai.GenAiException
+import com.budgetmaster.core.ai.GenAiSchema
 import com.budgetmaster.core.db.BudgetMasterDatabase
 import com.budgetmaster.core.db.DatabaseProvider
 import com.budgetmaster.core.model.Transaction
 import com.budgetmaster.dashboard.data.service.GeminiInsightsService
-import com.budgetmaster.dashboard.domain.model.Insight
 import com.budgetmaster.dashboard.domain.model.InsightType
-import io.ktor.client.*
-import io.ktor.client.engine.mock.*
-import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.client.request.HttpRequestData
-import io.ktor.http.*
-import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.test.runTest
 import kotlin.time.Clock
-import kotlinx.serialization.json.Json
 import kotlin.test.BeforeTest
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-import kotlin.test.assertContains
+
+/**
+ * A scripted [GenAiClient].
+ *
+ * These tests used to mock HTTP, because the service spoke the GenerateContent REST protocol
+ * itself. It now goes through `GenAiClient` (Firebase AI Logic on Android), so the seam is this
+ * interface and the tests say what they mean.
+ *
+ * @param available Whether a provider exists on this platform.
+ * @param respond Called per attempt with the 1-based attempt number; throw to simulate failure.
+ */
+private class FakeGenAiClient(
+    override val isAvailable: Boolean = true,
+    val respond: (attempt: Int) -> String = { "[]" },
+) : GenAiClient {
+    var calls = 0
+    var lastPrompt: String? = null
+    var lastSchema: GenAiSchema? = null
+
+    override suspend fun generateJson(prompt: String, schema: GenAiSchema): String {
+        calls++
+        lastPrompt = prompt
+        lastSchema = schema
+        return respond(calls)
+    }
+}
 
 class GeminiInsightsServiceTest {
 
@@ -38,109 +56,58 @@ class GeminiInsightsServiceTest {
         databaseProvider = DatabaseProvider(database)
     }
 
+    private fun service(
+        client: GenAiClient,
+        backoff: List<Long> = listOf(0L, 0L), // no real sleeping in a test
+    ) = GeminiInsightsService(
+        databaseProvider = databaseProvider,
+        genAiClient = client,
+        retryBackoffMs = backoff,
+    )
+
     /**
-     * With no key the service must say nothing at all.
+     * With no provider the service must say nothing at all.
      *
      * This test previously asserted the opposite — that three "mock" insights came back — which
      * pinned in place a dashboard that told users invented things about their money ("coffee
-     * spending up 15%") in any build without a key, which is every release build.
+     * spending up 15%") whenever no key was configured.
      */
     @Test
-    fun testGetInsightsReturnsNothingAndIsNotConfiguredWithoutApiKey() = runBlocking {
-        val service = GeminiInsightsService(
-            databaseProvider = databaseProvider,
-            httpClient = failingClient(),
-            apiKeyProvider = { "" }
-        )
+    fun testReturnsNothingAndIsNotConfiguredWithoutAProvider() = runBlocking {
+        val client = FakeGenAiClient(isAvailable = false) { error("must not generate without a provider") }
+        val service = service(client)
 
         assertFalse(service.isConfigured)
         assertTrue(service.getInsights(emptyList(), forceRefresh = false).isEmpty())
-    }
-
-    /** A placeholder key is not a key: same silence, so a stray placeholder can't enable AI. */
-    @Test
-    fun testPlaceholderApiKeyIsTreatedAsUnconfigured() = runBlocking {
-        val service = GeminiInsightsService(
-            databaseProvider = databaseProvider,
-            httpClient = failingClient(),
-            apiKeyProvider = { "MOCK_IOS_API_KEY" }
-        )
-
-        assertFalse(service.isConfigured)
-        assertTrue(service.getInsights(emptyList(), forceRefresh = false).isEmpty())
-    }
-
-    /** Fails the test rather than the request if an unconfigured service still calls out. */
-    private fun failingClient() = HttpClient(MockEngine) {
-        engine {
-            addHandler { error("The service must not call Gemini without a configured key") }
-        }
-        install(ContentNegotiation) {
-            json(Json { ignoreUnknownKeys = true })
-        }
+        assertEquals(0, client.calls)
     }
 
     /**
-     * A free-tier 429 means "wait", not "give up": the service used to fall straight back to a
-     * stale cache on the first one. It should retry and succeed.
+     * A rate limit means "wait", not "give up": the service used to fall straight back to a stale
+     * cache on the first one. It should retry and succeed.
      */
     @Test
     fun testRateLimitIsRetriedWithBackoffAndThenSucceeds() = runBlocking {
-        var calls = 0
-        val client = HttpClient(MockEngine) {
-            engine {
-                addHandler {
-                    calls++
-                    if (calls == 1) {
-                        respond("rate limited", HttpStatusCode.TooManyRequests)
-                    } else {
-                        respond(
-                            """{"candidates":[{"content":{"parts":[{"text":"[{\"type\":\"TREND\",\"message\":\"ok\"}]"}]}}]}""",
-                            HttpStatusCode.OK,
-                            headersOf(HttpHeaders.ContentType, "application/json"),
-                        )
-                    }
-                }
-            }
-            install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
+        val client = FakeGenAiClient { attempt ->
+            if (attempt == 1) throw GenAiException.RateLimited()
+            """[{"type":"TREND","message":"ok"}]"""
         }
-        val service = GeminiInsightsService(
-            databaseProvider = databaseProvider,
-            httpClient = client,
-            apiKeyProvider = { "test-key" },
-            retryBackoffMs = listOf(0L, 0L), // no real sleeping in a test
-        )
 
-        val result = service.getInsights(emptyList(), forceRefresh = true)
+        val result = service(client).getInsights(emptyList(), forceRefresh = true)
 
-        assertEquals(2, calls, "expected one retry after the 429")
+        assertEquals(2, client.calls, "expected one retry after the rate limit")
         assertEquals(1, result.size)
         assertEquals(InsightType.TREND, result[0].type)
     }
 
-    /** A non-429 failure will fail the same way however long we wait, so it must not retry. */
+    /** Any other failure will fail the same way however long we wait, so it must not retry. */
     @Test
     fun testNonRateLimitErrorIsNotRetried() = runBlocking {
-        var calls = 0
-        val client = HttpClient(MockEngine) {
-            engine {
-                addHandler {
-                    calls++
-                    respond("bad request", HttpStatusCode.BadRequest)
-                }
-            }
-            install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
-        }
-        val service = GeminiInsightsService(
-            databaseProvider = databaseProvider,
-            httpClient = client,
-            apiKeyProvider = { "test-key" },
-            retryBackoffMs = listOf(0L, 0L),
-        )
+        val client = FakeGenAiClient { throw GenAiException.Failed("bad request") }
 
-        service.getInsights(emptyList(), forceRefresh = true)
+        service(client).getInsights(emptyList(), forceRefresh = true)
 
-        assertEquals(1, calls, "a 400 must not be retried")
+        assertEquals(1, client.calls, "a non-rate-limit failure must not be retried")
     }
 
     /**
@@ -150,27 +117,9 @@ class GeminiInsightsServiceTest {
      */
     @Test
     fun testPromptSendsAggregatesAndNeverTheRawLedger() = runBlocking {
-        var body = ""
-        val capturingClient = HttpClient(MockEngine) {
-            engine {
-                addHandler { request ->
-                    body = (request.body as io.ktor.http.content.TextContent).text
-                    respond(
-                        """{"candidates":[{"content":{"parts":[{"text":"[]"}]}}]}""",
-                        HttpStatusCode.OK,
-                        headersOf(HttpHeaders.ContentType, "application/json"),
-                    )
-                }
-            }
-            install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
-        }
-        val service = GeminiInsightsService(
-            databaseProvider = databaseProvider,
-            httpClient = capturingClient,
-            apiKeyProvider = { "test-key" }
-        )
+        val client = FakeGenAiClient { "[]" }
 
-        service.getInsights(
+        service(client).getInsights(
             transactions = listOf(
                 Transaction("t1", -12.5, "cat_food", "Lunch with Dr. Meredith Palmer", 1_700_000_000_000),
                 Transaction("t2", -7.5, "cat_food", "Coffee", 1_700_000_100_000),
@@ -180,196 +129,102 @@ class GeminiInsightsServiceTest {
             languageTag = "fr",
         )
 
-        assertFalse(body.contains("Meredith"), "A transaction description reached the prompt:\n$body")
-        assertFalse(body.contains("ACME"), "A transaction description reached the prompt:\n$body")
-        assertFalse(body.contains("t1"), "A transaction id reached the prompt:\n$body")
-        assertFalse(body.contains("1700000000000"), "A raw timestamp reached the prompt:\n$body")
+        val prompt = client.lastPrompt.orEmpty()
+        assertFalse(prompt.contains("Meredith"), "A transaction description reached the prompt:\n$prompt")
+        assertFalse(prompt.contains("ACME"), "A transaction description reached the prompt:\n$prompt")
+        assertFalse(prompt.contains("1700000000000"), "A raw timestamp reached the prompt:\n$prompt")
 
         // The aggregates it does need: category totals, the income/expense sums, and the language.
-        assertContains(body, "cat_food: 20")
-        assertContains(body, "Total income: 2000")
-        assertContains(body, "'fr'")
+        assertContains(prompt, "cat_food: 20")
+        assertContains(prompt, "Total income: 2000")
+        assertContains(prompt, "'fr'")
+    }
+
+    /** The shape is enforced by the provider, not requested in prose and hoped for. */
+    @Test
+    fun testRequestsAStructuredSchema() = runBlocking {
+        val client = FakeGenAiClient { "[]" }
+
+        service(client).getInsights(emptyList(), forceRefresh = true)
+
+        val items = (client.lastSchema as GenAiSchema.Arr).items as GenAiSchema.Obj
+        assertEquals(
+            listOf("SPENDING", "SAVING", "TREND"),
+            (items.properties.getValue("type") as GenAiSchema.Enumeration).values,
+        )
+        // An enum, so the model cannot route the user to a screen that does not exist.
+        assertEquals(
+            listOf("transactions", "budgets", "goals"),
+            (items.properties.getValue("actionRoute") as GenAiSchema.Enumeration).values,
+        )
+        assertEquals(listOf("actionRoute"), items.optional)
     }
 
     @Test
-    fun testGetInsightsReturnsCachedIfFresh() = runBlocking {
-        val queries = database.budgetMasterDatabaseQueries
-        val now = Clock.System.now().toEpochMilliseconds()
-        queries.insertInsight(
+    fun testReturnsCachedIfFresh() = runBlocking {
+        database.budgetMasterDatabaseQueries.insertInsight(
             id = "insight_cached",
             type = "SAVING",
             message = "Cached saving message",
             actionRoute = "budgets",
-            timestamp = now
+            timestamp = Clock.System.now().toEpochMilliseconds(),
         )
+        val client = FakeGenAiClient { error("Should not generate while the cache is fresh") }
 
-        val mockHttpClient = HttpClient(MockEngine) {
-            engine {
-                addHandler { request ->
-                    error("Should not hit network since cache is fresh")
-                }
-            }
-            install(ContentNegotiation) {
-                json(Json { ignoreUnknownKeys = true })
-            }
-        }
+        val result = service(client).getInsights(emptyList(), forceRefresh = false)
 
-        val service = GeminiInsightsService(
-            databaseProvider = databaseProvider,
-            httpClient = mockHttpClient,
-            apiKeyProvider = { "valid_api_key" }
-        )
-        
-        val result = service.getInsights(emptyList(), forceRefresh = false)
         assertEquals(1, result.size)
         assertEquals("insight_cached", result[0].id)
-        assertEquals("Cached saving message", result[0].message)
+        assertEquals(0, client.calls)
     }
 
     @Test
-    fun testGetInsightsCallsApiAndCaches() = runBlocking {
-        val responseBody = """
-            {
-                "candidates": [
-                    {
-                        "content": {
-                            "parts": [
-                                {
-                                    "text": "[{\"type\":\"SPENDING\",\"message\":\"High spending.\",\"actionRoute\":\"transactions\"},{\"type\":\"SAVING\",\"message\":\"Saved 50€.\",\"actionRoute\":null},{\"type\":\"TREND\",\"message\":\"Positive trend.\",\"actionRoute\":null}]"
-                                }
-                            ]
-                        }
-                    }
-                ]
-            }
-        """.trimIndent()
-
-        var capturedRequest: HttpRequestData? = null
-        val mockHttpClient = HttpClient(MockEngine) {
-            engine {
-                addHandler { request ->
-                    capturedRequest = request
-                    respond(
-                        content = responseBody,
-                        status = HttpStatusCode.OK,
-                        headers = headersOf(HttpHeaders.ContentType, "application/json")
-                    )
-                }
-            }
-            install(ContentNegotiation) {
-                json(Json { ignoreUnknownKeys = true })
-            }
+    fun testGeneratesAndCaches() = runBlocking {
+        val client = FakeGenAiClient {
+            """
+            [
+              {"type":"SPENDING","message":"High spending.","actionRoute":"transactions"},
+              {"type":"SAVING","message":"Saved 50€.","actionRoute":null},
+              {"type":"TREND","message":"Positive trend.","actionRoute":null}
+            ]
+            """.trimIndent()
         }
 
-        val service = GeminiInsightsService(
-            databaseProvider = databaseProvider,
-            httpClient = mockHttpClient,
-            apiKeyProvider = { "valid_api_key" }
-        )
-
-        val result = service.getInsights(emptyList(), forceRefresh = true)
-        
-        // Assert request details
-        val req = capturedRequest
-        assertTrue(req != null)
-        assertTrue(req.url.toString().contains("v1beta/models/gemini-2.0-flash:generateContent"))
-        assertEquals("valid_api_key", req.url.parameters["key"])
+        val result = service(client).getInsights(emptyList(), forceRefresh = true)
 
         assertEquals(3, result.size)
         assertEquals(InsightType.SPENDING, result[0].type)
         assertEquals("High spending.", result[0].message)
         assertEquals("transactions", result[0].actionRoute)
-
         assertEquals(InsightType.SAVING, result[1].type)
-        assertEquals("Saved 50€.", result[1].message)
         assertEquals(null, result[1].actionRoute)
 
-        // Verify it was written to cache
-        val queries = database.budgetMasterDatabaseQueries
-        val cachedEntities = queries.selectAllInsights().executeAsList()
-        assertEquals(3, cachedEntities.size)
+        assertEquals(3, database.budgetMasterDatabaseQueries.selectAllInsights().executeAsList().size)
     }
 
     @Test
-    fun testGetInsightsFallbackToCachedOn429RateLimit() = runBlocking {
-        val queries = database.budgetMasterDatabaseQueries
-        val now = Clock.System.now().toEpochMilliseconds()
-        queries.insertInsight(
+    fun testFallsBackToCacheWhenRateLimitedThroughout() = runBlocking {
+        database.budgetMasterDatabaseQueries.insertInsight(
             id = "cached_insight_id",
             type = "TREND",
             message = "Trend cached",
             actionRoute = null,
-            timestamp = now
+            timestamp = Clock.System.now().toEpochMilliseconds(),
         )
+        val client = FakeGenAiClient { throw GenAiException.RateLimited() }
 
-        val mockHttpClient = HttpClient(MockEngine) {
-            engine {
-                addHandler { request ->
-                    respond(
-                        content = "Too Many Requests",
-                        status = HttpStatusCode.TooManyRequests,
-                        headers = headersOf(HttpHeaders.ContentType, "text/plain")
-                    )
-                }
-            }
-            install(ContentNegotiation) {
-                json(Json { ignoreUnknownKeys = true })
-            }
-        }
+        val result = service(client).getInsights(emptyList(), forceRefresh = true)
 
-        val service = GeminiInsightsService(
-            databaseProvider = databaseProvider,
-            httpClient = mockHttpClient,
-            apiKeyProvider = { "valid_api_key" }
-        )
-
-        val result = service.getInsights(emptyList(), forceRefresh = true)
+        assertEquals(3, client.calls, "should exhaust the retries before giving up")
         assertEquals(1, result.size)
         assertEquals("cached_insight_id", result[0].id)
-        assertEquals("Trend cached", result[0].message)
     }
 
+    /** A malformed response must never take the dashboard down with it. */
     @Test
-    fun testGetInsightsReturnsEmptyOnParseErrorNoCrash() = runBlocking {
-        // Bad JSON returned from Gemini API
-        val responseBody = """
-            {
-                "candidates": [
-                    {
-                        "content": {
-                            "parts": [
-                                {
-                                    "text": "Invalid JSON or not matching structure"
-                                }
-                            ]
-                        }
-                    }
-                ]
-            }
-        """.trimIndent()
+    fun testReturnsEmptyOnParseErrorWithoutCrashing() = runBlocking {
+        val client = FakeGenAiClient { "Invalid JSON or not matching structure" }
 
-        val mockHttpClient = HttpClient(MockEngine) {
-            engine {
-                addHandler { request ->
-                    respond(
-                        content = responseBody,
-                        status = HttpStatusCode.OK,
-                        headers = headersOf(HttpHeaders.ContentType, "application/json")
-                    )
-                }
-            }
-            install(ContentNegotiation) {
-                json(Json { ignoreUnknownKeys = true })
-            }
-        }
-
-        val service = GeminiInsightsService(
-            databaseProvider = databaseProvider,
-            httpClient = mockHttpClient,
-            apiKeyProvider = { "valid_api_key" }
-        )
-
-        val result = service.getInsights(emptyList(), forceRefresh = true)
-        assertTrue(result.isEmpty())
+        assertTrue(service(client).getInsights(emptyList(), forceRefresh = true).isEmpty())
     }
 }

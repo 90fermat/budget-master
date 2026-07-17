@@ -27,9 +27,15 @@ be trusted:
 - **No cloud sync.** Data lives in a local database on each device. Signing in scopes your data
   to your account; it does not move it between devices. Multi-device sync is future work — see
   ROADMAP.md.
-- **AI insights are development-only.** They call Gemini directly, so the API key would ship
-  inside any public build; release builds therefore embed no key and hide the feature until it
-  is proxied through Firebase AI Logic (ROADMAP.md Phase 7).
+- **AI insights are Android-only, and off until you turn them on.** They run through Firebase AI
+  Logic, which proxies Gemini and attests the caller with App Check, so the app ships no API key.
+  iOS and Web have no AI provider wired (Firebase AI Logic has no Kotlin Multiplatform wrapper)
+  and hide the feature rather than degrade. The toggle lives in Settings and is off by default:
+  only category totals and monthly income/expense sums are ever sent — never transaction
+  descriptions, names or dates.
+  - Running a debug build locally? App Check prints a debug token to logcat on first launch;
+    register it under **App Check → Apps → Manage debug tokens** in the Firebase console or the
+    insights call will be rejected.
 - **No receipt scanning, tags, heatmaps, or PDF export.** These were listed here before they
   existed; they are planned, not built. CSV export is real.
 - **Web has no real authentication** — it keeps a local-only profile rather than signing in to

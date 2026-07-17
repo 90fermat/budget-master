@@ -749,11 +749,30 @@ Phase 8 screenshots.
   fell back to a stale cache on the first one. Only 429 retries; a 400/403 fails identically
   however long you wait, and a test pins that it is *not* retried. The backoff schedule is
   injectable so tests don't sleep. The 24 h SQLDelight cache is unchanged.
-- [ ] **`GenAiClient` expect/actual + Firebase AI Logic migration** — the real fix that removes
-  the direct REST call. Blocked here: the Android SDK needs the AI Logic API enabled in the
-  console, iOS needs the Swift SDK wired in Xcode (macOS), and Wasm needs JS interop. Writing an
-  SDK integration that cannot be run once is how it ships broken.
-- [ ] **App Check** (Play Integrity / App Attest / reCAPTCHA Enterprise) — console-gated.
+- [x] **`GenAiClient` + Firebase AI Logic migration — done on Android.** `core.ai.GenAiClient` is
+  a provider-agnostic seam (no business logic): `generateJson(prompt, schema)` plus `isAvailable`
+  and a typed `GenAiException`, with a small `GenAiSchema` so no vendor schema type leaks into
+  `:core`'s API or the features. The Android actual uses `Firebase.ai(backend =
+  GenerativeBackend.googleAI())` with `gemini-3.5-flash`.
+  - **There is no API key in the app any more, on any build type.** The `GEMINI_API_KEY`
+    BuildConfig generation, the release-build guard that forced it empty, and the whole
+    GenerateContent REST envelope (`GeminiRequest`/`GeminiResponse`/`Content`/`Part`) are all
+    deleted. The safest secret is the one that doesn't exist — and AI insights now work in
+    *release* builds, which the key-stripping approach could never allow.
+  - **iOS and Web return `isAvailable = false`** and the surface hides itself. Firebase AI Logic
+    has no KMP wrapper: iOS needs the Swift SDK bridged from Xcode (macOS), Web needs Firebase JS
+    interop. Calling Gemini's REST API directly from either would reintroduce the embedded key.
+  - Tests now fake `GenAiClient` instead of mocking HTTP — the seam is the interface, so they say
+    what they mean.
+- [x] **App Check** wired on Android: Play Integrity for release, the debug provider for debug
+  builds. Not optional hardening — Google began auto-enforcing App Check for AI Logic in early
+  July 2026, so without it the calls are simply rejected.
+  - **Per-machine setup:** each debug build prints a token to logcat
+    (`DebugAppCheckProvider: Enter this debug secret…`) that must be registered once under
+    **App Check → Apps → Manage debug tokens**. A new machine or emulator needs a new token.
+  - Verified on the emulator: the app starts, `FirebaseApp initialization successful`, App Check
+    installs and issues a debug token, no crash. The insights call itself is **not** verified
+    end-to-end — that needs a registered debug token plus a signed-in user with the AI toggle on.
 - [ ] Feature flags via Firebase Remote Config (free) so each AI feature can be toggled
   server-side — console-gated, and worth less than the master switch above until then.
 
