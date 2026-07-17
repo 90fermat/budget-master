@@ -20,10 +20,10 @@
 | **Dashboard** | ✅ 5 use cases, 6 models | ✅ SQLDelight + **Firebase AI Logic** (no API key) | ✅ Full MVI | ✅ Premium components + skeleton | ✅ Unit + Roborazzi | **100% — reference implementation** |
 | **Transactions** | ✅ models, repo, 6 use cases (incl. AI quick-add) | ✅ SqlDelight repo + first-launch seeding | ✅ Full MVI | ✅ Day-grouped list, search, filters, swipe+undo, editor, **NL quick-add** | ✅ use-case/VM/repo | **100%** |
 | **Settings** | ✅ 7 use cases | ✅ DataStore/localStorage prefs | ✅ Full MVI | ✅ Theme/palette/language/currency, AI opt-in, replay-intro | ✅ ViewModel | **100%** |
-| **Budgets** | ✅ models, repo, 4 use cases | ✅ SqlDelight, **live spent** from transactions | ✅ Full MVI | ✅ Gauges, summary, create/edit/delete | ✅ repo | **100%** |
+| **Budgets** | ✅ models, repo, 5 use cases (incl. AI suggestions) | ✅ SqlDelight, **live spent**, 3-month category averages | ✅ Full MVI | ✅ Gauges, summary, CRUD, **AI budget suggestions** | ✅ repo + use-case | **100%** |
 | **Goals** | ✅ models, repo, 4 use cases | ✅ SqlDelight over SavingsGoalEntity | ✅ Full MVI | ✅ Progress cards, contribute, create/edit/delete | ✅ repo | **100%** |
 | **Accounts** | ✅ models, repo, 9 use cases | ✅ SqlDelight, **live balance** = opening + own transactions; transfers, reconcile, FX conversion | ✅ Full MVI | ✅ Wallet list, net worth, global switcher, CRUD/archive, transfer, reconcile | ✅ repo (9) | **100%** |
-| **Reports** | ✅ models, repo, 2 use cases | ✅ SqlDelight, wallet-scoped, transfers excluded | ✅ Full MVI | ✅ Totals + period comparison, category donut, trend chart, CSV export | ✅ repo (4) | **100%** |
+| **Reports** | ✅ models, repo, 4 use cases (incl. AI narrative + Q&A) | ✅ SqlDelight, wallet-scoped, transfers excluded | ✅ Full MVI | ✅ Totals + comparison, donut, trend, CSV export, **AI coach** | ✅ repo + use-case | **100%** |
 | **Recurring** | ✅ models, repo, 5 use cases | ✅ SqlDelight, calendar-correct, idempotent catch-up + WorkManager daily job | ✅ Full MVI | ✅ Schedule list, pause/resume, delete, editor | ✅ repo (5) | **100%** |
 
 **Design system:** ✅ done — `AppTheme` with **5 palettes** (incl. Material You Dynamic),
