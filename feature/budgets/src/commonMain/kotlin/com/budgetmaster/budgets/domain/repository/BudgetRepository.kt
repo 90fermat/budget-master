@@ -20,4 +20,13 @@ interface BudgetRepository {
 
     /** Deletes the budget with [id]. */
     suspend fun deleteBudget(id: String)
+
+    /**
+     * Average monthly spend per category over the last [months] whole months, for budget
+     * suggestions. Transfers between the user's own wallets are excluded — they aren't spend.
+     *
+     * @return category id → average monthly outflow (a positive number). Categories with no
+     *   spending in the window are omitted.
+     */
+    suspend fun averageMonthlySpendingByCategory(months: Int): Map<String, Double>
 }

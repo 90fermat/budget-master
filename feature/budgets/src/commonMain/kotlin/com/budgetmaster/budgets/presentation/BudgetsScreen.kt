@@ -50,6 +50,18 @@ import budgetmaster.core.generated.resources.budgets_new
 import budgetmaster.core.generated.resources.budgets_spent_of
 import budgetmaster.core.generated.resources.budgets_this_month
 import budgetmaster.core.generated.resources.budgets_title
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.TextButton
+import budgetmaster.core.generated.resources.ai_disclaimer
+import budgetmaster.core.generated.resources.budgets_ai_apply
+import budgetmaster.core.generated.resources.budgets_ai_dismiss
+import budgetmaster.core.generated.resources.budgets_ai_suggest
+import budgetmaster.core.generated.resources.budgets_ai_suggestions_title
+import com.budgetmaster.budgets.domain.usecase.BudgetSuggestion
 import com.budgetmaster.budgets.presentation.components.AddEditBudgetForm
 import com.budgetmaster.budgets.presentation.components.BudgetCard
 import com.budgetmaster.core.designsystem.components.EmptyState as SharedEmptyState
@@ -120,6 +132,19 @@ fun BudgetsScreen(viewModel: BudgetsViewModel = koinViewModel()) {
                 state.isEmpty -> EmptyState(onAdd = { viewModel.onIntent(BudgetsIntent.AddClicked) })
                 else -> {
                     if (state.budgets.isNotEmpty()) SummaryHeader(state)
+
+                    // AI budget suggestions, when the user has opted in and there are categories
+                    // without a budget to suggest for.
+                    if (state.aiEnabled) {
+                        Spacer(Modifier.height(Spacing.medium))
+                        BudgetSuggestionsSection(
+                            state = state,
+                            onSuggest = { viewModel.onIntent(BudgetsIntent.SuggestBudgets) },
+                            onApply = { viewModel.onIntent(BudgetsIntent.ApplySuggestion(it)) },
+                            onDismiss = { viewModel.onIntent(BudgetsIntent.DismissSuggestions) },
+                        )
+                    }
+
                     Spacer(Modifier.height(Spacing.medium))
                     LazyColumn(verticalArrangement = Arrangement.spacedBy(Spacing.small)) {
                         items(state.budgets, key = { it.id }) { item ->
@@ -137,6 +162,89 @@ fun BudgetsScreen(viewModel: BudgetsViewModel = koinViewModel()) {
 
         if (state.editor.visible) {
             BudgetEditor(state, viewModel)
+        }
+    }
+}
+
+/**
+ * The AI budget-suggestions block: a "Suggest budgets" button that, once tapped, lists proposed
+ * limits with a one-tap Apply each. Numbers are computed locally; the model only proposes a round
+ * limit and a reason. Every applied suggestion drops off the list.
+ */
+@Composable
+private fun BudgetSuggestionsSection(
+    state: BudgetsState,
+    onSuggest: () -> Unit,
+    onApply: (BudgetSuggestion) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.small)) {
+        if (state.suggestions.isEmpty()) {
+            OutlinedButton(
+                onClick = onSuggest,
+                enabled = !state.isSuggesting,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                if (state.isSuggesting) {
+                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                    Spacer(Modifier.width(8.dp))
+                }
+                Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text(stringResource(Res.string.budgets_ai_suggest))
+            }
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(Res.string.budgets_ai_suggestions_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+                TextButton(onClick = onDismiss) { Text(stringResource(Res.string.budgets_ai_dismiss)) }
+            }
+            state.suggestions.forEach { suggestion ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                        .padding(Spacing.medium),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.micro),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "${suggestion.categoryName} · ${MoneyFormatter.format(suggestion.suggestedLimit, state.currencyCode)}",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Button(onClick = { onApply(suggestion) }) {
+                            Text(stringResource(Res.string.budgets_ai_apply))
+                        }
+                    }
+                    if (suggestion.rationale.isNotBlank()) {
+                        Text(
+                            text = suggestion.rationale,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+            Text(
+                text = stringResource(Res.string.ai_disclaimer),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

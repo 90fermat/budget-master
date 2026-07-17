@@ -2,6 +2,7 @@
 
 package com.budgetmaster.budgets.data.repository
 
+import app.cash.sqldelight.async.coroutines.awaitAsList
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import com.budgetmaster.budgets.domain.model.BudgetCategory
@@ -118,4 +119,27 @@ class SqlDelightBudgetRepository(
     override suspend fun deleteBudget(id: String): Unit = withContext(dispatcher) {
         databaseProvider.getDatabase().budgetMasterDatabaseQueries.deleteBudget(id)
     }
+
+    override suspend fun averageMonthlySpendingByCategory(months: Int): Map<String, Double> =
+        withContext(dispatcher) {
+            val userId = currentUserId()
+            seeder.seedForUser(userId)
+            val queries = databaseProvider.getDatabase().budgetMasterDatabaseQueries
+
+            val now = kotlin.time.Clock.System.now().toEpochMilliseconds()
+            val windowMs = months.coerceAtLeast(1) * 30L * 24 * 60 * 60 * 1000L
+            val since = now - windowMs
+
+            queries.selectTransactionsByUser(userId).awaitAsList()
+                .filter {
+                    it.amount < 0 &&
+                        it.categoryId != null &&
+                        it.transferGroupId == null &&
+                        it.timestamp >= since
+                }
+                .groupBy { it.categoryId!! }
+                // Total outflow over the window ÷ months = the average month, which is the number
+                // a limit should sit a little above.
+                .mapValues { (_, rows) -> rows.sumOf { abs(it.amount) } / months.coerceAtLeast(1) }
+        }
 }

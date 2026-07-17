@@ -13,6 +13,7 @@ import com.budgetmaster.budgets.domain.usecase.ObserveBudgetCategoriesUseCase
 import com.budgetmaster.budgets.domain.usecase.ObserveBudgetsUseCase
 import com.budgetmaster.budgets.domain.usecase.ObserveGoalsUseCase
 import com.budgetmaster.budgets.domain.usecase.SaveBudgetUseCase
+import com.budgetmaster.budgets.domain.usecase.SuggestBudgetsUseCase
 import com.budgetmaster.budgets.domain.usecase.SaveGoalUseCase
 import com.budgetmaster.budgets.presentation.BudgetsViewModel
 import com.budgetmaster.budgets.presentation.GoalsViewModel
@@ -40,7 +41,8 @@ val budgetsModule = module {
     factory { WithdrawFromGoalUseCase(get()) }
     factory { NotifyBudgetThresholdsUseCase(get()) }
     factory { DeleteGoalUseCase(get()) }
+    factory { SuggestBudgetsUseCase(get(), get()) }
 
-    viewModel { BudgetsViewModel(get(), get(), get(), get(), get(), get()) }
+    viewModel { BudgetsViewModel(get(), get(), get(), get(), get(), get(), get()) }
     viewModel { GoalsViewModel(get(), get(), get(), get(), get(), get()) }
 }

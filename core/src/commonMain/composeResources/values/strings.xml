@@ -182,6 +182,12 @@
     <string name="reports_ai_failed">Couldn't reach the AI. Try again in a moment.</string>
     <string name="reports_ai_rate_limited">The AI is busy right now. Try again shortly.</string>
 
+    <!-- AI budget suggestions -->
+    <string name="budgets_ai_suggest">Suggest budgets with AI</string>
+    <string name="budgets_ai_suggestions_title">Suggested budgets</string>
+    <string name="budgets_ai_apply">Apply</string>
+    <string name="budgets_ai_dismiss">Dismiss</string>
+
     <string name="dashboard_transaction_subtitle">%1$s • %2$s</string>
     <string name="dashboard_budget_spent_of">%1$s of %2$s</string>
     <string name="date_month_day">%1$s %2$d</string>
