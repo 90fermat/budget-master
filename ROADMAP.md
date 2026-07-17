@@ -123,8 +123,9 @@ token objects; adaptive brand logo; 600/1240dp breakpoints (NavigationBar/Rail/D
   the user actually chose.
 - **Built-in category names come from resources too** — the database is seeded in English, so
   a stored name is only ever translated for categories the user created (Phase 5).
-- ✅ The hardcoded-English sweep is done (Phase 5). Still open: a pseudo-locale truncation pass.
-  An RTL smoke test only becomes meaningful once an RTL language is added — EN and FR are LTR.
+- ✅ Hardcoded-English sweep, truncation pass, and RTL smoke test all done (Phase 5). The
+  screenshot pass caught quick-action buttons and period chips the grep sweep missed, and
+  documented latent BiDi bugs for whoever adds an RTL language later.
 
 ### Production infrastructure
 - ✅ GitHub Actions CI (build + host tests + Roborazzi screenshots); ✅ detekt + ktlint wired

@@ -138,6 +138,12 @@ dependencies {
     // a crash report worth reading.
     implementation(libs.firebase.crashlytics)
     implementation(libs.firebase.analytics)
+
+    // Performance monitoring: automatic app-start and screen-render traces. The SDK is used
+    // WITHOUT its Gradle plugin — the plugin (perf-plugin 2.0.1) fails to apply under AGP 9, and
+    // it only adds automatic network-request instrumentation, which is the part we forgo. App
+    // start and screen traces work from the SDK alone. Disabled in debug builds.
+    implementation(libs.firebase.perf)
     debugImplementation(libs.ui.tooling)
 
     // Screenshot tests (Roborazzi + Robolectric) for shared Compose UI.

@@ -104,6 +104,7 @@ firebase-appcheck-debug = { module = "com.google.firebase:firebase-appcheck-debu
 # Crash reporting + analytics (Android). BoM-managed, so no versions pinned.
 firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics" }
 firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
+firebase-perf = { module = "com.google.firebase:firebase-perf" }
 # Declared but intentionally unused: no module depends on it. Kept for the sync work sketched in
 # ROADMAP.md; the app is local-only today.
 firebase-firestore = { module = "dev.gitlive:firebase-firestore", version.ref = "firebase-kotlin-sdk" }
@@ -159,4 +160,7 @@ roborazzi = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }
 google-services = { id = "com.google.gms.google-services", version.ref = "google-services" }
 # Uploads the R8 mapping file, without which release crash reports are unreadable.
 firebase-crashlytics = { id = "com.google.firebase.crashlytics", version.ref = "firebase-crashlytics-plugin" }
+# NOTE: the Firebase Performance Gradle plugin (perf-plugin) is deliberately not wired — it fails
+# to apply under AGP 9. The runtime SDK (libraries.firebase-perf) is used on its own; see
+# composeApp/build.gradle.kts. Revisit when a perf-plugin release supports AGP 9.
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }

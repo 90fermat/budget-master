@@ -6,6 +6,7 @@ import com.budgetmaster.shared.di.initKoin
 import com.google.firebase.FirebaseApp
 import com.google.firebase.appcheck.appCheck
 import com.google.firebase.crashlytics.crashlytics
+import com.google.firebase.perf.performance
 import com.google.firebase.Firebase
 import org.koin.android.ext.koin.androidContext
 
@@ -58,5 +59,8 @@ class BudgetMasterApplication : Application() {
      */
     private fun initializeCrashReporting() {
         Firebase.crashlytics.isCrashlyticsCollectionEnabled = !BuildConfig.DEBUG
+        // Same reasoning: a developer's cold start on a debug build, behind a debugger, is not a
+        // signal about the shipped app — it is noise that drags the percentiles around.
+        Firebase.performance.isPerformanceCollectionEnabled = !BuildConfig.DEBUG
     }
 }
