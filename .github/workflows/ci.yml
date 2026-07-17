@@ -39,8 +39,11 @@ jobs:
       - name: Assemble Android debug APK
         run: ./gradlew :composeApp:assembleDebug --stacktrace
 
+      # Every module, not just auth + dashboard: :core holds the guard tests (string escaping,
+      # EN/FR parity, category-name localization, schema migration) and :shared holds the Konsist
+      # architecture rules. Naming two modules meant none of those ran here.
       - name: Run host tests
-        run: ./gradlew :feature:auth:testAndroidHostTest :feature:dashboard:testAndroidHostTest --stacktrace
+        run: ./gradlew testAndroidHostTest --stacktrace
 
       - name: Build Web (Wasm) distribution
         run: ./gradlew :webApp:wasmJsBrowserDistribution --stacktrace
@@ -53,6 +56,29 @@ jobs:
           path: |
             **/build/reports/tests/
           retention-days: 7
+
+  ios-compile:
+    name: Compile iOS (Kotlin)
+    needs: validate-wrapper
+    # Compiling the Kotlin iOS target does not need macOS — only linking and running the app do.
+    # Nothing built this target for a long time, so iosMain drifted into code that could never
+    # compile (a copy of the Android Vico chart, plus a Vico dependency that cannot resolve for
+    # iOS at all). This job is cheap and stops that recurring.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Compile iOS target
+        run: ./gradlew :shared:compileKotlinIosArm64 --stacktrace
 
   screenshot-tests:
     name: Screenshot tests (Roborazzi)

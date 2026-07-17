@@ -666,12 +666,38 @@ Phase 8 screenshots.
       the user's own money, in *every* build without a key. Deleted; the state is now
       `InsightsState.Unavailable` and the dashboard omits the section. The prompt language also
       followed a hardcoded "French" rather than the app's language.
-- [ ] Web auth: implement Firebase JS interop or hide auth-gated features on Wasm; remove
-  `UnsupportedOperationException` paths.
+- [x] **Web auth: degrades gracefully** (landed in Phase 1.6; verified in Phase 6). GitLive has
+  no Wasm target, so `WasmAuthRepository` keeps a durable local-only profile in `localStorage`
+  instead of a throwing stub. There is no `UnsupportedOperationException` left in the codebase;
+  the only `throw` on the web path is a typed `AuthError.GoogleUnavailable` behind an
+  unreachable guard (`isGoogleSignInSupported` is false on Wasm, so the Login screen never
+  offers the button). Firebase JS interop stays unbuilt on purpose — a browser-only account
+  with no sync is what the local profile already gives.
 - [ ] Firebase per-platform config hygiene (google-services.json per build type, iOS plist).
 - [ ] Crashlytics + analytics events; performance monitoring; Android Baseline Profiles.
-- [ ] Release engineering: signing configs, `isMinifyEnabled = true` + R8 rules, versioning
-  from git tags, CI release lanes (AAB, TestFlight, static web deploy).
+- [x] **Release engineering.** `isMinifyEnabled = true` + `isShrinkResources = true` with a
+  written `proguard-rules.pro` (kotlinx.serialization's reflective `.serializer()` lookup, Ktor's
+  ServiceLoader engines, Koin, SQLDelight, GitLive/Firebase, and the `@Serializable` nav routes —
+  all things R8 cannot see from the code, and the classic source of "worked in debug, crashed in
+  the store build"). Release APK builds clean through R8.
+  - **Signing** reads `keystore.properties` (gitignored, with a committed `.example`) or the
+    `ANDROID_*` env vars in CI. No keystore or password is committed; without them the release
+    build stays *unsigned* rather than failing, so anyone can still verify the build.
+  - **Version from git tags**: `v1.2.0` → versionName `1.2.0`, versionCode `10200`. `git
+    describe` needs `isIgnoreExitValue` — it exits 128 when no tag matches, which is true of this
+    repo today, and would otherwise fail every build. The release lane checks out with
+    `fetch-depth: 0` or the fallback would silently mislabel the artifact.
+  - **CI release lane** on `v*` tags: AAB + APK + Wasm distribution, keystore decoded from a
+    secret and deleted afterwards. `GEMINI_API_KEY` is deliberately not passed.
+  - Deliberately **not** added: `applicationIdSuffix = ".debug"`. `google-services.json` declares
+    a client for `com.budgetmaster` only and the registered SHA-1 is bound to it, so suffixing
+    the debug id would fail the google-services plugin and break Google sign-in.
+- [x] **CI gaps closed.** Host tests ran for `:feature:auth` and `:feature:dashboard` only, so
+  none of `:core`'s guard tests (string escaping, EN/FR parity, category-name localization,
+  schema migration) or `:shared`'s Konsist architecture rules ever ran; it is now
+  `./gradlew testAndroidHostTest` across every module. Added a **compile-only iOS job** —
+  compiling the Kotlin iOS target needs no macOS, and nothing building it is what let `iosMain`
+  drift into code that could never compile.
 - [x] **Offline-first sync — explicitly de-scoped.** The app is local-only per device and the
   README now says so. Last-write-wins was the sketched design and is a poor fit for a ledger:
   two devices editing the same transaction would silently discard one edit, and "the money app

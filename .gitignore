@@ -33,9 +33,17 @@ crashlytics.properties
 crashlytics-build.properties
 fabric.properties
 
-# Firebase (Sensitive if keys are included)
-# google-services.json
-# GoogleService-Info.plist
+# Firebase
+# NOTE: composeApp/google-services.json is currently *tracked* (committed in edb33c2) and CI
+# needs it to build, so it is not ignored here. It is client config rather than a true secret —
+# the API key in it is restricted by package name + SHA-1 — but see ROADMAP.md Phase 6 for
+# moving it to a CI secret. iOS config is local-only:
+iosApp/GoogleService-Info.plist
+
+# Signing — never commit a keystore or its passwords
+keystore.properties
+*.jks
+*.keystore
 
 # Secrets
 secrets.properties
