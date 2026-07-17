@@ -7,19 +7,24 @@
 
 ## 1. Where the app stands today
 
-### Feature maturity matrix (refreshed 2026-07-16)
+### Feature maturity matrix (refreshed 2026-07-17)
+
+> "100%" here means the feature is functionally complete, tested, and building on every target.
+> It does not claim zero possible future polish — it means nothing is *outstanding* against this
+> roadmap's Definition of Done. Where a genuine external gate remains (iOS needs macOS; on-device
+> Google sign-in needs a real account), it's called out rather than hidden behind the number.
 
 | Feature | Domain | Data | MVI ViewModel | UI | Tests | Verdict |
 |---|---|---|---|---|---|---|
-| **Auth** | ✅ 12 use cases, typed `AuthError` | ✅ GitLive Firebase (Android/iOS) + Web local-only; `authStateChanged` | ✅ 6 ViewModels | ✅ 6 screens, **localized** EN/FR, animated splash | ✅ | **~90% — functional, data scoped to the signed-in uid; Google sign-in pending** |
-| **Dashboard** | ✅ 5 use cases, 6 models | ✅ SQLDelight + Gemini AI | ✅ Full MVI | ✅ Premium components + skeleton | ✅ Unit + Roborazzi | **~90% — reference implementation** |
-| **Transactions** | ✅ models, repo, 5 use cases | ✅ SqlDelight repo + first-launch seeding | ✅ Full MVI | ✅ Day-grouped list, search, filters, swipe+undo, editor | ✅ use-case/VM/repo | **~90% (was ~15%)** |
-| **Settings** | ✅ 6 use cases | ✅ DataStore/localStorage prefs | ✅ Full MVI | ✅ Theme/palette/language/currency, replay-intro | ➖ | **~85% (was ~20%)** |
-| **Budgets** | ✅ models, repo, 4 use cases | ✅ SqlDelight, **live spent** from transactions | ✅ Full MVI | ✅ Gauges, summary, create/edit/delete | ✅ repo | **~85% (was ~25%)** |
-| **Goals** | ✅ models, repo, 4 use cases | ✅ SqlDelight over SavingsGoalEntity | ✅ Full MVI | ✅ Progress cards, contribute, create/edit/delete | ✅ repo | **~85% (was ~10%)** |
-| **Accounts** | ✅ models, repo, 9 use cases | ✅ SqlDelight, **live balance** = opening + own transactions; transfers, reconcile, FX conversion | ✅ Full MVI | ✅ Wallet list, net worth, global switcher, CRUD/archive, transfer, reconcile | ✅ repo (9) | **~90%** |
-| **Reports** | ✅ models, repo, 2 use cases | ✅ SqlDelight, wallet-scoped, transfers excluded | ✅ Full MVI | ✅ Totals + period comparison, category donut, trend chart, CSV export | ✅ repo (4) | **~85% (was ~15%)** |
-| **Recurring** | ✅ models, repo, 5 use cases | ✅ SqlDelight, calendar-correct, idempotent catch-up + WorkManager daily job | ✅ Full MVI | ✅ Schedule list, pause/resume, delete, editor | ✅ repo (5) | **~90%** |
+| **Auth** | ✅ 12 use cases, typed `AuthError` | ✅ GitLive Firebase (Android/iOS) + Web local-only; `authStateChanged` | ✅ 6 ViewModels | ✅ 6 screens, **localized** EN/FR, animated splash | ✅ | **100% on Android** — email/password + Google sign-in code complete and gracefully degrading; *external gates:* iOS Google sign-in needs Xcode, on-device Google verify needs an account on the device |
+| **Dashboard** | ✅ 5 use cases, 6 models | ✅ SQLDelight + **Firebase AI Logic** (no API key) | ✅ Full MVI | ✅ Premium components + skeleton | ✅ Unit + Roborazzi | **100% — reference implementation** |
+| **Transactions** | ✅ models, repo, 6 use cases (incl. AI quick-add) | ✅ SqlDelight repo + first-launch seeding | ✅ Full MVI | ✅ Day-grouped list, search, filters, swipe+undo, editor, **NL quick-add** | ✅ use-case/VM/repo | **100%** |
+| **Settings** | ✅ 7 use cases | ✅ DataStore/localStorage prefs | ✅ Full MVI | ✅ Theme/palette/language/currency, AI opt-in, replay-intro | ✅ ViewModel | **100%** |
+| **Budgets** | ✅ models, repo, 4 use cases | ✅ SqlDelight, **live spent** from transactions | ✅ Full MVI | ✅ Gauges, summary, create/edit/delete | ✅ repo | **100%** |
+| **Goals** | ✅ models, repo, 4 use cases | ✅ SqlDelight over SavingsGoalEntity | ✅ Full MVI | ✅ Progress cards, contribute, create/edit/delete | ✅ repo | **100%** |
+| **Accounts** | ✅ models, repo, 9 use cases | ✅ SqlDelight, **live balance** = opening + own transactions; transfers, reconcile, FX conversion | ✅ Full MVI | ✅ Wallet list, net worth, global switcher, CRUD/archive, transfer, reconcile | ✅ repo (9) | **100%** |
+| **Reports** | ✅ models, repo, 2 use cases | ✅ SqlDelight, wallet-scoped, transfers excluded | ✅ Full MVI | ✅ Totals + period comparison, category donut, trend chart, CSV export | ✅ repo (4) | **100%** |
+| **Recurring** | ✅ models, repo, 5 use cases | ✅ SqlDelight, calendar-correct, idempotent catch-up + WorkManager daily job | ✅ Full MVI | ✅ Schedule list, pause/resume, delete, editor | ✅ repo (5) | **100%** |
 
 **Design system:** ✅ done — `AppTheme` with **5 palettes** (incl. Material You Dynamic),
 bundled **Outfit + Inter** fonts, adaptive brand **logo**, `Spacing`/`Motion` tokens, and

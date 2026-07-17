@@ -16,6 +16,8 @@ kotlin {
         androidResources {
             enable = true
         }
+        withHostTest {
+        }
     }
     
     listOf(
@@ -60,7 +62,14 @@ kotlin {
             implementation(compose.uiTooling)
             implementation(libs.koin.android)
         }
-        
+
+        val androidHostTest by getting {
+            dependencies {
+                implementation(kotlin("test"))
+                implementation(libs.kotlinx.coroutines.test)
+            }
+        }
+
         iosMain.dependencies {}
     }
 }
