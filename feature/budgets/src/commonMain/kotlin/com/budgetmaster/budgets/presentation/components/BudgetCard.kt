@@ -3,16 +3,12 @@ package com.budgetmaster.budgets.presentation.components
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
@@ -30,6 +26,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.budgetmaster.core.designsystem.SurfaceLevel
+import com.budgetmaster.core.designsystem.components.AppCard
 import com.budgetmaster.budgets.domain.model.BudgetItem
 import com.budgetmaster.budgets.domain.model.BudgetStatus
 import com.budgetmaster.core.designsystem.FinancialTextStyles
@@ -90,15 +88,11 @@ internal fun BudgetCard(
         statusText,
     )
 
-    Column(
+    AppCard(
         modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(20.dp))
-            .clickable(onClick = onClick)
-            .semantics(mergeDescendants = true) { contentDescription = gaugeDescription }
-            .padding(Spacing.medium),
+            .semantics(mergeDescendants = true) { contentDescription = gaugeDescription },
+        level = SurfaceLevel.Raised,
+        onClick = onClick,
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),

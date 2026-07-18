@@ -36,6 +36,8 @@ import budgetmaster.core.generated.resources.accounts_edit
 import budgetmaster.core.generated.resources.accounts_reconcile
 import budgetmaster.core.generated.resources.accounts_restore
 import budgetmaster.core.generated.resources.action_delete
+import com.budgetmaster.core.designsystem.SurfaceLevel
+import com.budgetmaster.core.designsystem.components.AppCard
 import com.budgetmaster.accounts.domain.model.Account
 import com.budgetmaster.accounts.domain.model.AccountType
 import com.budgetmaster.core.util.MoneyFormatter
@@ -62,12 +64,9 @@ fun AccountCard(
         else -> MaterialTheme.colorScheme.onSurface
     }
 
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-    ) {
+    AppCard(modifier = modifier, level = SurfaceLevel.Raised) {
         Row(
-            modifier = Modifier.padding(16.dp).alpha(if (account.isArchived) 0.55f else 1f),
+            modifier = Modifier.alpha(if (account.isArchived) 0.55f else 1f),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {

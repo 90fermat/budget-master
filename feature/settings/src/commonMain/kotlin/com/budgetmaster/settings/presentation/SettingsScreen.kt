@@ -94,6 +94,8 @@ import budgetmaster.core.generated.resources.settings_sms_permission_needed
 import budgetmaster.core.generated.resources.settings_sms_backfill
 import budgetmaster.core.generated.resources.settings_sms_backfill_running
 import budgetmaster.core.generated.resources.settings_sms_backfill_done
+import com.budgetmaster.core.designsystem.SurfaceLevel
+import com.budgetmaster.core.designsystem.components.AppCard
 import com.budgetmaster.core.designsystem.components.GuidanceHost
 import com.budgetmaster.core.designsystem.components.GuidanceSheet
 import com.budgetmaster.core.designsystem.components.rememberGuidance
@@ -454,16 +456,8 @@ private fun SectionHeader(text: String) {
 
 @Composable
 private fun SettingsCard(content: @Composable () -> Unit) {
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        shape = RoundedCornerShape(16.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
-    ) {
-        Column(modifier = Modifier.padding(Spacing.medium)) {
+    AppCard(level = SurfaceLevel.Raised) {
+        Column {
             content()
         }
     }
@@ -708,15 +702,7 @@ private fun HelpAndTipsSection() {
 
 @Composable
 private fun SettingRowLink(label: String, value: String) {
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        shape = RoundedCornerShape(16.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
-    ) {
+    AppCard(level = SurfaceLevel.Raised, contentPadding = 0.dp) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()

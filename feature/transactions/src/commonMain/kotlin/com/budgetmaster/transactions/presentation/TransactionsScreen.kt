@@ -21,7 +21,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Autorenew
@@ -84,6 +83,8 @@ import androidx.compose.material3.TextButton
 import kotlinx.coroutines.launch
 import com.budgetmaster.transactions.domain.usecase.ImportOutcome
 import com.budgetmaster.core.designsystem.Spacing
+import com.budgetmaster.core.designsystem.SurfaceLevel
+import com.budgetmaster.core.designsystem.components.AppCard
 import com.budgetmaster.core.designsystem.components.EmptyState as SharedEmptyState
 import com.budgetmaster.core.designsystem.components.GuidanceHost
 import com.budgetmaster.core.designsystem.components.HelpIconButton
@@ -338,12 +339,10 @@ private fun TransactionList(state: TransactionsState, viewModel: TransactionsVie
  */
 @Composable
 private fun RecurringChargesCard(charges: List<RecurringCharge>, currencyCode: String) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-            .padding(Spacing.medium),
+    // Flat: locally-detected suggestions about the list, not entries in it.
+    AppCard(
+        level = SurfaceLevel.Flat,
+        contentPadding = Spacing.medium,
         verticalArrangement = Arrangement.spacedBy(Spacing.micro),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {

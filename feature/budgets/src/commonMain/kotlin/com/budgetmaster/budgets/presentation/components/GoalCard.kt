@@ -3,9 +3,6 @@
 package com.budgetmaster.budgets.presentation.components
 
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Flag
@@ -45,6 +41,8 @@ import budgetmaster.core.generated.resources.goals_projected_on_track
 import budgetmaster.core.generated.resources.goals_projected_unknown
 import budgetmaster.core.generated.resources.goals_saved_of
 import budgetmaster.core.generated.resources.goals_withdraw
+import com.budgetmaster.core.designsystem.SurfaceLevel
+import com.budgetmaster.core.designsystem.components.AppCard
 import com.budgetmaster.budgets.domain.model.GoalItem
 import com.budgetmaster.core.designsystem.FinancialTextStyles
 import com.budgetmaster.core.designsystem.Spacing
@@ -67,15 +65,7 @@ internal fun GoalCard(
     val now = Clock.System.now().toEpochMilliseconds()
     val projected = item.projectedCompletionAt(now)
 
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(20.dp))
-            .clickable(onClick = onClick)
-            .padding(Spacing.medium),
-    ) {
+    AppCard(modifier = modifier, level = SurfaceLevel.Raised, onClick = onClick) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,

@@ -46,6 +46,8 @@ import budgetmaster.core.generated.resources.accounts_title
 import budgetmaster.core.generated.resources.accounts_transfer
 import budgetmaster.core.generated.resources.action_cancel
 import budgetmaster.core.generated.resources.action_delete
+import com.budgetmaster.core.designsystem.SurfaceLevel
+import com.budgetmaster.core.designsystem.components.AppCard
 import com.budgetmaster.accounts.presentation.components.AccountCard
 import com.budgetmaster.accounts.presentation.components.AddEditAccountForm
 import com.budgetmaster.accounts.presentation.components.ReconcileForm
@@ -209,11 +211,8 @@ fun AccountsScreen(viewModel: AccountsViewModel = koinViewModel()) {
 
 @Composable
 private fun NetWorthCard(state: AccountsState) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-    ) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    AppCard(level = SurfaceLevel.Hero) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 stringResource(Res.string.accounts_net_worth),
                 style = MaterialTheme.typography.labelLarge,

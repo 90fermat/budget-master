@@ -948,8 +948,23 @@ Config kill-switches if quotas tighten.
   - Parser selection falls back to matching on the **body** when there is no sender — but *only*
     then. An unrecognised sender is still refused: the allowlist is a privacy guarantee that
     ordinary SMS are never inspected, not an optimisation, and a test pins that boundary.
-- [ ] **Review queue UI** — the `PENDING_REVIEW` case is recorded but has no screen. A suspected
-  duplicate currently imports nothing and says nothing.
+- [x] **Review queue UI — done.** A suspected duplicate used to import nothing and say nothing,
+  which is the worst of both: the importer had a real doubt and the user never heard it. The
+  deferred message now appears at the top of Transactions with the two answers phrased from the
+  user's side — "Already have it" and "Add it" — because they are being asked about their money,
+  not about our record.
+  - Schema v4 (`3.sqm`) was needed to make the question answerable at all. Message bodies are
+    deliberately never stored, so a pending row knew *that* something needed review but nothing
+    about *what* — "add it" had nothing to add. The parsed fields are now kept for
+    `PENDING_REVIEW` rows only, and cleared the moment the review is answered. They are the same
+    aggregates the resulting entry holds, so the body is still never written to disk.
+  - `ImportEntryFactory` is shared between first import and review resolution. Two copies would
+    drift, and the failure is silent: a reviewed import missing its fee row leaves the balance
+    quietly wrong. A test pins that the fee row still lands.
+  - The share-sheet path now says "sent to review" instead of "skipped", which was simply untrue.
+  - Four repository tests run against a real driver rather than a fake, because the whole claim is
+    that the parsed fields survive a write and a read back — a fake handing its own objects back
+    would prove nothing about the columns.
 
 ### Phase 9 — Insight & polish
 

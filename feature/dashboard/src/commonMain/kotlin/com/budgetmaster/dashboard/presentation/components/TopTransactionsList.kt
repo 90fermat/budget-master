@@ -26,6 +26,8 @@ import budgetmaster.core.generated.resources.dashboard_view_all
 import budgetmaster.core.generated.resources.action_delete
 import budgetmaster.core.generated.resources.dashboard_transaction_subtitle
 import org.jetbrains.compose.resources.stringResource
+import com.budgetmaster.core.designsystem.SurfaceLevel
+import com.budgetmaster.core.designsystem.components.AppCard
 import com.budgetmaster.core.designsystem.categoryAccentFor
 import com.budgetmaster.core.designsystem.financialColors
 import com.budgetmaster.core.designsystem.categoryIconFor
@@ -62,24 +64,8 @@ fun TopTransactionsList(
     onViewAllClicked: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        shape = RoundedCornerShape(24.dp),
-        modifier = modifier
-            .fillMaxWidth()
-            .border(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.outlineVariant,
-                shape = RoundedCornerShape(24.dp)
-            )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp)
-        ) {
+    AppCard(modifier = modifier, level = SurfaceLevel.Raised) {
+        Column(modifier = Modifier.fillMaxWidth()) {
             Text(
                 text = stringResource(Res.string.dashboard_recent_transactions),
                 style = MaterialTheme.typography.titleMedium,

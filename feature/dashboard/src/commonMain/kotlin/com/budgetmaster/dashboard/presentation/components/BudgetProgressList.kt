@@ -3,10 +3,7 @@ package com.budgetmaster.dashboard.presentation.components
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -14,15 +11,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import budgetmaster.core.generated.resources.Res
 import budgetmaster.core.generated.resources.dashboard_budget_spent_of
 import budgetmaster.core.generated.resources.dashboard_budgets
 import budgetmaster.core.generated.resources.dashboard_no_budgets
 import org.jetbrains.compose.resources.stringResource
+import com.budgetmaster.core.designsystem.SurfaceLevel
+import com.budgetmaster.core.designsystem.components.AppCard
 import com.budgetmaster.core.designsystem.categoryIconFor
 import com.budgetmaster.core.designsystem.categoryNameFor
 import com.budgetmaster.core.designsystem.financialColors
@@ -41,24 +38,8 @@ fun BudgetProgressList(
     currencyCode: String,
     modifier: Modifier = Modifier
 ) {
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        shape = RoundedCornerShape(24.dp),
-        modifier = modifier
-            .fillMaxWidth()
-            .border(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.outlineVariant,
-                shape = RoundedCornerShape(24.dp)
-            )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp)
-        ) {
+    AppCard(modifier = modifier, level = SurfaceLevel.Raised) {
+        Column(modifier = Modifier.fillMaxWidth()) {
             Text(
                 text = stringResource(Res.string.dashboard_budgets),
                 style = MaterialTheme.typography.titleMedium,

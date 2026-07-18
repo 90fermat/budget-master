@@ -8,7 +8,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import budgetmaster.core.generated.resources.Res
@@ -19,10 +18,13 @@ import budgetmaster.core.generated.resources.dashboard_expenses
 import budgetmaster.core.generated.resources.dashboard_trend_positive
 import budgetmaster.core.generated.resources.dashboard_trend_negative
 import org.jetbrains.compose.resources.stringResource
+import com.budgetmaster.core.designsystem.Spacing
+import com.budgetmaster.core.designsystem.SurfaceLevel
 import com.budgetmaster.core.designsystem.animateCounter
 import com.budgetmaster.core.designsystem.financialColors
 import com.budgetmaster.core.designsystem.components.AmountEmphasis
 import com.budgetmaster.core.designsystem.components.AmountText
+import com.budgetmaster.core.designsystem.components.AppCard
 import com.budgetmaster.core.util.MoneyFormatter
 import com.budgetmaster.core.util.formatSignedPercent
 import com.budgetmaster.dashboard.domain.model.BalanceSummary
@@ -42,9 +44,14 @@ fun formatCurrency(amount: Double, currencyCode: String): String =
     MoneyFormatter.format(amount, currencyCode)
 
 /**
- * Premium dashboard balance summary card.
- * Uses Material 3 ElevatedCard styled with primaryContainer background.
+ * The dashboard balance summary — the screen's one [SurfaceLevel.Hero].
+ *
  * Animates the total balance counter and displays monthly flow details.
+ *
+ * Previously an ElevatedCard with its own container colour and Material's default shadow. It is
+ * now the sole Hero on the Dashboard, which is what earns it the largest radius; the shadow is
+ * gone because at this size colour and scale already carry the emphasis, and a drop shadow on top
+ * reads as dated Material rather than premium.
  *
  * @param balanceSummary The balance data containing total, income, expense, and trend.
  * @param modifier The modifier to be applied to the layout.
@@ -58,18 +65,13 @@ fun BalanceCard(
     val animatedBalance by animateCounter(balanceSummary.totalBalance)
     val isPositive = balanceSummary.balanceTrend == BalanceTrend.POSITIVE
 
-    ElevatedCard(
-        colors = CardDefaults.elevatedCardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        ),
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp)
+    AppCard(
+        modifier = modifier.padding(vertical = 8.dp),
+        level = SurfaceLevel.Hero,
+        contentPadding = Spacing.large,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp)
+            modifier = Modifier.fillMaxWidth()
         ) {
             Text(
                 text = stringResource(Res.string.dashboard_total_balance),

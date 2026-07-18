@@ -27,8 +27,6 @@ import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -103,7 +101,6 @@ import com.budgetmaster.reports.domain.model.ReportSummary
 import com.budgetmaster.reports.presentation.components.CategoryDonut
 import com.budgetmaster.reports.presentation.components.TrendChart
 import com.budgetmaster.core.designsystem.parseHexColor
-import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import kotlin.math.roundToInt
@@ -454,11 +451,8 @@ private fun CounterpartySection(report: ReportSummary) {
 
 @Composable
 private fun SummaryCard(report: ReportSummary) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-    ) {
-        Column(Modifier.padding(Spacing.large), verticalArrangement = Arrangement.spacedBy(Spacing.small)) {
+    AppCard(level = SurfaceLevel.Hero) {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.small)) {
             Text(
                 stringResource(Res.string.reports_net),
                 style = MaterialTheme.typography.labelLarge,
@@ -534,8 +528,8 @@ private fun CategorySection(report: ReportSummary) {
     var showIncome by remember { mutableStateOf(false) }
     val slices = if (showIncome) report.incomeCategories else report.categories
 
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(Spacing.large)) {
+    AppCard(level = SurfaceLevel.Raised, contentPadding = Spacing.large) {
+        Column {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -618,8 +612,8 @@ private fun Legend(slice: CategorySlice, currencyCode: String) {
 
 @Composable
 private fun TrendSection(report: ReportSummary) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(Spacing.large)) {
+    AppCard(level = SurfaceLevel.Raised, contentPadding = Spacing.large) {
+        Column {
             Text(
                 stringResource(Res.string.reports_trend),
                 style = MaterialTheme.typography.titleMedium,

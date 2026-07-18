@@ -17,9 +17,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -31,6 +28,9 @@ import budgetmaster.core.generated.resources.dashboard_insight_open
 import budgetmaster.core.generated.resources.dashboard_insight_dismiss
 import budgetmaster.core.generated.resources.ai_disclaimer
 import org.jetbrains.compose.resources.stringResource
+import com.budgetmaster.core.designsystem.SurfaceLevel
+import com.budgetmaster.core.designsystem.components.AppCard
+import com.budgetmaster.core.designsystem.radius
 import com.budgetmaster.core.designsystem.components.rememberShimmerBrush
 import com.budgetmaster.core.designsystem.financialColors
 import com.budgetmaster.dashboard.domain.model.Insight
@@ -152,19 +152,14 @@ private fun InsightCard(
         InsightType.TREND -> MaterialTheme.colorScheme.primary
     }
 
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        shape = RoundedCornerShape(16.dp),
-        modifier = modifier
-            .fillMaxWidth()
-            .border(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.outlineVariant,
-                shape = RoundedCornerShape(16.dp)
-            )
-            .clickable(enabled = insight.actionRoute != null, onClick = onClick)
+    // Flat: an insight comments on the user's money, it is not the money. It should sit below the
+    // balance and the charts in the reading order, which is the same call made for the AI coach
+    // in Reports. contentPadding is zero because the type-coloured indicator bar has to reach the
+    // card edge — an inset would leave it floating.
+    AppCard(
+        modifier = modifier.clickable(enabled = insight.actionRoute != null, onClick = onClick),
+        level = SurfaceLevel.Flat,
+        contentPadding = 0.dp,
     ) {
         Row(
             modifier = Modifier
@@ -238,17 +233,21 @@ private fun ErrorState(
     message: String,
     onRetry: () -> Unit
 ) {
+    // Deliberately not an AppCard: SurfaceLevel models *hierarchy*, and an error surface is a
+    // different axis - its colour carries meaning, which a level would flatten away. Only the
+    // radius is shared, so it still sits in the same family as everything around it.
+    val shape = RoundedCornerShape(SurfaceLevel.Flat.radius)
     Card(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f)
         ),
-        shape = RoundedCornerShape(16.dp),
+        shape = shape,
         modifier = Modifier
             .fillMaxWidth()
             .border(
                 width = 1.dp,
                 color = MaterialTheme.colorScheme.error.copy(alpha = 0.2f),
-                shape = RoundedCornerShape(16.dp)
+                shape = shape
             )
     ) {
         Column(
