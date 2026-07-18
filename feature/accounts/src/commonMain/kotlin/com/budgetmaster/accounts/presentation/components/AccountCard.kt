@@ -11,7 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Rule
+import androidx.compose.material.icons.automirrored.filled.Rule
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -116,7 +116,7 @@ fun AccountCard(
                     if (!account.isArchived) {
                         DropdownMenuItem(
                             text = { Text(stringResource(Res.string.accounts_reconcile)) },
-                            leadingIcon = { Icon(Icons.Filled.Rule, contentDescription = null) },
+                            leadingIcon = { Icon(Icons.AutoMirrored.Filled.Rule, contentDescription = null) },
                             onClick = { menuOpen = false; onReconcile() },
                         )
                     }

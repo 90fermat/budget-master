@@ -23,6 +23,7 @@ import budgetmaster.core.generated.resources.time_am
 import budgetmaster.core.generated.resources.time_hour_minute
 import budgetmaster.core.generated.resources.time_pm
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.number
 import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
@@ -36,7 +37,7 @@ import kotlin.time.ExperimentalTime
  */
 @Composable
 fun monthYearLabel(date: LocalDate = DateUtils.toLocalDate(Clock.System.now().toEpochMilliseconds())): String =
-    stringResource(Res.string.month_year, monthName(date.monthNumber), date.year.toString())
+    stringResource(Res.string.month_year, monthName(date.month.number), date.year.toString())
 
 /** The month's name in the app's language, for a 1-based [monthNumber]. */
 @Composable
@@ -67,7 +68,7 @@ fun monthName(monthNumber: Int): String = stringResource(
 @Composable
 fun dateTimeLabel(timestamp: Long): String {
     val dateTime = DateUtils.toLocalDateTime(timestamp)
-    val day = stringResource(Res.string.date_month_day, monthName(dateTime.date.monthNumber), dateTime.date.day)
+    val day = stringResource(Res.string.date_month_day, monthName(dateTime.date.month.number), dateTime.date.day)
 
     val hour24 = dateTime.hour
     val hour12 = when (hour24 % 12) {

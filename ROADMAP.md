@@ -987,11 +987,30 @@ Config kill-switches if quotas tighten.
 - [x] **One chart implementation — done.** Android now uses the same `CanvasSpendingChart` as
   every other target and **Vico is removed entirely** (catalog, `:shared`, `:feature:dashboard`).
   One chart in the app palette, so all five themes apply everywhere, and one dependency fewer.
-- [x] **Surface hierarchy — done.** `SurfaceLevel` (Hero / Raised / Flat) with radius, container
-  colour, elevation and border per level, consumed through a shared `AppCard`. Radius scales with
-  importance; elevation stays deliberately low because heavy shadows read as dated Material rather
-  than premium. Applied in Reports, where the AI coach drops to Flat — it comments on the report,
-  it is not the report.
+- [x] **Surface hierarchy — done, and now actually applied.** `SurfaceLevel` (Hero / Raised /
+  Flat) with radius, container colour, elevation and border per level, consumed through a shared
+  `AppCard`. Radius scales with importance; elevation stays deliberately low because heavy shadows
+  read as dated Material rather than premium.
+  - This was first checked off when only Reports consumed it, which overstated it — the mechanism
+    existed but the app a user opens still looked like a stack of equal boxes. Now rolled out
+    across Dashboard, Accounts, Budgets, Goals, Settings, Reports and Transactions.
+  - The rollout turned up that the hierarchy was **inverted**: the dashboard balance used
+    Material's default ~12dp radius while the Analytics section under it used 24dp, so the most
+    important element on the screen was the least rounded. It now reads Hero 28 → Raised 20 →
+    Flat 14.
+  - One Hero per screen, enforced by choosing it deliberately: the balance on Dashboard, net worth
+    on Accounts, the net figure on Reports. AI output is Flat everywhere — on the Dashboard as
+    well as in Reports — because it comments on the money rather than being it.
+  - `AppCard` gained `onClick` and `verticalArrangement` along the way. `onClick` is not sugar:
+    Material's clickable Card overload keeps the ripple inside the rounded corners, whereas a
+    `Modifier.clickable` applied outside the shape spills a rectangular ripple past them, which is
+    precisely the bug the component exists to stop callers writing.
+  - Error surfaces were deliberately left out. `SurfaceLevel` models hierarchy, and an error
+    surface is a different axis — its colour carries meaning that a level would flatten away. They
+    share the radius and nothing else.
+  - 17 screenshot baselines changed. Each diff was inspected before re-recording rather than
+    blanket-accepted; the balance-card diff traces only the card edge with pixel-identical
+    content, which is what "we changed the radius and nothing else" is supposed to look like.
 - [x] **Amounts as the hero — done.** `AmountText` gives money its own type scale (Hero /
   Prominent / Standard) with tabular figures, direction colour from the palette-independent
   financial colours, and bidi isolation in one place. Adopted at the dashboard balance and the

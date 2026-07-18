@@ -9,7 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material3.*
@@ -204,7 +204,7 @@ private fun InsightCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (insight.actionRoute != null) {
                         Icon(
-                            imageVector = Icons.Default.ArrowForward,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                             contentDescription = stringResource(Res.string.dashboard_insight_open),
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(20.dp)

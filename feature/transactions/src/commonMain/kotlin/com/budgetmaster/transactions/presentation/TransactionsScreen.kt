@@ -24,7 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Autorenew
-import androidx.compose.material.icons.filled.ReceiptLong
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -410,7 +410,7 @@ private fun DayHeader(group: TransactionDayGroup, currencyCode: String) {
 private fun EmptyState(filtered: Boolean, onAdd: () -> Unit) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         SharedEmptyState(
-            icon = Icons.Default.ReceiptLong,
+            icon = Icons.AutoMirrored.Filled.ReceiptLong,
             title = stringResource(Res.string.transactions_empty_title),
             subtitle = stringResource(
                 if (filtered) Res.string.transactions_empty_filtered else Res.string.transactions_empty_subtitle,

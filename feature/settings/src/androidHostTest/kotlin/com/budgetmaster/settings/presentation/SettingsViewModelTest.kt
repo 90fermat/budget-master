@@ -1,3 +1,6 @@
+// Uses the experimental test dispatcher APIs, which is the point of these tests.
+@file:OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+
 package com.budgetmaster.settings.presentation
 
 import com.budgetmaster.core.designsystem.AppPalette

@@ -117,6 +117,9 @@ import org.koin.compose.viewmodel.koinViewModel
  * adaptive layout shell (phone / tablet / desktop).
  */
 @Composable
+// Deprecated in favour of androidx.compose.ui.tooling.preview.Preview, which does not resolve on
+// wasmJs - taking the replacement would trade this warning for a broken web build. Deliberately
+// left until the replacement covers every target. Same call as in PreviewLightDark.kt.
 @Preview
 fun App() {
     val settingsRepository = koinInject<AppSettingsRepository>()

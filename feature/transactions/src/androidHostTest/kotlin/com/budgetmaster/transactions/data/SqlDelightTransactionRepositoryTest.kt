@@ -60,7 +60,7 @@ class SqlDelightTransactionRepositoryTest {
         assertEquals(-12.50, expense.amount)
         assertEquals(2000.0, income.amount)
         assertNotNull(expense.category)
-        assertEquals("Food & Dining", expense.category?.name)
+        assertEquals("Food & Dining", expense.category.name)
 
         val all = repo.observeTransactions().first()
         assertEquals(2, all.size)

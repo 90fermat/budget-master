@@ -28,8 +28,8 @@ actual fun rememberGoogleSignInLauncher(onResult: (Result<String>) -> Unit): () 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     return {
+        // Unit-coerced by the declared `() -> Unit` return type; the launch's Job is not needed.
         scope.launch { onResult(requestGoogleIdToken(context)) }
-        Unit
     }
 }
 

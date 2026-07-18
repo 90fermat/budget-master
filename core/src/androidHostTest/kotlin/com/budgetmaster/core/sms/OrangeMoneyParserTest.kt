@@ -146,7 +146,7 @@ class OrangeMoneyParserTest {
         val m = assertNotNull(parse(canalPayment))
 
         assertNotNull(m.occurredAt)
-        assertTrue(m.occurredAt!! < receivedAt, "the id's date predates delivery")
+        assertTrue(m.occurredAt < receivedAt, "the id's date predates delivery")
         // Same instant re-derived, so a timezone-dependent literal isn't baked into the assertion.
         assertEquals(m.occurredAt, parse(canalPayment)?.occurredAt)
     }

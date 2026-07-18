@@ -138,18 +138,20 @@ fun DismissibleTransactionItem(
 ) {
     val currentOnSwiped by rememberUpdatedState(onSwiped)
     val haptics = rememberHaptics()
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { dismissValue ->
-            if (dismissValue == SwipeToDismissBoxValue.EndToStart) {
-                // Confirm the destructive gesture in the hand before the row disappears.
-                haptics.longPress()
-                currentOnSwiped(transaction.id)
-                true
-            } else {
-                false
-            }
+    val dismissState = rememberSwipeToDismissBoxState()
+
+    // confirmValueChange is deprecated: vetoing a settle after the fact is the wrong lever, and
+    // the guidance is to leave the disallowed anchor out of the set instead. Swiping the other
+    // way was already refused by enableDismissFromStartToEnd below - the veto was redundant - and
+    // the delete runs off the resulting state rather than from inside a callback that was also
+    // being used for its side effects.
+    LaunchedEffect(dismissState.currentValue) {
+        if (dismissState.currentValue == SwipeToDismissBoxValue.EndToStart) {
+            // Confirm the destructive gesture in the hand before the row disappears.
+            haptics.longPress()
+            currentOnSwiped(transaction.id)
         }
-    )
+    }
 
     SwipeToDismissBox(
         state = dismissState,

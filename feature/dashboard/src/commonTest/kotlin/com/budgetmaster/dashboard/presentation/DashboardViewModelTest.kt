@@ -250,7 +250,7 @@ class DashboardViewModelTest {
         assertEquals(sampleBudgetProgress, state.budgets)
         assertEquals(sampleTransactions, state.topTransactions)
         assertIs<InsightsState.Success>(state.insights)
-        assertEquals(sampleInsights, (state.insights as InsightsState.Success).data)
+        assertEquals(sampleInsights, state.insights.data)
         assertNull(state.error)
     }
 
@@ -473,6 +473,6 @@ class DashboardViewModelTest {
 
         val state = viewModel.state.value
         assertIs<InsightsState.Error>(state.insights)
-        assertEquals("AI error", (state.insights as InsightsState.Error).message)
+        assertEquals("AI error", state.insights.message)
     }
 }

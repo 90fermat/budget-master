@@ -1,3 +1,6 @@
+// Wasm JS interop is still experimental upstream; this file is entirely interop by nature.
+@file:OptIn(kotlin.js.ExperimentalWasmJsInterop::class)
+
 package com.budgetmaster.core.db
 
 import app.cash.sqldelight.async.coroutines.awaitCreate

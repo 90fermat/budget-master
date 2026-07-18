@@ -19,6 +19,17 @@ subprojects {
     configurations.all {
         exclude(group = "org.jetbrains.kotlinx", module = "kotlinx-coroutines-debug")
     }
+
+    // `expect`/`actual` *classes* are still Beta upstream (KT-61573) and warn on every
+    // declaration, which was 24 warnings across the build - enough noise to hide a real one.
+    // The feature is load-bearing here (MoneyFormatter, DatabaseDriverFactory, LocalAppLocale
+    // are all expect/actual classes) and there is no alternative spelling, so the flag
+    // acknowledges the Beta status rather than pretending the warning was actionable.
+    tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask<*>>().configureEach {
+        compilerOptions {
+            freeCompilerArgs.add("-Xexpect-actual-classes")
+        }
+    }
 }
 
 // ── Static analysis + formatting ─────────────────────────────────────────────
@@ -39,6 +50,8 @@ detekt {
             "core/src", "shared/src", "composeApp/src", "webApp/src",
             "feature/auth/src", "feature/dashboard/src", "feature/transactions/src",
             "feature/budgets/src", "feature/reports/src", "feature/settings/src",
+            // feature/accounts was missing here, so that module was never linted.
+            "feature/accounts/src",
         )
     )
 }

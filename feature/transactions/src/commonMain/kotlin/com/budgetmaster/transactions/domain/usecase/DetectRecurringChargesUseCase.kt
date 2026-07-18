@@ -2,6 +2,7 @@
 
 package com.budgetmaster.transactions.domain.usecase
 
+import kotlinx.datetime.number
 import com.budgetmaster.core.util.DateUtils
 import com.budgetmaster.transactions.domain.model.TransactionItem
 import kotlin.math.abs
@@ -74,6 +75,6 @@ class DetectRecurringChargesUseCase(
 
     private fun yearMonth(timestamp: Long): Int {
         val date = DateUtils.toLocalDate(timestamp)
-        return date.year * 100 + date.monthNumber
+        return date.year * 100 + date.month.number
     }
 }

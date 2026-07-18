@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.HelpOutline
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -60,7 +60,7 @@ fun PendingImportsCard(
     AppCard(modifier = modifier, level = SurfaceLevel.Raised) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
-                Icons.Default.HelpOutline,
+                Icons.AutoMirrored.Filled.HelpOutline,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(20.dp),

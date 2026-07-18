@@ -5,7 +5,7 @@ import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Savings
-import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
 import budgetmaster.core.generated.resources.Res
@@ -36,5 +36,5 @@ val AccountType.icon: ImageVector
         AccountType.CHECKING -> Icons.Filled.AccountBalance
         AccountType.SAVINGS -> Icons.Filled.Savings
         AccountType.CREDIT_CARD -> Icons.Filled.CreditCard
-        AccountType.INVESTMENT -> Icons.Filled.TrendingUp
+        AccountType.INVESTMENT -> Icons.AutoMirrored.Filled.TrendingUp
     }

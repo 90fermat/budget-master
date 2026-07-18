@@ -7,7 +7,7 @@ import androidx.compose.material.icons.filled.Autorenew
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Calculate
-import androidx.compose.material.icons.filled.CompareArrows
+import androidx.compose.material.icons.automirrored.filled.CompareArrows
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Palette
@@ -18,7 +18,7 @@ import androidx.compose.material.icons.filled.Swipe
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material.icons.filled.Translate
-import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Warning
 import budgetmaster.core.generated.resources.Res
@@ -175,7 +175,7 @@ object GuidanceRegistry {
                     Res.string.guide_goals_1_body,
                 ),
                 FeatureNote(
-                    Icons.Filled.TrendingUp,
+                    Icons.AutoMirrored.Filled.TrendingUp,
                     Res.string.guide_goals_2_title,
                     Res.string.guide_goals_2_body,
                 ),
@@ -219,7 +219,7 @@ object GuidanceRegistry {
             intro = Res.string.guide_reports_intro,
             notes = listOf(
                 FeatureNote(
-                    Icons.Filled.CompareArrows,
+                    Icons.AutoMirrored.Filled.CompareArrows,
                     Res.string.guide_reports_1_title,
                     Res.string.guide_reports_1_body,
                 ),
