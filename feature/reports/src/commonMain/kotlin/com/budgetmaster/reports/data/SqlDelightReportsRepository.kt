@@ -13,6 +13,7 @@ import com.budgetmaster.core.session.ActiveAccountStore
 import com.budgetmaster.core.session.SessionStore
 import com.budgetmaster.core.util.DateUtils
 import com.budgetmaster.reports.domain.model.CategorySlice
+import com.budgetmaster.reports.domain.model.CounterpartyTotal
 import com.budgetmaster.reports.domain.model.ReportRange
 import com.budgetmaster.reports.domain.model.ReportSummary
 import com.budgetmaster.reports.domain.model.TrendPoint
@@ -149,6 +150,26 @@ class SqlDelightReportsRepository(
         val categories = slices({ it < 0 }, expenses)
         val incomeCategories = slices({ it > 0 }, income)
 
+        // Counterparties come from the description, which is where mobile-money import puts the
+        // payee/payer name. Fee rows are excluded: "Frais — X" is a charge, not a counterparty.
+        fun counterparties(matching: (Double) -> Boolean): List<CounterpartyTotal> =
+            current.filter { matching(it.amount) && it.categoryId != FEES_CATEGORY }
+                .groupBy { it.description.trim() }
+                .filterKeys { it.isNotBlank() }
+                .map { (name, group) ->
+                    CounterpartyTotal(
+                        name = name,
+                        amount = group.sumOf { abs(it.amount) },
+                        transactionCount = group.size,
+                    )
+                }
+                .sortedByDescending { it.amount }
+                .take(TOP_COUNTERPARTIES)
+
+        val totalFees = current
+            .filter { it.categoryId == FEES_CATEGORY }
+            .sumOf { abs(it.amount) }
+
         val trend = current
             .groupBy { DateUtils.toLocalDate(it.timestamp) }
             .map { (date, group) ->
@@ -166,6 +187,9 @@ class SqlDelightReportsRepository(
             totalExpenses = expenses,
             categories = categories,
             incomeCategories = incomeCategories,
+            topPayees = counterparties { it < 0 },
+            topPayers = counterparties { it > 0 },
+            totalFees = totalFees,
             trend = trend,
             previousIncome = previous.filter { it.amount > 0 }.sumOf { it.amount },
             previousExpenses = previous.filter { it.amount < 0 }.sumOf { abs(it.amount) },
@@ -173,6 +197,11 @@ class SqlDelightReportsRepository(
         )
     }
 }
+
+private const val FEES_CATEGORY = "cat_fees"
+
+/** Five is enough to see a pattern without turning the report into a second transaction list. */
+private const val TOP_COUNTERPARTIES = 5
 
 /** Epoch-ms bounds of the range, ending now. */
 private fun ReportRange.bounds(): Pair<Long, Long> {

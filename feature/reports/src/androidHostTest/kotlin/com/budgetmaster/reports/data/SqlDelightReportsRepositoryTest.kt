@@ -128,6 +128,48 @@ class SqlDelightReportsRepositoryTest {
     }
 
     @Test
+    fun topPayeesAndPayersRankCounterpartiesSeparately() = runTest {
+        val (repo, database) = setup()
+        val queries = database.budgetMasterDatabaseQueries
+        queries.insertTransaction("o1", accountId, null, -5000.0, "MIKAM", now, null, null, 0, null)
+        queries.insertTransaction("o2", accountId, null, -3000.0, "MIKAM", now, null, null, 0, null)
+        queries.insertTransaction("o3", accountId, null, -1000.0, "CANAL+", now, null, null, 0, null)
+        queries.insertTransaction("i1", accountId, null, 20000.0, "TCHOUKEN", now, null, null, 0, null)
+
+        val report = repo.observeReport(ReportRange.MONTH).first()
+
+        // Repeat payments to one counterparty aggregate rather than listing twice.
+        assertEquals("MIKAM", report.topPayees[0].name)
+        assertEquals(8000.0, report.topPayees[0].amount)
+        assertEquals(2, report.topPayees[0].transactionCount)
+        assertEquals("CANAL+", report.topPayees[1].name)
+
+        // Money in is a payer, never a payee.
+        assertEquals(1, report.topPayers.size)
+        assertEquals("TCHOUKEN", report.topPayers[0].name)
+        assertTrue(report.topPayees.none { it.name == "TCHOUKEN" })
+    }
+
+    /** Fees are a charge, not a counterparty - listing "Frais - MIKAM" as a payee would be noise. */
+    @Test
+    fun feesAreTotalledAndExcludedFromCounterparties() = runTest {
+        val (repo, database) = setup()
+        val queries = database.budgetMasterDatabaseQueries
+        queries.insertCategory("cat_fees", userId, "Fees", "F", "#94A3B8", 1)
+        queries.insertTransaction("p1", accountId, null, -20244.0, "MIKAM", now, null, null, 0, null)
+        queries.insertTransaction("f1", accountId, "cat_fees", -44.48, "Frais - MIKAM", now, null, null, 0, null)
+        queries.insertTransaction("f2", accountId, "cat_fees", -20.0, "Frais - CANAL+", now, null, null, 0, null)
+
+        val report = repo.observeReport(ReportRange.MONTH).first()
+
+        // Tolerance because these are summed doubles (44.48 + 20.0 lands at 64.47999...), which
+        // is how every amount in the app is stored; display rounds via MoneyFormatter.
+        assertEquals(64.48, report.totalFees, absoluteTolerance = 0.001)
+        assertEquals(1, report.topPayees.size, "fee rows must not appear as counterparties")
+        assertEquals("MIKAM", report.topPayees[0].name)
+    }
+
+    @Test
     fun previousPeriodDrivesTheComparison() = runTest {
         val (repo, database) = setup()
         val queries = database.budgetMasterDatabaseQueries

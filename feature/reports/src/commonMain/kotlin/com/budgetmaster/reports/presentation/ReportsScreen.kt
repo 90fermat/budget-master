@@ -55,6 +55,12 @@ import androidx.compose.ui.unit.dp
 import budgetmaster.core.generated.resources.Res
 import budgetmaster.core.generated.resources.reports_by_category
 import budgetmaster.core.generated.resources.reports_no_breakdown
+import budgetmaster.core.generated.resources.reports_counterparty_count
+import budgetmaster.core.generated.resources.reports_payers
+import budgetmaster.core.generated.resources.reports_payees
+import budgetmaster.core.generated.resources.reports_counterparties
+import budgetmaster.core.generated.resources.reports_fees_subtitle
+import budgetmaster.core.generated.resources.reports_fees_title
 import budgetmaster.core.generated.resources.reports_chart_a11y
 import budgetmaster.core.generated.resources.reports_empty
 import budgetmaster.core.generated.resources.reports_expenses
@@ -323,6 +329,125 @@ private fun ReportBody(report: ReportSummary) {
                 CategorySection(report)
                 Spacer(Modifier.height(Spacing.medium))
                 TrendSection(report)
+            }
+        }
+    }
+
+    if (report.totalFees > 0.0) {
+        Spacer(Modifier.height(Spacing.medium))
+        FeesCard(report)
+    }
+    if (report.topPayees.isNotEmpty() || report.topPayers.isNotEmpty()) {
+        Spacer(Modifier.height(Spacing.medium))
+        CounterpartySection(report)
+    }
+}
+
+/**
+ * What transaction fees cost over the period.
+ *
+ * Shown only when there are any. Mobile-money charges are a real, recurring cost here and they
+ * used to vanish into the totals — no competitor in this market surfaces them.
+ */
+@Composable
+private fun FeesCard(report: ReportSummary) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(Spacing.large),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Column {
+                Text(
+                    stringResource(Res.string.reports_fees_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    stringResource(Res.string.reports_fees_subtitle),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Text(
+                MoneyFormatter.format(report.totalFees, report.currencyCode),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.financialColors.expense,
+            )
+        }
+    }
+}
+
+/**
+ * Who money goes to and comes from — the question people actually ask, and one only answerable
+ * since mobile-money import started capturing counterparty names.
+ */
+@Composable
+private fun CounterpartySection(report: ReportSummary) {
+    var showPayers by remember { mutableStateOf(false) }
+    val rows = if (showPayers) report.topPayers else report.topPayees
+
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(Spacing.large)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    stringResource(Res.string.reports_counterparties),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.small)) {
+                    FilterChip(
+                        selected = !showPayers,
+                        onClick = { showPayers = false },
+                        label = { Text(stringResource(Res.string.reports_payees)) },
+                    )
+                    FilterChip(
+                        selected = showPayers,
+                        onClick = { showPayers = true },
+                        label = { Text(stringResource(Res.string.reports_payers)) },
+                    )
+                }
+            }
+            Spacer(Modifier.height(Spacing.small))
+
+            if (rows.isEmpty()) {
+                Text(
+                    stringResource(Res.string.reports_no_breakdown),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                return@Column
+            }
+            rows.forEach { row ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(row.name, style = MaterialTheme.typography.bodyLarge, maxLines = 1)
+                        Text(
+                            stringResource(Res.string.reports_counterparty_count, row.transactionCount),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Text(
+                        MoneyFormatter.format(row.amount, report.currencyCode),
+                        style = MaterialTheme.typography.bodyLarge.copy(fontFeatureSettings = "tnum"),
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (showPayers) {
+                            MaterialTheme.financialColors.income
+                        } else {
+                            MaterialTheme.financialColors.expense
+                        },
+                    )
+                }
             }
         }
     }

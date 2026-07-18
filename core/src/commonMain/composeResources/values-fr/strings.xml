@@ -454,6 +454,12 @@
     <string name="reports_income">Revenus</string>
     <string name="reports_expenses">Dépenses</string>
     <string name="reports_net">Net</string>
+    <string name="reports_fees_title">Frais de transaction</string>
+    <string name="reports_fees_subtitle">Ce que le mouvement de votre argent a coûté</string>
+    <string name="reports_counterparties">Personnes et commerçants</string>
+    <string name="reports_payees">Payé à</string>
+    <string name="reports_payers">Reçu de</string>
+    <string name="reports_counterparty_count">%1$d transactions</string>
     <string name="reports_no_breakdown">Rien à détailler pour cette période.</string>
     <string name="reports_by_category">Dépenses par catégorie</string>
     <string name="reports_trend">Revenus et dépenses</string>

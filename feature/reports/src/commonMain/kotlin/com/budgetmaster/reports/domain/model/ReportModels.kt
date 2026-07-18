@@ -20,6 +20,18 @@ data class CategorySlice(
     val share: Float,
 )
 
+/**
+ * One counterparty and what moved through them in the period.
+ *
+ * "Who am I sending money to, and who pays me" is the question people actually ask, and it only
+ * became answerable once mobile-money import started capturing counterparty names.
+ */
+data class CounterpartyTotal(
+    val name: String,
+    val amount: Double,
+    val transactionCount: Int,
+)
+
 /** Income and expenses bucketed to a day. */
 data class TrendPoint(
     val date: LocalDate,
@@ -51,6 +63,15 @@ data class ReportSummary(
      * each share is a fraction of its own total.
      */
     val incomeCategories: List<CategorySlice> = emptyList(),
+    /** Largest outgoing counterparties first. */
+    val topPayees: List<CounterpartyTotal> = emptyList(),
+    /** Largest incoming counterparties first. */
+    val topPayers: List<CounterpartyTotal> = emptyList(),
+    /**
+     * Transaction fees for the period — mobile-money charges are large enough here to deserve
+     * their own line rather than disappearing into "Other".
+     */
+    val totalFees: Double = 0.0,
     val trend: List<TrendPoint>,
     val previousIncome: Double,
     val previousExpenses: Double,
