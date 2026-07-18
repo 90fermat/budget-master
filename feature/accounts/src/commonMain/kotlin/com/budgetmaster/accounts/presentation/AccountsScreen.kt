@@ -56,6 +56,8 @@ import com.budgetmaster.core.designsystem.components.GuidanceHost
 import com.budgetmaster.core.designsystem.components.HelpIconButton
 import com.budgetmaster.core.designsystem.components.rememberGuidance
 import com.budgetmaster.core.guidance.GuidanceKey
+import com.budgetmaster.core.designsystem.components.AmountEmphasis
+import com.budgetmaster.core.designsystem.components.AmountText
 import com.budgetmaster.core.util.MoneyFormatter
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -218,10 +220,10 @@ private fun NetWorthCard(state: AccountsState) {
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
             val animatedNetWorth by animateCounter(state.netWorth)
-            Text(
-                MoneyFormatter.format(animatedNetWorth, state.primaryCurrency),
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
+            AmountText(
+                amount = animatedNetWorth,
+                currencyCode = state.primaryCurrency,
+                emphasis = AmountEmphasis.Hero,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
             if (state.isNetWorthApproximate) {

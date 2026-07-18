@@ -94,6 +94,7 @@ import com.budgetmaster.core.guidance.GuidanceKey
 import com.budgetmaster.core.designsystem.Spacing
 import com.budgetmaster.core.designsystem.financialColors
 import com.budgetmaster.core.util.MoneyFormatter
+import com.budgetmaster.core.util.formatSignedPercent
 import com.budgetmaster.reports.domain.model.CategorySlice
 import com.budgetmaster.reports.domain.model.ReportRange
 import com.budgetmaster.reports.domain.model.ReportSummary
@@ -514,7 +515,7 @@ private fun Metric(label: String, value: String, change: Float?, positiveIsGood:
             Text(
                 text = stringResource(
                     Res.string.reports_change_vs_previous,
-                    "${if (change >= 0) "+" else ""}${(change * 100).roundToInt()}%",
+                    formatSignedPercent(change.toDouble() * 100, decimals = 0),
                 ),
                 style = MaterialTheme.typography.bodySmall,
                 color = if (isGood) MaterialTheme.financialColors.income else MaterialTheme.financialColors.expense,

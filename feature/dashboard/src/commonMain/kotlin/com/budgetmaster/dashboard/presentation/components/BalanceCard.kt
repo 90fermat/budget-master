@@ -21,7 +21,10 @@ import budgetmaster.core.generated.resources.dashboard_trend_negative
 import org.jetbrains.compose.resources.stringResource
 import com.budgetmaster.core.designsystem.animateCounter
 import com.budgetmaster.core.designsystem.financialColors
+import com.budgetmaster.core.designsystem.components.AmountEmphasis
+import com.budgetmaster.core.designsystem.components.AmountText
 import com.budgetmaster.core.util.MoneyFormatter
+import com.budgetmaster.core.util.formatSignedPercent
 import com.budgetmaster.dashboard.domain.model.BalanceSummary
 import com.budgetmaster.dashboard.domain.model.BalanceTrend
 
@@ -35,6 +38,7 @@ import com.budgetmaster.dashboard.domain.model.BalanceTrend
  * @param currencyCode ISO currency code from the user's settings.
  */
 fun formatCurrency(amount: Double, currencyCode: String): String =
+    // Already bidi-isolated by MoneyFormatter itself.
     MoneyFormatter.format(amount, currencyCode)
 
 /**
@@ -74,11 +78,13 @@ fun BalanceCard(
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = formatCurrency(animatedBalance, currencyCode),
-                style = MaterialTheme.typography.displayMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
+            // The one number this screen is about, so it gets the Hero scale: tabular figures,
+            // bidi-isolated, and sized to dominate rather than share weight with its label.
+            AmountText(
+                amount = animatedBalance,
+                currencyCode = currencyCode,
+                emphasis = AmountEmphasis.Hero,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
             
             Spacer(modifier = Modifier.height(16.dp))
@@ -96,7 +102,7 @@ fun BalanceCard(
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = "${if (balanceSummary.trendPercentage >= 0) "+" else ""}${balanceSummary.trendPercentage}%",
+                    text = formatSignedPercent(balanceSummary.trendPercentage),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = if (isPositive) MaterialTheme.financialColors.income else MaterialTheme.financialColors.expense

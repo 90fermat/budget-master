@@ -1,8 +1,9 @@
 package com.budgetmaster.core.util
 
 actual object MoneyFormatter {
+    // Isolated here so no display call site can forget; see the expect declaration.
     actual fun format(amount: Double, currencyCode: String): String =
-        formatCurrencyIntl(amount, currencyCode)
+        formatCurrencyIntl(amount, currencyCode).isolated()
 }
 
 // Kotlin/Wasm requires js(...) to be the entire body of a top-level function.

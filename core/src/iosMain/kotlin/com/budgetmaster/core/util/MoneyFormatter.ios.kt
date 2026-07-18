@@ -10,6 +10,7 @@ actual object MoneyFormatter {
             numberStyle = NSNumberFormatterCurrencyStyle
             this.currencyCode = currencyCode
         }
-        return formatter.stringFromNumber(NSNumber(double = amount)) ?: amount.toString()
+        // Isolated here so no display call site can forget; see the expect declaration.
+        return (formatter.stringFromNumber(NSNumber(double = amount)) ?: amount.toString()).isolated()
     }
 }

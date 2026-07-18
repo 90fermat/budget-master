@@ -940,10 +940,14 @@ Config kill-switches if quotas tighten.
   Declaration and may be refused — a distribution question, not a code one.
 - [ ] **MTN MoMo parser** — blocked on real samples. MTN messages are currently recorded as
   ignored rather than mis-parsed, which is the safe failure.
-- [ ] **Paste / share fallback** — an `ACTION_SEND` (`text/plain`) filter plus a paste field, both
-  routed into the existing `ImportMoneyMessageUseCase`. Needed three ways: if the Play permission
-  is refused, on **iOS where SMS access does not exist at all**, and for messages the receiver
-  missed. Dedup collapses a pasted message against a later automatic capture on the transaction id.
+- [x] **Paste / share fallback — done.** An `ACTION_SEND` (`text/plain`) filter plus a paste field
+  on Transactions, both routed into the existing `ImportMoneyMessageUseCase`. Needed three ways:
+  if the Play permission is refused, on **iOS where SMS access does not exist at all**, and for
+  messages the receiver missed. Dedup collapses a pasted message against a later automatic capture
+  on the provider transaction id, even though the message fingerprints differ.
+  - Parser selection falls back to matching on the **body** when there is no sender — but *only*
+    then. An unrecognised sender is still refused: the allowlist is a privacy guarantee that
+    ordinary SMS are never inspected, not an optimisation, and a test pins that boundary.
 - [ ] **Review queue UI** — the `PENDING_REVIEW` case is recorded but has no screen. A suspected
   duplicate currently imports nothing and says nothing.
 
