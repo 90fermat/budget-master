@@ -72,13 +72,9 @@ kotlin {
         androidMain.dependencies {
             implementation(compose.uiTooling)
             implementation(libs.koin.android)
-            implementation(libs.vico.compose)
-            implementation(libs.vico.compose.m3)
-            implementation(libs.vico.core)
         }
         
         // iOS and wasmJs draw the chart with Compose Canvas and need no charting dependency:
-        // Vico publishes Android artifacts only.
 
         val wasmJsMain by getting {
             dependencies {

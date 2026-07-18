@@ -975,11 +975,18 @@ Config kill-switches if quotas tighten.
 - [ ] **Surface hierarchy.** Almost everything is a card with the same radius and no elevation
   story, so the balance card and the budget list compete. Establish one hero surface and let the
   rest recede.
-- [ ] **Amounts as the hero.** In a finance app the number should dominate typographically —
-  large tabular figures with the currency de-emphasised. Today labels and amounts sit at similar
-  weight.
-- [ ] **Fix the BiDi bugs** found in the Phase 5 RTL pass: `+2.4%` renders `2.4%+`, and formatted
-  amounts scramble. Unicode isolation (FSI/PDI) around amounts and signed percentages.
+- [x] **Amounts as the hero — done.** `AmountText` gives money its own type scale (Hero /
+  Prominent / Standard) with tabular figures, direction colour from the palette-independent
+  financial colours, and bidi isolation in one place. Adopted at the dashboard balance and the
+  net-worth total; remaining call sites can migrate incrementally.
+- [x] **BiDi bugs fixed** — and verified by re-recording the RTL screenshot that found them.
+  `+2.4%` no longer renders `2.4%+`, and amounts no longer scramble.
+  - Isolation lives **inside each `MoneyFormatter` actual**, not at the call sites. The first
+    attempt used a common extension, which would have needed a new import in ~15 files and left
+    any new call site free to reintroduce the bug. The CSV export is unaffected because it writes
+    the raw `Double`, never the formatter.
+  - `formatSigned` strips the inner isolate and re-wraps once: nesting would have left the sign
+    *outside* the isolate, and the sign is exactly the character RTL reordering moves.
 - [ ] **Richer empty and loading states** — where an app reads as cheap or considered.
 - [ ] **Animate value changes.** Balances snap today; a counted transition is a small, strongly
   "premium" cue and the motion tokens already exist.

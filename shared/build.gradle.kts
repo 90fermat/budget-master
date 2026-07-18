@@ -79,9 +79,6 @@ kotlin {
             implementation(libs.firebase.common)
             implementation(libs.firebase.auth)
             
-            implementation(libs.vico.compose)
-            implementation(libs.vico.compose.m3)
-            implementation(libs.vico.core)
             
             // Android Biometrics support
             implementation(libs.androidx.biometric)

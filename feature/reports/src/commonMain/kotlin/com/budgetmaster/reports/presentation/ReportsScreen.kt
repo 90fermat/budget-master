@@ -91,6 +91,8 @@ import com.budgetmaster.core.designsystem.components.GuidanceHost
 import com.budgetmaster.core.designsystem.components.HelpIconButton
 import com.budgetmaster.core.designsystem.components.rememberGuidance
 import com.budgetmaster.core.guidance.GuidanceKey
+import com.budgetmaster.core.designsystem.components.AppCard
+import com.budgetmaster.core.designsystem.SurfaceLevel
 import com.budgetmaster.core.designsystem.Spacing
 import com.budgetmaster.core.designsystem.financialColors
 import com.budgetmaster.core.util.MoneyFormatter
@@ -232,14 +234,9 @@ private fun AiReportSection(
     onGenerate: () -> Unit,
     onAsk: (String) -> Unit,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-            .padding(Spacing.medium),
-        verticalArrangement = Arrangement.spacedBy(Spacing.small),
-    ) {
+    // Flat: the coach comments on the report, it is not the report.
+    AppCard(level = SurfaceLevel.Flat) {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.small)) {
         Text(
             text = stringResource(Res.string.reports_ai_title),
             style = MaterialTheme.typography.titleMedium,
@@ -292,6 +289,7 @@ private fun AiReportSection(
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        }
     }
 }
 
@@ -352,9 +350,9 @@ private fun ReportBody(report: ReportSummary) {
  */
 @Composable
 private fun FeesCard(report: ReportSummary) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    AppCard(level = SurfaceLevel.Raised) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(Spacing.large),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
@@ -389,8 +387,8 @@ private fun CounterpartySection(report: ReportSummary) {
     var showPayers by remember { mutableStateOf(false) }
     val rows = if (showPayers) report.topPayers else report.topPayees
 
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(Spacing.large)) {
+    AppCard(level = SurfaceLevel.Raised) {
+        Column {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
