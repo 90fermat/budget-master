@@ -17,6 +17,10 @@ import com.budgetmaster.transactions.domain.usecase.ObserveTransactionsUseCase
 import com.budgetmaster.transactions.domain.usecase.RestoreTransactionUseCase
 import com.budgetmaster.transactions.domain.usecase.DetectRecurringChargesUseCase
 import com.budgetmaster.transactions.domain.usecase.ParseQuickEntryUseCase
+import com.budgetmaster.transactions.domain.usecase.ImportMoneyMessageUseCase
+import com.budgetmaster.transactions.domain.repository.MoneyImportRepository
+import com.budgetmaster.transactions.domain.repository.ImportStatus
+import com.budgetmaster.transactions.domain.repository.ImportedEntry
 import com.budgetmaster.transactions.domain.usecase.ParseReceiptUseCase
 import com.budgetmaster.transactions.domain.usecase.SuggestCategoryUseCase
 import com.budgetmaster.core.ocr.ReceiptImage
@@ -90,6 +94,36 @@ class TransactionsViewModelTest {
                     throw GenAiException.Unavailable()
             },
             InMemoryKeyValueStore(),
+        ),
+        // Import isn't exercised here; the paste path has its own tests against a real fake.
+        importMoneyMessage = ImportMoneyMessageUseCase(
+            object : MoneyImportRepository {
+                override suspend fun hasSeenMessage(hash: String) = false
+                override suspend fun findTransactionIdByExternalId(externalId: String): String? = null
+                override suspend fun findPossibleManualDuplicate(
+                    amount: Double,
+                    dayStart: Long,
+                    dayEnd: Long,
+                ): String? = null
+                override suspend fun saveImported(
+                    hash: String,
+                    provider: String,
+                    sender: String,
+                    receivedAt: Long,
+                    externalId: String,
+                    entries: List<ImportedEntry>,
+                ): List<String> = emptyList()
+                override suspend fun recordMessageOutcome(
+                    hash: String,
+                    provider: String,
+                    sender: String,
+                    receivedAt: Long,
+                    status: ImportStatus,
+                    externalId: String?,
+                    transactionId: String?,
+                ) = Unit
+            },
+            emptyList(),
         ),
         // No OCR/AI in unit tests; receipt scan stays disabled, which these tests don't exercise.
         parseReceipt = ParseReceiptUseCase(

@@ -471,4 +471,10 @@
     <string name="reports_transfers_note">Les virements entre vos comptes sont exclus.</string>
     <string name="reports_chart_a11y">Dépenses par catégorie : %1$s</string>
     <string name="reports_trend_a11y">Revenus %1$s, dépenses %2$s sur %3$d jours.</string>
+    <string name="transactions_paste_label">Coller un message de transaction</string>
+    <string name="transactions_paste_placeholder">Collez ici un SMS Orange Money ou MoMo</string>
+    <string name="transactions_paste_action">Importer</string>
+    <string name="transactions_paste_imported">Importé.</string>
+    <string name="transactions_paste_duplicate">Déjà enregistré.</string>
+    <string name="transactions_paste_unreadable">Cela ne ressemble pas à un message de transaction.</string>
 </resources>

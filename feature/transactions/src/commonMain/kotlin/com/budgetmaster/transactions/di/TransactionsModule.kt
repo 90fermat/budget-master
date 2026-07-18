@@ -86,6 +86,7 @@ val transactionsModule = module {
             detectRecurringCharges = get(),
             suggestCategory = get(),
             parseReceipt = get(),
+            importMoneyMessage = get(),
         )
     }
 }

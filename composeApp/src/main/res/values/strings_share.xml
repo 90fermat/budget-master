@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Toasts for a shared-in message. Android resources rather than compose-resources because they
+     are shown from the Activity, before any Compose content exists. -->
+<resources>
+    <string name="share_import_ok">Transaction imported</string>
+    <string name="share_import_skipped">Already recorded, or not a transaction message</string>
+    <string name="share_import_disabled">Turn on mobile-money import in Settings first</string>
+</resources>

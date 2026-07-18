@@ -473,4 +473,10 @@
     <string name="reports_transfers_note">Transfers between your accounts are excluded.</string>
     <string name="reports_chart_a11y">Spending by category: %1$s</string>
     <string name="reports_trend_a11y">Income %1$s, expenses %2$s over %3$d days.</string>
+    <string name="transactions_paste_label">Paste a transaction message</string>
+    <string name="transactions_paste_placeholder">Paste an Orange Money or MoMo SMS here</string>
+    <string name="transactions_paste_action">Import</string>
+    <string name="transactions_paste_imported">Imported.</string>
+    <string name="transactions_paste_duplicate">Already recorded.</string>
+    <string name="transactions_paste_unreadable">That does not look like a transaction message.</string>
 </resources>

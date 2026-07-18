@@ -17,6 +17,8 @@ import com.budgetmaster.transactions.domain.usecase.ObserveTransactionsUseCase
 import com.budgetmaster.transactions.domain.usecase.ParseQuickEntryUseCase
 import com.budgetmaster.transactions.domain.usecase.QuickEntryDraft
 import com.budgetmaster.transactions.domain.usecase.RestoreTransactionUseCase
+import com.budgetmaster.transactions.domain.usecase.ImportMoneyMessageUseCase
+import com.budgetmaster.transactions.domain.usecase.ImportOutcome
 import com.budgetmaster.transactions.domain.usecase.ParseReceiptUseCase
 import com.budgetmaster.transactions.domain.usecase.SuggestCategoryUseCase
 import com.budgetmaster.core.ocr.ReceiptImage
@@ -31,11 +33,13 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
 /**
@@ -48,7 +52,7 @@ class TransactionsViewModel(
     private val observeTransactions: ObserveTransactionsUseCase,
     observeCategories: ObserveCategoriesUseCase,
     observeAccounts: ObserveTransactionAccountsUseCase,
-    settingsRepository: AppSettingsRepository,
+    private val settingsRepository: AppSettingsRepository,
     activeAccountStore: ActiveAccountStore,
     private val saveTransaction: SaveTransactionUseCase,
     private val deleteTransaction: DeleteTransactionUseCase,
@@ -57,6 +61,7 @@ class TransactionsViewModel(
     private val detectRecurringCharges: DetectRecurringChargesUseCase,
     private val suggestCategory: SuggestCategoryUseCase,
     private val parseReceipt: ParseReceiptUseCase,
+    private val importMoneyMessage: ImportMoneyMessageUseCase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(TransactionsState())
@@ -159,6 +164,35 @@ class TransactionsViewModel(
      *  as the user types. */
     suspend fun suggestCategory(description: String): String? =
         suggestCategory.invoke(description, _state.value.categories)
+
+    /**
+     * Imports a mobile-money message the user pasted or shared in.
+     *
+     * The fallback path for the three cases automatic capture cannot serve: the SMS permission
+     * refused or unavailable, **iOS where SMS access does not exist at all**, and messages the
+     * receiver missed. It runs through the same importer, so a pasted message and a later
+     * automatic capture of the same transaction collapse on the provider id rather than
+     * double-counting.
+     */
+    suspend fun importPastedMessage(text: String): ImportOutcome {
+        val settings = settingsRepository.settings.first()
+        val owners = settings.smsOwnerMsisdns
+            .split(',', ';')
+            .map { it.filter(Char::isDigit) }
+            .filter { it.isNotBlank() }
+            .toSet()
+        val accountId = _state.value.accounts.firstOrNull()?.id
+            ?: return ImportOutcome.NotRecognised
+
+        return importMoneyMessage(
+            // No sender: the importer falls back to matching on the body.
+            sender = "",
+            body = text,
+            receivedAt = Clock.System.now().toEpochMilliseconds(),
+            accountId = accountId,
+            ownerMsisdns = owners,
+        )
+    }
 
     /**
      * OCRs a photographed receipt on-device, then parses the extracted text into draft fields.

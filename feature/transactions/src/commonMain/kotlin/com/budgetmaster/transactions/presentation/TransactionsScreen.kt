@@ -70,6 +70,18 @@ import budgetmaster.core.generated.resources.transactions_uncategorized
 import budgetmaster.core.generated.resources.transactions_recurring_detected
 import budgetmaster.core.generated.resources.transactions_undo
 import budgetmaster.core.generated.resources.transactions_yesterday
+import budgetmaster.core.generated.resources.transactions_paste_label
+import budgetmaster.core.generated.resources.transactions_paste_placeholder
+import budgetmaster.core.generated.resources.transactions_paste_action
+import budgetmaster.core.generated.resources.transactions_paste_imported
+import budgetmaster.core.generated.resources.transactions_paste_duplicate
+import budgetmaster.core.generated.resources.transactions_paste_unreadable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material3.TextButton
+import kotlinx.coroutines.launch
+import com.budgetmaster.transactions.domain.usecase.ImportOutcome
 import com.budgetmaster.core.designsystem.Spacing
 import com.budgetmaster.core.designsystem.components.EmptyState as SharedEmptyState
 import com.budgetmaster.core.designsystem.components.GuidanceHost
@@ -274,6 +286,9 @@ private fun TypeAndCategoryFilters(state: TransactionsState, viewModel: Transact
 private fun TransactionList(state: TransactionsState, viewModel: TransactionsViewModel) {
     val uncategorized = stringResource(Res.string.transactions_uncategorized)
     LazyColumn(verticalArrangement = Arrangement.spacedBy(Spacing.small)) {
+        item(key = "paste_message") {
+            PasteMessageCard(onImport = viewModel::importPastedMessage)
+        }
         if (state.recurringCharges.isNotEmpty()) {
             item(key = "recurring_charges") {
                 RecurringChargesCard(state.recurringCharges, state.currencyCode)
@@ -452,6 +467,63 @@ private fun LaunchedEffectEffects(
                     snackbarHostState.showSnackbar(effect.message)
                 }
             }
+        }
+    }
+}
+
+/**
+ * Paste or share in a mobile-money message.
+ *
+ * The fallback capture path, and on platforms without SMS access the *only* one. It runs through
+ * the same importer as automatic capture, so a message pasted here and the same transaction
+ * captured later collapse on the provider id instead of double-counting.
+ */
+@Composable
+private fun PasteMessageCard(onImport: suspend (String) -> ImportOutcome) {
+    var text by remember { mutableStateOf("") }
+    var busy by remember { mutableStateOf(false) }
+    var result by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+
+    // Resolved up front: a coroutine callback cannot call stringResource.
+    val imported = stringResource(Res.string.transactions_paste_imported)
+    val duplicate = stringResource(Res.string.transactions_paste_duplicate)
+    val unreadable = stringResource(Res.string.transactions_paste_unreadable)
+
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.micro)) {
+        OutlinedTextField(
+            value = text,
+            onValueChange = { text = it; result = null },
+            label = { Text(stringResource(Res.string.transactions_paste_label)) },
+            placeholder = { Text(stringResource(Res.string.transactions_paste_placeholder)) },
+            enabled = !busy,
+            minLines = 2,
+            shape = RoundedCornerShape(14.dp),
+            trailingIcon = {
+                TextButton(
+                    enabled = !busy && text.isNotBlank(),
+                    onClick = {
+                        busy = true
+                        result = null
+                        scope.launch {
+                            result = when (onImport(text)) {
+                                is ImportOutcome.Imported -> { text = ""; imported }
+                                // Already-seen and already-recorded are both "we have this", which
+                                // is a success from the user's point of view, not an error.
+                                ImportOutcome.AlreadySeen,
+                                is ImportOutcome.AlreadyRecorded,
+                                is ImportOutcome.NeedsReview -> duplicate
+                                ImportOutcome.NotRecognised -> unreadable
+                            }
+                            busy = false
+                        }
+                    },
+                ) { Text(stringResource(Res.string.transactions_paste_action)) }
+            },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        result?.let {
+            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

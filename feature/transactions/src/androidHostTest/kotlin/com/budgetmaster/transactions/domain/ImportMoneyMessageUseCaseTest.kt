@@ -214,4 +214,61 @@ class ImportMoneyMessageUseCaseTest {
             "the fee belongs to the same moment as its transfer",
         )
     }
+
+    /**
+     * A pasted or shared message carries no sender, so parser selection has to fall back to the
+     * body. Without this the whole paste/share path — the only capture route on platforms with no
+     * SMS access — silently imports nothing.
+     */
+    @Test
+    fun importsAMessageWithNoSenderByMatchingOnTheBody(): Unit = runBlocking {
+        val repo = FakeImportRepository()
+
+        val outcome = useCase(repo).invoke("", outgoingWithFee, receivedAt, account, owner)
+
+        assertTrue(outcome is ImportOutcome.Imported, "expected an import, got $outcome")
+    }
+
+    /** Paste then automatic capture of the same transaction must not double-count. */
+    @Test
+    fun aPastedMessageAndItsLaterAutomaticCaptureCollapse(): Unit = runBlocking {
+        val repo = FakeImportRepository()
+        val subject = useCase(repo)
+
+        val pasted = subject.invoke("", outgoingWithFee, receivedAt, account, owner)
+        // Same transaction arriving later with a real sender and a different delivery time, so the
+        // message fingerprint differs and only the provider id can catch it.
+        val captured = subject.invoke(sender, outgoingWithFee, receivedAt + 60_000, account, owner)
+
+        assertTrue(pasted is ImportOutcome.Imported)
+        assertTrue(
+            captured is ImportOutcome.AlreadyRecorded,
+            "the provider id must catch it once the fingerprint differs; got $captured",
+        )
+    }
+
+    /**
+     * The content fallback must not become a hole in the sender allowlist.
+     *
+     * A parseable body from an *unrecognised* sender still has to be refused: the allowlist is a
+     * privacy guarantee that ordinary SMS are never inspected, and the fallback exists only for
+     * messages with no sender, which the user pasted in deliberately.
+     */
+    @Test
+    fun aParseableBodyFromAnUnknownSenderIsStillRefused(): Unit = runBlocking {
+        val repo = FakeImportRepository()
+
+        val outcome = useCase(repo).invoke("RandomBank", outgoingWithFee, receivedAt, account, owner)
+
+        assertTrue(outcome is ImportOutcome.NotRecognised, "the allowlist must still hold; got $outcome")
+    }
+
+    @Test
+    fun unrecognisableTextWithNoSenderIsRejectedRatherThanGuessed(): Unit = runBlocking {
+        val repo = FakeImportRepository()
+
+        val outcome = useCase(repo).invoke("", "Hey, are we still on for lunch?", receivedAt, account, owner)
+
+        assertTrue(outcome is ImportOutcome.NotRecognised)
+    }
 }

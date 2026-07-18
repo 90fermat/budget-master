@@ -63,8 +63,23 @@ class ImportMoneyMessageUseCase(
         val hash = messageFingerprint(sender, body, receivedAt)
         if (repository.hasSeenMessage(hash)) return ImportOutcome.AlreadySeen
 
-        val parser = parsers.firstOrNull { it.handlesSender(sender) }
-        val parsed = parser?.parse(body, ownerMsisdns, receivedAt)
+        // Sender-first. The allowlist is a privacy guarantee, not an optimisation: a message from
+        // an unrecognised sender is never inspected, so ordinary SMS are not read.
+        //
+        // The one exception is a message with *no* sender, which only happens when the user
+        // pasted or shared it in deliberately. There is no allowlist to apply, and they have
+        // already chosen to hand us this text, so the body decides which parser can read it.
+        val bySender = parsers.firstOrNull { it.handlesSender(sender) }
+        var parser = bySender
+        var parsed = bySender?.parse(body, ownerMsisdns, receivedAt)
+        if (parsed == null && sender.isBlank()) {
+            for (candidate in parsers) {
+                val attempt = candidate.parse(body, ownerMsisdns, receivedAt) ?: continue
+                parser = candidate
+                parsed = attempt
+                break
+            }
+        }
         if (parsed == null) {
             // Recorded so an unparseable message is not re-examined on every future pass.
             repository.recordMessageOutcome(hash, parser?.provider ?: UNKNOWN_PROVIDER, sender, receivedAt, ImportStatus.IGNORED)

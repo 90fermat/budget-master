@@ -21,6 +21,15 @@
             android:name=".MainActivity"
             android:exported="true"
             android:theme="@android:style/Theme.Material.NoActionBar">
+            <!-- Share a mobile-money message straight in. The fallback capture path: needed if
+                 the SMS permission is refused, for messages the receiver missed, and on any
+                 platform without SMS access. -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
