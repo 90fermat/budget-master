@@ -127,21 +127,27 @@ class SqlDelightReportsRepository(
         val income = current.filter { it.amount > 0 }.sumOf { it.amount }
         val expenses = current.filter { it.amount < 0 }.sumOf { abs(it.amount) }
 
-        val spendByCategory = current.filter { it.amount < 0 }
-            .groupBy { it.categoryId }
-            .map { (categoryId, group) -> categoryId to group.sumOf { abs(it.amount) } }
-            .sortedByDescending { it.second }
+        // One helper for both directions: an income breakdown that drifted from the expense one
+        // would be a subtle reporting bug rather than an obvious break.
+        fun slices(matching: (Double) -> Boolean, total: Double): List<CategorySlice> =
+            current.filter { matching(it.amount) }
+                .groupBy { it.categoryId }
+                .map { (categoryId, group) -> categoryId to group.sumOf { abs(it.amount) } }
+                .sortedByDescending { it.second }
+                .map { (categoryId, amount) ->
+                    val (name, color) = categoryId?.let { categoryNames[it] }
+                        ?: ("Uncategorized" to "#94A3B8")
+                    CategorySlice(
+                        categoryId = categoryId ?: "uncategorized",
+                        name = name,
+                        colorHex = color,
+                        amount = amount,
+                        share = if (total > 0.0) (amount / total).toFloat() else 0f,
+                    )
+                }
 
-        val categories = spendByCategory.map { (categoryId, amount) ->
-            val (name, color) = categoryId?.let { categoryNames[it] } ?: ("Uncategorized" to "#94A3B8")
-            CategorySlice(
-                categoryId = categoryId ?: "uncategorized",
-                name = name,
-                colorHex = color,
-                amount = amount,
-                share = if (expenses > 0.0) (amount / expenses).toFloat() else 0f,
-            )
-        }
+        val categories = slices({ it < 0 }, expenses)
+        val incomeCategories = slices({ it > 0 }, income)
 
         val trend = current
             .groupBy { DateUtils.toLocalDate(it.timestamp) }
@@ -159,6 +165,7 @@ class SqlDelightReportsRepository(
             totalIncome = income,
             totalExpenses = expenses,
             categories = categories,
+            incomeCategories = incomeCategories,
             trend = trend,
             previousIncome = previous.filter { it.amount > 0 }.sumOf { it.amount },
             previousExpenses = previous.filter { it.amount < 0 }.sumOf { abs(it.amount) },

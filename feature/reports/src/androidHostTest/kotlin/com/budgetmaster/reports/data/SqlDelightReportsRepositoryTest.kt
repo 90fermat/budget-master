@@ -90,6 +90,43 @@ class SqlDelightReportsRepositoryTest {
         assertTrue(report.categories.none { it.categoryId == "cat_salary" })
     }
 
+    /**
+     * The income breakdown was the missing half of Reports: the donut only ever covered
+     * `amount < 0`, so "where does my money come from" had no answer anywhere in the app.
+     */
+    @Test
+    fun incomeBreakdownRanksSourcesAndExcludesSpending() = runTest {
+        val (repo, database) = setup()
+        val queries = database.budgetMasterDatabaseQueries
+        queries.insertTransaction("i1", accountId, "cat_salary", 1500.0, "Pay", now, null, null, 0, null)
+        queries.insertTransaction("i2", accountId, null, 500.0, "Refund", now, null, null, 0, null)
+        queries.insertTransaction("e1", accountId, "cat_food", -200.0, "Dinner", now, null, null, 0, null)
+        // A transfer leg is not income, however positive it looks.
+        queries.insertTransaction("t1", accountId, null, 900.0, "Transfer in", now, null, null, 0, "grp1")
+
+        val report = repo.observeReport(ReportRange.MONTH).first()
+
+        assertEquals(2, report.incomeCategories.size)
+        assertEquals(1500.0, report.incomeCategories[0].amount, "largest source first")
+        assertEquals("cat_salary", report.incomeCategories[0].categoryId)
+        // Shares are a fraction of income, not of everything that moved.
+        assertEquals(0.75f, report.incomeCategories[0].share)
+        assertTrue(report.incomeCategories.none { it.categoryId == "cat_food" }, "spending is not income")
+    }
+
+    @Test
+    fun theTwoBreakdownsAreIndependent() = runTest {
+        val (repo, database) = setup()
+        val queries = database.budgetMasterDatabaseQueries
+        // A period can genuinely have spending and no income at all.
+        queries.insertTransaction("e1", accountId, "cat_food", -80.0, "Lunch", now, null, null, 0, null)
+
+        val report = repo.observeReport(ReportRange.MONTH).first()
+
+        assertEquals(1, report.categories.size)
+        assertTrue(report.incomeCategories.isEmpty(), "no income means an empty breakdown, not a crash")
+    }
+
     @Test
     fun previousPeriodDrivesTheComparison() = runTest {
         val (repo, database) = setup()

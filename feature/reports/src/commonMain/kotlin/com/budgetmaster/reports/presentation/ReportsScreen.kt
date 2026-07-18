@@ -54,6 +54,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import budgetmaster.core.generated.resources.Res
 import budgetmaster.core.generated.resources.reports_by_category
+import budgetmaster.core.generated.resources.reports_no_breakdown
 import budgetmaster.core.generated.resources.reports_chart_a11y
 import budgetmaster.core.generated.resources.reports_empty
 import budgetmaster.core.generated.resources.reports_expenses
@@ -397,29 +398,68 @@ private fun Metric(label: String, value: String, change: Float?, positiveIsGood:
     }
 }
 
+/**
+ * Spending or income by category.
+ *
+ * The same donut serves both: each slice's share is a fraction of its own total, so the two are
+ * never mixed. Income was previously invisible — the breakdown only ever covered `amount < 0`, so
+ * "where does my money come from" had no answer anywhere in the app.
+ */
 @Composable
 private fun CategorySection(report: ReportSummary) {
+    var showIncome by remember { mutableStateOf(false) }
+    val slices = if (showIncome) report.incomeCategories else report.categories
+
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(Spacing.large)) {
-            Text(
-                stringResource(Res.string.reports_by_category),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    stringResource(Res.string.reports_by_category),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.small)) {
+                    FilterChip(
+                        selected = !showIncome,
+                        onClick = { showIncome = false },
+                        label = { Text(stringResource(Res.string.reports_expenses)) },
+                    )
+                    FilterChip(
+                        selected = showIncome,
+                        onClick = { showIncome = true },
+                        label = { Text(stringResource(Res.string.reports_income)) },
+                    )
+                }
+            }
             Spacer(Modifier.height(Spacing.medium))
+
+            if (slices.isEmpty()) {
+                // A period can genuinely have spending but no income (or the reverse); saying so
+                // beats an empty circle the user has to interpret.
+                Text(
+                    text = stringResource(Res.string.reports_no_breakdown),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                return@Column
+            }
 
             // The canvas is opaque to screen readers, so the summary carries the numbers.
             val a11y = stringResource(
                 Res.string.reports_chart_a11y,
-                report.categories.take(5).joinToString(", ") {
+                slices.take(5).joinToString(", ") {
                     "${it.name} ${(it.share * 100).roundToInt()}%"
                 }.ifBlank { "—" },
             )
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                CategoryDonut(slices = report.categories, description = a11y)
+                CategoryDonut(slices = slices, description = a11y)
             }
             Spacer(Modifier.height(Spacing.medium))
-            report.categories.take(6).forEach { Legend(it, report.currencyCode) }
+            slices.take(6).forEach { Legend(it, report.currencyCode) }
         }
     }
 }

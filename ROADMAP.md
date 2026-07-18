@@ -916,8 +916,72 @@ Phase 8 screenshots.
 `InsightEntity` pattern), per-feature daily request budgets, batch prompts, and Remote
 Config kill-switches if quotas tighten.
 
-### Phase 8 — Store polish & README showcase (0.5 week)
-> After the feature set is complete and premium (post Phase 7), capture the app at its best.
+### Phase 8 — Mobile-money capture (the retention bet)
+
+> The strategic wedge. Manual entry is the single biggest reason personal-finance apps get
+> abandoned, and the incumbents solve it with bank APIs that barely exist in XAF/NGN markets.
+> Mobile-money messages are the local equivalent of a bank feed, and they parse on-device.
+
+- [x] **Orange Money parser** — golden corpus of real messages. The transaction id encodes the
+  time (`MP250704.0013` → 2025-07-04 00:13) so entries carry the moment the transaction happened,
+  not when the SMS landed, and the id doubles as the dedup key. Direction needs the user's own
+  MSISDN: "Transfert de A vers B" reads identically both ways. Per-field extraction rather than
+  whole-message patterns, because five real samples already spell one field three ways.
+- [x] **Schema v3** — `externalId` + `source` on transactions with a partial unique index (many
+  NULLs for manual rows, one row per provider transaction), and `ImportedMessageEntity` for
+  idempotency, the review queue, and an audit trail. Message bodies are never stored.
+- [x] **Ledger mapping** — three dedup layers (fingerprint → provider id → same-day/same-amount
+  against hand-entered rows). Fees become their own `cat_fees` entry so the balance reconciles
+  *and* "what did mobile money cost me" is answerable. Imported principals stay uncategorised: a
+  wrong category silently skews budgets where nobody thinks to look.
+- [x] **Automatic SMS capture** — broadcast receiver plus inbox backfill on opt-in, both through
+  one importer. Sender allowlist applied before the body is read; multi-part SMS reassembled.
+  `RECEIVE_SMS`/`READ_SMS` are Play-restricted, so a store release needs a Permissions
+  Declaration and may be refused — a distribution question, not a code one.
+- [ ] **MTN MoMo parser** — blocked on real samples. MTN messages are currently recorded as
+  ignored rather than mis-parsed, which is the safe failure.
+- [ ] **Paste / share fallback** — an `ACTION_SEND` (`text/plain`) filter plus a paste field, both
+  routed into the existing `ImportMoneyMessageUseCase`. Needed three ways: if the Play permission
+  is refused, on **iOS where SMS access does not exist at all**, and for messages the receiver
+  missed. Dedup collapses a pasted message against a later automatic capture on the transaction id.
+- [ ] **Review queue UI** — the `PENDING_REVIEW` case is recorded but has no screen. A suspected
+  duplicate currently imports nothing and says nothing.
+
+### Phase 9 — Insight & polish
+
+> Two gaps found by using the app rather than reading it.
+
+**9.1 — Income analysis (the missing half of Reports)**
+- [ ] **Income by source.** The category donut is expenses-only — `spendByCategory` filters
+  `amount < 0`, so "where does my money come from" has no answer. Add `incomeCategories` to
+  `ReportSummary` and an **Expenses / Income toggle** over the existing donut: same component,
+  same tests, one flag. Cheapest high-value change on the list.
+- [ ] **Top payees / payers.** SMS import now captures `counterpartyName`, which makes "who am I
+  sending money to, and who pays me" answerable — the question people actually ask, and one no
+  competitor in this market answers well.
+- [ ] **Fees card.** `cat_fees` exists now; "mobile money cost you 3 400 XAF this month" is a line
+  no other app in the market shows.
+
+**9.2 — Premium design pass**
+> The foundation is strong (5 palettes, Outfit/Inter, motion tokens, adaptive layouts). What keeps
+> it feeling Material-default rather than premium is specific and fixable.
+- [ ] **One chart implementation.** The dashboard chart is Vico on Android and hand-drawn Canvas
+  on iOS/web — two visual languages for the same chart. Unify on one custom chart in the app
+  palette so it reads as deliberate.
+- [ ] **Surface hierarchy.** Almost everything is a card with the same radius and no elevation
+  story, so the balance card and the budget list compete. Establish one hero surface and let the
+  rest recede.
+- [ ] **Amounts as the hero.** In a finance app the number should dominate typographically —
+  large tabular figures with the currency de-emphasised. Today labels and amounts sit at similar
+  weight.
+- [ ] **Fix the BiDi bugs** found in the Phase 5 RTL pass: `+2.4%` renders `2.4%+`, and formatted
+  amounts scramble. Unicode isolation (FSI/PDI) around amounts and signed percentages.
+- [ ] **Richer empty and loading states** — where an app reads as cheap or considered.
+- [ ] **Animate value changes.** Balances snap today; a counted transition is a small, strongly
+  "premium" cue and the motion tokens already exist.
+
+### Phase 10 — Store polish & README showcase (0.5 week)
+> After the feature set is complete and premium (post Phase 9), capture the app at its best.
 
 - [ ] Capture polished **screenshots / a short GIF** across platforms and the 5 palettes
   (light + dark): splash, dashboard, transactions + add-editor, budgets, reports, settings.

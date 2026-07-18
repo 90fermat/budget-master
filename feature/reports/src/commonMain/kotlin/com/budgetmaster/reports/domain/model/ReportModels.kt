@@ -42,7 +42,15 @@ data class ReportSummary(
     val range: ReportRange,
     val totalIncome: Double,
     val totalExpenses: Double,
+    /** Spending by category, largest first. */
     val categories: List<CategorySlice>,
+    /**
+     * Income by category, largest first — "where does my money come from".
+     *
+     * Separate from [categories] rather than signed, because the two are never shown together and
+     * each share is a fraction of its own total.
+     */
+    val incomeCategories: List<CategorySlice> = emptyList(),
     val trend: List<TrendPoint>,
     val previousIncome: Double,
     val previousExpenses: Double,

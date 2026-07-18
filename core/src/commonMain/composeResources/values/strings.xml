@@ -455,6 +455,7 @@
     <string name="reports_income">Income</string>
     <string name="reports_expenses">Expenses</string>
     <string name="reports_net">Net</string>
+    <string name="reports_no_breakdown">Nothing to break down for this period.</string>
     <string name="reports_by_category">Spending by category</string>
     <string name="reports_trend">Income vs expenses</string>
     <string name="reports_empty">No activity in this period yet.</string>
