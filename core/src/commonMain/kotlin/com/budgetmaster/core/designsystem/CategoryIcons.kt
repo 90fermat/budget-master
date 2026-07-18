@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import budgetmaster.core.generated.resources.Res
 import budgetmaster.core.generated.resources.category_entertainment
+import budgetmaster.core.generated.resources.category_fees
 import budgetmaster.core.generated.resources.category_food
 import budgetmaster.core.generated.resources.category_groceries
 import budgetmaster.core.generated.resources.category_health
@@ -52,6 +53,7 @@ fun categoryIconFor(categoryId: String?): ImageVector = when (categoryId) {
     "cat_entertainment" -> Icons.Filled.LocalActivity
     "cat_health" -> Icons.Filled.MedicalServices
     "cat_salary" -> Icons.Filled.Savings
+    "cat_fees" -> Icons.Filled.Payments
     "cat_other" -> Icons.Filled.Category
     else -> Icons.Filled.Payments
 }
@@ -94,6 +96,7 @@ fun categoryNameFor(categoryId: String?, storedName: String): String {
         "cat_entertainment" -> Res.string.category_entertainment
         "cat_health" -> Res.string.category_health
         "cat_salary" -> Res.string.category_salary
+        "cat_fees" -> Res.string.category_fees
         "cat_other" -> Res.string.category_other
         else -> null
     }

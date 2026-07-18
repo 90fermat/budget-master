@@ -149,6 +149,7 @@
     <string name="category_entertainment">Loisirs</string>
     <string name="category_health">Santé</string>
     <string name="category_salary">Salaire</string>
+    <string name="category_fees">Frais</string>
     <string name="category_other">Autre</string>
     <!-- French writes the day before the month: "20 janvier". -->
     <!-- Fonctions IA (activation facultative) -->

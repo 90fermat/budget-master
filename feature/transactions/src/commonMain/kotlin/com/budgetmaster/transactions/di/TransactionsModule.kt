@@ -17,6 +17,11 @@ import com.budgetmaster.transactions.domain.usecase.RestoreTransactionUseCase
 import com.budgetmaster.transactions.domain.usecase.SaveTransactionUseCase
 import com.budgetmaster.transactions.domain.usecase.DetectRecurringChargesUseCase
 import com.budgetmaster.transactions.domain.usecase.ParseQuickEntryUseCase
+import com.budgetmaster.transactions.data.repository.SqlDelightMoneyImportRepository
+import com.budgetmaster.transactions.domain.repository.MoneyImportRepository
+import com.budgetmaster.transactions.domain.usecase.ImportMoneyMessageUseCase
+import com.budgetmaster.core.sms.MoneyMessageParser
+import com.budgetmaster.core.sms.OrangeMoneyParser
 import com.budgetmaster.transactions.domain.usecase.ParseReceiptUseCase
 import com.budgetmaster.transactions.domain.usecase.SuggestCategoryUseCase
 import com.budgetmaster.transactions.presentation.TransactionsViewModel
@@ -61,6 +66,11 @@ val transactionsModule = module {
     factory { DetectRecurringChargesUseCase() }
     factory { SuggestCategoryUseCase(get(), get()) }
     factory { ParseReceiptUseCase(get(), get()) }
+
+    // Mobile-money message import: the parsers are stateless, so one list is shared.
+    single { SqlDelightMoneyImportRepository(get(), get(), get()) } bind MoneyImportRepository::class
+    single<List<MoneyMessageParser>> { listOf(OrangeMoneyParser()) }
+    factory { ImportMoneyMessageUseCase(get(), get()) }
 
     viewModel {
         TransactionsViewModel(

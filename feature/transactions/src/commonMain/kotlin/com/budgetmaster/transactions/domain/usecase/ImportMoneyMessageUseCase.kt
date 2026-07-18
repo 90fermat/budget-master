@@ -1,0 +1,159 @@
+@file:OptIn(ExperimentalTime::class)
+
+package com.budgetmaster.transactions.domain.usecase
+
+import com.budgetmaster.core.sms.MoneyMessageParser
+import com.budgetmaster.core.sms.MoneyMessageType
+import com.budgetmaster.core.sms.ParsedMoneyMessage
+import com.budgetmaster.core.sms.messageFingerprint
+import com.budgetmaster.core.util.DateUtils
+import com.budgetmaster.transactions.domain.repository.ImportStatus
+import com.budgetmaster.transactions.domain.repository.ImportedEntry
+import com.budgetmaster.transactions.domain.repository.MoneyImportRepository
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.plus
+import kotlin.time.ExperimentalTime
+
+/** What happened to a message the importer was handed. */
+sealed class ImportOutcome {
+    /** Entries were written. */
+    data class Imported(val transactionIds: List<String>) : ImportOutcome()
+
+    /** This exact message was already processed. */
+    data object AlreadySeen : ImportOutcome()
+
+    /** This provider transaction is already in the ledger, from an earlier copy of the message. */
+    data class AlreadyRecorded(val transactionId: String) : ImportOutcome()
+
+    /**
+     * A hand-entered transaction looks like the same event. Surfaced rather than merged or
+     * double-counted: guessing wrong either way corrupts the ledger silently.
+     */
+    data class NeedsReview(val existingTransactionId: String) : ImportOutcome()
+
+    /** Not a transaction message — an advert, a balance check, an OTP, an unknown provider. */
+    data object NotRecognised : ImportOutcome()
+}
+
+/**
+ * Turns a provider message into ledger entries, exactly once.
+ *
+ * Three dedup layers, cheapest first: the message fingerprint (have we handled this text?), the
+ * provider transaction id (is this event already recorded, perhaps from a re-send?), and finally a
+ * same-day same-amount check against hand-entered rows (did the user beat us to it?).
+ *
+ * **Fees become their own entry.** An Orange transfer of 20 244 with 44.48 in fees moves 20 288.48
+ * out of the account; recording that single figure would both hide the fee and make it
+ * unrecoverable later. Two rows keep the balance reconciling *and* make "what did mobile money
+ * cost me this month" answerable — which in XAF/NGN markets is a question worth answering.
+ */
+class ImportMoneyMessageUseCase(
+    private val repository: MoneyImportRepository,
+    private val parsers: List<MoneyMessageParser>,
+) {
+    suspend operator fun invoke(
+        sender: String,
+        body: String,
+        receivedAt: Long,
+        accountId: String,
+        ownerMsisdns: Set<String>,
+    ): ImportOutcome {
+        val hash = messageFingerprint(sender, body, receivedAt)
+        if (repository.hasSeenMessage(hash)) return ImportOutcome.AlreadySeen
+
+        val parser = parsers.firstOrNull { it.handlesSender(sender) }
+        val parsed = parser?.parse(body, ownerMsisdns, receivedAt)
+        if (parsed == null) {
+            // Recorded so an unparseable message is not re-examined on every future pass.
+            repository.recordMessageOutcome(hash, parser?.provider ?: UNKNOWN_PROVIDER, sender, receivedAt, ImportStatus.IGNORED)
+            return ImportOutcome.NotRecognised
+        }
+
+        repository.findTransactionIdByExternalId(parsed.externalId)?.let { existing ->
+            repository.recordMessageOutcome(
+                hash, parsed.provider, sender, receivedAt,
+                ImportStatus.DUPLICATE, parsed.externalId, existing,
+            )
+            return ImportOutcome.AlreadyRecorded(existing)
+        }
+
+        val occurredAt = parsed.occurredAt ?: receivedAt
+        val (dayStart, dayEnd) = dayBounds(occurredAt)
+        repository.findPossibleManualDuplicate(parsed.amount, dayStart, dayEnd)?.let { existing ->
+            repository.recordMessageOutcome(
+                hash, parsed.provider, sender, receivedAt,
+                ImportStatus.PENDING_REVIEW, parsed.externalId, existing,
+            )
+            return ImportOutcome.NeedsReview(existing)
+        }
+
+        val ids = repository.saveImported(
+            hash = hash,
+            provider = parsed.provider,
+            sender = sender,
+            receivedAt = receivedAt,
+            externalId = parsed.externalId,
+            entries = parsed.toEntries(accountId, occurredAt),
+        )
+        return ImportOutcome.Imported(ids)
+    }
+
+    /** The principal, plus a separate fee row when the provider charged one. */
+    private fun ParsedMoneyMessage.toEntries(accountId: String, occurredAt: Long): List<ImportedEntry> {
+        val signed = if (isOutflow) -amount else amount
+        val principal = ImportedEntry(
+            accountId = accountId,
+            // Uncategorised on purpose. A transfer or merchant payment could be anything, and a
+            // wrong category is worse than none: it silently skews budgets and reports, and the
+            // user has no reason to go looking for it. The AI category suggester can fill this in
+            // on review, where the user sees the guess before it counts.
+            categoryId = null,
+            amount = signed,
+            description = describe(),
+            timestamp = occurredAt,
+            externalId = externalId,
+        )
+        if (fee <= 0.0) return listOf(principal)
+
+        return listOf(
+            principal,
+            ImportedEntry(
+                accountId = accountId,
+                categoryId = FEES_CATEGORY,
+                // A fee is always money out, even on an incoming transfer.
+                amount = -fee,
+                description = "$FEE_LABEL — ${describe()}",
+                timestamp = occurredAt,
+                // Suffixed so it is unique, and so both rows are still traceable to one message.
+                externalId = "$externalId$FEE_ID_SUFFIX",
+            ),
+        )
+    }
+
+    private fun ParsedMoneyMessage.describe(): String =
+        counterpartyName?.takeIf { it.isNotBlank() } ?: when (type) {
+            MoneyMessageType.TRANSFER_IN -> "Transfer received"
+            MoneyMessageType.TRANSFER_OUT -> "Transfer sent"
+            MoneyMessageType.PAYMENT -> "Payment"
+            MoneyMessageType.WITHDRAWAL -> "Cash withdrawal"
+            MoneyMessageType.DEPOSIT -> "Cash deposit"
+        }
+
+    /** Midnight-to-midnight around [timestamp], for the fuzzy duplicate window. */
+    private fun dayBounds(timestamp: Long): Pair<Long, Long> {
+        val zone = TimeZone.currentSystemDefault()
+        val day = DateUtils.toLocalDate(timestamp)
+        val start = day.atStartOfDayIn(zone).toEpochMilliseconds()
+        val end = day.plus(1, DateTimeUnit.DAY).atStartOfDayIn(zone).toEpochMilliseconds() - 1
+        return start to end
+    }
+
+    private companion object {
+        const val FEES_CATEGORY = "cat_fees"
+        const val FEE_LABEL = "Fee"
+        const val FEE_ID_SUFFIX = "#fee"
+        const val UNKNOWN_PROVIDER = "unknown"
+    }
+}

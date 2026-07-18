@@ -29,6 +29,9 @@ object DefaultData {
         SeedCategory("cat_entertainment", "Entertainment", "🎬", "#8B5CF6"),
         SeedCategory("cat_health", "Health", "💊", "#EF4444"),
         SeedCategory("cat_salary", "Salary", "💰", "#059669"),
+        // Mobile-money transfer fees are a real, recurring cost in XAF/NGN markets — large
+        // enough that folding them into the transfer would hide a meaningful spend line.
+        SeedCategory("cat_fees", "Fees & Charges", "💸", "#F97316"),
         SeedCategory("cat_other", "Other", "📦", "#94A3B8"),
     )
 }
