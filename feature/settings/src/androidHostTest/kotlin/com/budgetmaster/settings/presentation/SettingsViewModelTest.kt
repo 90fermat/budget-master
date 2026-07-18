@@ -9,6 +9,8 @@ import com.budgetmaster.core.prefs.OnboardingPreferences
 import com.budgetmaster.settings.domain.usecase.ObserveAppSettingsUseCase
 import com.budgetmaster.settings.domain.usecase.ResetOnboardingUseCase
 import com.budgetmaster.settings.domain.usecase.SetAiEnabledUseCase
+import com.budgetmaster.settings.domain.usecase.SetSmsImportEnabledUseCase
+import com.budgetmaster.settings.domain.usecase.SetSmsOwnerMsisdnsUseCase
 import com.budgetmaster.settings.domain.usecase.SetCurrencyUseCase
 import com.budgetmaster.settings.domain.usecase.SetDarkModeUseCase
 import com.budgetmaster.settings.domain.usecase.SetLanguageUseCase
@@ -55,6 +57,8 @@ class SettingsViewModelTest {
             setLanguage = SetLanguageUseCase(repository),
             setCurrency = SetCurrencyUseCase(repository),
             setAiEnabled = SetAiEnabledUseCase(repository),
+            setSmsImportEnabled = SetSmsImportEnabledUseCase(repository),
+            setSmsOwnerMsisdns = SetSmsOwnerMsisdnsUseCase(repository),
             resetOnboarding = ResetOnboardingUseCase(OnboardingPreferences(FakeStore())),
         )
     }
@@ -97,6 +101,23 @@ class SettingsViewModelTest {
         assertEquals(DarkModeSetting.DARK, state.darkMode)
         assertEquals(AppLanguage.FRENCH, state.language)
         assertEquals("EUR", state.currency)
+    }
+
+    @Test
+    fun `sms import settings round-trip`() = runTest(dispatcher) {
+        val vm = viewModel()
+        keepStateHot(vm)
+        advanceUntilIdle()
+
+        // Reading someone's messages is the most invasive thing this app does, so it must start off.
+        assertFalse(vm.state.value.smsImportEnabled)
+
+        vm.onIntent(SettingsIntent.SmsImportEnabledChanged(true))
+        vm.onIntent(SettingsIntent.SmsOwnerMsisdnsChanged("659228030"))
+        advanceUntilIdle()
+
+        assertTrue(vm.state.value.smsImportEnabled)
+        assertEquals("659228030", vm.state.value.smsOwnerMsisdns)
     }
 
     @Test

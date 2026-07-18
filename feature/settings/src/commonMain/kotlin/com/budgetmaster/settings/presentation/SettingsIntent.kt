@@ -21,6 +21,12 @@ sealed class SettingsIntent {
     /** The user turned AI insights on or off. Off means nothing is sent to a cloud model. */
     data class AiEnabledChanged(val enabled: Boolean) : SettingsIntent()
 
+    /** The user turned automatic mobile-money message import on or off. */
+    data class SmsImportEnabledChanged(val enabled: Boolean) : SettingsIntent()
+
+    /** The user edited their own mobile-money number(s). */
+    data class SmsOwnerMsisdnsChanged(val msisdns: String) : SettingsIntent()
+
     /** The user asked to replay the onboarding intro. */
     data object ReplayOnboarding : SettingsIntent()
 }

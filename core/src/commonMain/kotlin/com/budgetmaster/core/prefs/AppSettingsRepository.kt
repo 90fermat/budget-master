@@ -26,6 +26,20 @@ data class AppSettings(
      * device because they never found a setting, so this is opt-in rather than opt-out.
      */
     val aiEnabled: Boolean = false,
+    /**
+     * Whether incoming mobile-money messages are read and imported automatically.
+     *
+     * Off by default and gated on the SMS permission: reading someone's messages is the most
+     * invasive thing this app can do, so it happens only after an explicit opt-in.
+     */
+    val smsImportEnabled: Boolean = false,
+    /**
+     * The user's own mobile-money numbers, comma-separated.
+     *
+     * Required for import to work at all: "Transfert de A vers B" is the same sentence whether
+     * money arrived or left, and only matching these numbers against each side resolves it.
+     */
+    val smsOwnerMsisdns: String = "",
 )
 
 /**
@@ -44,14 +58,18 @@ class AppSettingsRepository(private val store: KeyValueStore) {
         store.observeString(KEY_LANGUAGE),
         store.observeString(KEY_CURRENCY),
         store.observeString(KEY_AI_ENABLED),
-    ) { palette, darkMode, language, currency, aiEnabled ->
+        store.observeString(KEY_SMS_IMPORT_ENABLED),
+        store.observeString(KEY_SMS_OWNER_MSISDNS),
+    ) { values ->
         AppSettings(
-            palette = AppPalette.fromId(palette),
-            darkMode = DarkModeSetting.fromId(darkMode),
-            language = AppLanguage.fromId(language),
-            currency = currency ?: "USD",
+            palette = AppPalette.fromId(values[0]),
+            darkMode = DarkModeSetting.fromId(values[1]),
+            language = AppLanguage.fromId(values[2]),
+            currency = values[3] ?: "USD",
             // Absent means off: an unset preference must never be read as consent.
-            aiEnabled = aiEnabled.toBoolean(),
+            aiEnabled = values[4].toBoolean(),
+            smsImportEnabled = values[5].toBoolean(),
+            smsOwnerMsisdns = values[6].orEmpty(),
         )
     }
 
@@ -65,6 +83,13 @@ class AppSettingsRepository(private val store: KeyValueStore) {
 
     suspend fun setAiEnabled(enabled: Boolean) = store.putString(KEY_AI_ENABLED, enabled.toString())
 
+    suspend fun setSmsImportEnabled(enabled: Boolean) =
+        store.putString(KEY_SMS_IMPORT_ENABLED, enabled.toString())
+
+    /** @param msisdns comma-separated; whitespace is tolerated and stripped on read. */
+    suspend fun setSmsOwnerMsisdns(msisdns: String) =
+        store.putString(KEY_SMS_OWNER_MSISDNS, msisdns)
+
     // Public rather than private so tests in other modules can seed a preference before the
     // subject first reads it, instead of hardcoding the key string.
     companion object {
@@ -73,5 +98,7 @@ class AppSettingsRepository(private val store: KeyValueStore) {
         const val KEY_LANGUAGE = "app.language"
         const val KEY_CURRENCY = "app.currency"
         const val KEY_AI_ENABLED = "app.ai_enabled"
+        const val KEY_SMS_IMPORT_ENABLED = "app.sms_import_enabled"
+        const val KEY_SMS_OWNER_MSISDNS = "app.sms_owner_msisdns"
     }
 }

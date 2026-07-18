@@ -42,6 +42,16 @@ class SetAiEnabledUseCase(private val repository: AppSettingsRepository) {
     suspend operator fun invoke(enabled: Boolean) = repository.setAiEnabled(enabled)
 }
 
+/** Turns automatic mobile-money message import on or off. */
+class SetSmsImportEnabledUseCase(private val repository: AppSettingsRepository) {
+    suspend operator fun invoke(enabled: Boolean) = repository.setSmsImportEnabled(enabled)
+}
+
+/** Records the user's own mobile-money number(s), which resolve transfer direction. */
+class SetSmsOwnerMsisdnsUseCase(private val repository: AppSettingsRepository) {
+    suspend operator fun invoke(msisdns: String) = repository.setSmsOwnerMsisdns(msisdns)
+}
+
 /** Clears the onboarding-completed flag so the intro is shown again. */
 class ResetOnboardingUseCase(private val onboardingPreferences: OnboardingPreferences) {
     suspend operator fun invoke() = onboardingPreferences.setCompleted(false)

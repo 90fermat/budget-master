@@ -1,6 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+
+    <!-- Mobile-money import. Restricted permissions: a Play release needs a Permissions
+         Declaration and may be refused. Both are gated behind an explicit in-app opt-in, and the
+         app degrades to manual entry when they are absent.
+         RECEIVE_SMS captures new messages; READ_SMS backfills history already on the device. -->
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
+    <uses-permission android:name="android.permission.READ_SMS" />
+
     <application
         android:name=".BudgetMasterApplication"
         android:allowBackup="true"
@@ -18,6 +26,17 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Only Orange/MTN shortcodes are ever inspected; everything else is dropped before the
+             body is touched. Not exported beyond the system SMS broadcast. -->
+        <receiver
+            android:name=".MoneyMessageReceiver"
+            android:exported="true"
+            android:permission="android.permission.BROADCAST_SMS">
+            <intent-filter android:priority="999">
+                <action android:name="android.provider.Telephony.SMS_RECEIVED" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

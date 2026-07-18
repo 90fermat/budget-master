@@ -199,6 +199,18 @@
     <string name="transactions_receipt_failed">Couldn't read that receipt. Fill the fields below instead.</string>
 
     <!-- Account deletion (Play requirement) -->
+    <!-- Automatic mobile-money import -->
+    <string name="settings_sms_title">Mobile money</string>
+    <string name="settings_sms_enable">Import transactions automatically</string>
+    <string name="settings_sms_enable_desc">Reads Orange Money and MTN MoMo messages on this device and records the transactions for you. Messages are read on your phone and never uploaded; only the amounts and merchant names are saved.</string>
+    <string name="settings_sms_number_label">Your mobile money number</string>
+    <string name="settings_sms_number_placeholder">e.g. 659228030</string>
+    <string name="settings_sms_number_help">Needed to tell money you sent from money you received.</string>
+    <string name="settings_sms_permission_needed">Permission is required to read transaction messages.</string>
+    <string name="settings_sms_backfill">Import past messages</string>
+    <string name="settings_sms_backfill_running">Reading your messages…</string>
+    <string name="settings_sms_backfill_done">Imported %1$d transactions.</string>
+
     <string name="settings_delete_account">Delete account</string>
     <string name="settings_delete_account_title">Delete your account?</string>
     <string name="settings_delete_account_body">This permanently deletes your account and erases all your data on this device — transactions, budgets, goals, and accounts. This cannot be undone.</string>

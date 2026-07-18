@@ -32,6 +32,7 @@ class BudgetMasterApplication : Application(), KoinComponent {
         // Initialize Koin DI
         initKoin {
             androidContext(this@BudgetMasterApplication)
+            modules(androidAppModule)
         }
 
         // Daily background pass so recurring entries appear on their own day instead of

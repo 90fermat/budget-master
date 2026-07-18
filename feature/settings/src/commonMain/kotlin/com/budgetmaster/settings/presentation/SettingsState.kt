@@ -19,4 +19,8 @@ data class SettingsState(
     val currency: String = "USD",
     /** Whether the user has opted in to sending spending aggregates to a cloud model. */
     val aiEnabled: Boolean = false,
+    /** Whether incoming mobile-money messages are read and imported automatically. */
+    val smsImportEnabled: Boolean = false,
+    /** The user's own number(s); import cannot resolve transfer direction without them. */
+    val smsOwnerMsisdns: String = "",
 )

@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.budgetmaster.settings.domain.usecase.ObserveAppSettingsUseCase
 import com.budgetmaster.settings.domain.usecase.ResetOnboardingUseCase
 import com.budgetmaster.settings.domain.usecase.SetAiEnabledUseCase
+import com.budgetmaster.settings.domain.usecase.SetSmsImportEnabledUseCase
+import com.budgetmaster.settings.domain.usecase.SetSmsOwnerMsisdnsUseCase
 import com.budgetmaster.settings.domain.usecase.SetCurrencyUseCase
 import com.budgetmaster.settings.domain.usecase.SetDarkModeUseCase
 import com.budgetmaster.settings.domain.usecase.SetLanguageUseCase
@@ -28,6 +30,8 @@ class SettingsViewModel(
     private val setLanguage: SetLanguageUseCase,
     private val setCurrency: SetCurrencyUseCase,
     private val setAiEnabled: SetAiEnabledUseCase,
+    private val setSmsImportEnabled: SetSmsImportEnabledUseCase,
+    private val setSmsOwnerMsisdns: SetSmsOwnerMsisdnsUseCase,
     private val resetOnboarding: ResetOnboardingUseCase,
 ) : ViewModel() {
 
@@ -40,6 +44,8 @@ class SettingsViewModel(
                 language = it.language,
                 currency = it.currency,
                 aiEnabled = it.aiEnabled,
+                smsImportEnabled = it.smsImportEnabled,
+                smsOwnerMsisdns = it.smsOwnerMsisdns,
             )
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsState())
@@ -52,6 +58,8 @@ class SettingsViewModel(
             is SettingsIntent.LanguageSelected -> viewModelScope.launch { setLanguage(intent.language) }
             is SettingsIntent.CurrencySelected -> viewModelScope.launch { setCurrency(intent.currencyCode) }
             is SettingsIntent.AiEnabledChanged -> viewModelScope.launch { setAiEnabled(intent.enabled) }
+            is SettingsIntent.SmsImportEnabledChanged -> viewModelScope.launch { setSmsImportEnabled(intent.enabled) }
+            is SettingsIntent.SmsOwnerMsisdnsChanged -> viewModelScope.launch { setSmsOwnerMsisdns(intent.msisdns) }
             is SettingsIntent.ReplayOnboarding -> viewModelScope.launch { resetOnboarding() }
         }
     }

@@ -3,6 +3,8 @@ package com.budgetmaster.settings.di
 import com.budgetmaster.settings.domain.usecase.ObserveAppSettingsUseCase
 import com.budgetmaster.settings.domain.usecase.ResetOnboardingUseCase
 import com.budgetmaster.settings.domain.usecase.SetAiEnabledUseCase
+import com.budgetmaster.settings.domain.usecase.SetSmsImportEnabledUseCase
+import com.budgetmaster.settings.domain.usecase.SetSmsOwnerMsisdnsUseCase
 import com.budgetmaster.settings.domain.usecase.SetCurrencyUseCase
 import com.budgetmaster.settings.domain.usecase.SetDarkModeUseCase
 import com.budgetmaster.settings.domain.usecase.SetLanguageUseCase
@@ -22,8 +24,10 @@ val settingsModule = module {
     factory { SetLanguageUseCase(get()) }
     factory { SetCurrencyUseCase(get()) }
     factory { SetAiEnabledUseCase(get()) }
+    factory { SetSmsImportEnabledUseCase(get()) }
+    factory { SetSmsOwnerMsisdnsUseCase(get()) }
     factory { ResetOnboardingUseCase(get()) }
 
     // ViewModels
-    viewModel { SettingsViewModel(get(), get(), get(), get(), get(), get(), get()) }
+    viewModel { SettingsViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 }

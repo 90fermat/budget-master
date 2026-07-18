@@ -24,7 +24,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.TextButton
@@ -81,6 +84,16 @@ import budgetmaster.core.generated.resources.settings_delete_account_title
 import budgetmaster.core.generated.resources.settings_delete_account_body
 import budgetmaster.core.generated.resources.settings_delete_account_confirm
 import budgetmaster.core.generated.resources.settings_delete_account_failed
+import budgetmaster.core.generated.resources.settings_sms_title
+import budgetmaster.core.generated.resources.settings_sms_enable
+import budgetmaster.core.generated.resources.settings_sms_enable_desc
+import budgetmaster.core.generated.resources.settings_sms_number_label
+import budgetmaster.core.generated.resources.settings_sms_number_placeholder
+import budgetmaster.core.generated.resources.settings_sms_number_help
+import budgetmaster.core.generated.resources.settings_sms_permission_needed
+import budgetmaster.core.generated.resources.settings_sms_backfill
+import budgetmaster.core.generated.resources.settings_sms_backfill_running
+import budgetmaster.core.generated.resources.settings_sms_backfill_done
 import com.budgetmaster.core.designsystem.components.GuidanceHost
 import com.budgetmaster.core.designsystem.components.GuidanceSheet
 import com.budgetmaster.core.designsystem.components.rememberGuidance
@@ -96,6 +109,7 @@ import com.budgetmaster.core.designsystem.DynamicSwatchColors
 import com.budgetmaster.core.designsystem.Spacing
 import com.budgetmaster.core.designsystem.colorScheme
 import com.budgetmaster.core.localization.AppLanguage
+import com.budgetmaster.core.sms.rememberSmsPermissionRequester
 import com.budgetmaster.core.currency.SUPPORTED_CURRENCY_CODES
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -120,6 +134,11 @@ fun SettingsScreen(
      * so the user knows to sign in again and retry.
      */
     onDeleteAccount: suspend () -> Result<Unit> = { Result.success(Unit) },
+    /**
+     * Imports mobile-money messages already on the device. Returns how many transactions were
+     * created. Runs when the user switches import on, so the ledger starts with their history.
+     */
+    onBackfillMessages: suspend () -> Int = { 0 },
 ) {
     val state by viewModel.state.collectAsState()
     val scrollState = rememberScrollState()
@@ -244,6 +263,15 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(Spacing.medium))
         HelpAndTipsSection()
+
+        Spacer(modifier = Modifier.height(Spacing.medium))
+        SmsImportSection(
+            enabled = state.smsImportEnabled,
+            msisdns = state.smsOwnerMsisdns,
+            onEnabledChange = { viewModel.onIntent(SettingsIntent.SmsImportEnabledChanged(it)) },
+            onMsisdnsChange = { viewModel.onIntent(SettingsIntent.SmsOwnerMsisdnsChanged(it)) },
+            onBackfill = onBackfillMessages,
+        )
 
         Spacer(modifier = Modifier.height(Spacing.medium))
         AiSection(
@@ -447,6 +475,127 @@ private fun SettingsCard(content: @Composable () -> Unit) {
  * Enumerates [GuidanceRegistry] rather than a hand-written list, so a new screen's guide
  * appears here automatically instead of being forgotten.
  */
+/**
+ * Automatic mobile-money import.
+ *
+ * Hidden entirely where the platform has no SMS access (iOS, web), rather than showing a switch
+ * that could never work. Turning it on requests the permission first — flipping the preference
+ * without the grant would leave a setting that says "on" while nothing is captured.
+ */
+@Composable
+private fun SmsImportSection(
+    enabled: Boolean,
+    msisdns: String,
+    onEnabledChange: (Boolean) -> Unit,
+    onMsisdnsChange: (String) -> Unit,
+    onBackfill: suspend () -> Int,
+) {
+    val scope = rememberCoroutineScope()
+    var backfilling by remember { mutableStateOf(false) }
+    var backfilled by remember { mutableStateOf<Int?>(null) }
+    var permissionDenied by remember { mutableStateOf(false) }
+
+    val permission = rememberSmsPermissionRequester { granted ->
+        permissionDenied = !granted
+        if (granted) {
+            onEnabledChange(true)
+            // Backfill immediately: a ledger that starts with the user's history is useful today,
+            // one that starts empty is useful in a month.
+            backfilling = true
+            scope.launch {
+                backfilled = runCatching { onBackfill() }.getOrDefault(0)
+                backfilling = false
+            }
+        }
+    }
+
+    if (!permission.isSupported) return
+
+    Text(
+        text = stringResource(Res.string.settings_sms_title),
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.onBackground,
+    )
+    Spacer(modifier = Modifier.height(Spacing.small))
+
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.small),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = stringResource(Res.string.settings_sms_enable),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+            Text(
+                text = stringResource(Res.string.settings_sms_enable_desc),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Spacer(Modifier.width(Spacing.small))
+        Switch(
+            checked = enabled,
+            onCheckedChange = { wants ->
+                permissionDenied = false
+                if (!wants) {
+                    onEnabledChange(false)
+                } else if (permission.isGranted) {
+                    onEnabledChange(true)
+                } else {
+                    permission.request()
+                }
+            },
+        )
+    }
+
+    if (permissionDenied) {
+        Text(
+            text = stringResource(Res.string.settings_sms_permission_needed),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+        )
+    }
+
+    if (enabled) {
+        OutlinedTextField(
+            value = msisdns,
+            onValueChange = onMsisdnsChange,
+            label = { Text(stringResource(Res.string.settings_sms_number_label)) },
+            placeholder = { Text(stringResource(Res.string.settings_sms_number_placeholder)) },
+            supportingText = { Text(stringResource(Res.string.settings_sms_number_help)) },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        when {
+            backfilling -> Text(
+                text = stringResource(Res.string.settings_sms_backfill_running),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            backfilled != null -> Text(
+                text = stringResource(Res.string.settings_sms_backfill_done, backfilled!!),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            else -> TextButton(
+                onClick = {
+                    backfilling = true
+                    scope.launch {
+                        backfilled = runCatching { onBackfill() }.getOrDefault(0)
+                        backfilling = false
+                    }
+                },
+            ) { Text(stringResource(Res.string.settings_sms_backfill)) }
+        }
+    }
+}
+
 /**
  * The AI opt-in.
  *

@@ -509,6 +509,7 @@ private fun MainNavGraph(navController: androidx.navigation.NavHostController) {
         composable<AuthRoute.Settings> {
             val signOutUseCase = koinInject<SignOutUseCase>()
             val deleteAccountUseCase = koinInject<DeleteAccountUseCase>()
+            val backfillMessages = rememberMessageBackfill()
             val signOutScope = rememberCoroutineScope()
             SettingsScreen(
                 onSignOut = {
@@ -535,7 +536,8 @@ private fun MainNavGraph(navController: androidx.navigation.NavHostController) {
                     navController.navigate(AuthRoute.Onboarding) {
                         popUpTo(AuthRoute.Dashboard) { inclusive = true }
                     }
-                }
+                },
+                onBackfillMessages = backfillMessages
             )
         }
     }
