@@ -17,7 +17,9 @@ import com.budgetmaster.transactions.domain.usecase.ObserveTransactionsUseCase
 import com.budgetmaster.transactions.domain.usecase.ParseQuickEntryUseCase
 import com.budgetmaster.transactions.domain.usecase.QuickEntryDraft
 import com.budgetmaster.transactions.domain.usecase.RestoreTransactionUseCase
+import com.budgetmaster.transactions.domain.usecase.ParseReceiptUseCase
 import com.budgetmaster.transactions.domain.usecase.SuggestCategoryUseCase
+import com.budgetmaster.core.ocr.ReceiptImage
 import com.budgetmaster.transactions.domain.usecase.SaveTransactionUseCase
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -54,6 +56,7 @@ class TransactionsViewModel(
     private val parseQuickEntry: ParseQuickEntryUseCase,
     private val detectRecurringCharges: DetectRecurringChargesUseCase,
     private val suggestCategory: SuggestCategoryUseCase,
+    private val parseReceipt: ParseReceiptUseCase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(TransactionsState())
@@ -85,6 +88,7 @@ class TransactionsViewModel(
                         // it sends the typed text to the model, so it obeys the same consent gate
                         // as every other AI surface.
                         quickAddEnabled = parseQuickEntry.isAvailable && settings.aiEnabled,
+                        receiptScanEnabled = parseReceipt.isAvailable && settings.aiEnabled,
                     )
                 }
             }
@@ -155,6 +159,13 @@ class TransactionsViewModel(
      *  as the user types. */
     suspend fun suggestCategory(description: String): String? =
         suggestCategory.invoke(description, _state.value.categories)
+
+    /**
+     * OCRs a photographed receipt on-device, then parses the extracted text into draft fields.
+     * The image never leaves the phone; only the recognised text is summarised to the model.
+     */
+    suspend fun scanReceipt(image: ReceiptImage): Result<QuickEntryDraft> =
+        parseReceipt.invoke(image, _state.value.categories)
 
     private fun delete(id: String) {
         val target = _state.value.groups.flatMap { it.items }.firstOrNull { it.id == id } ?: return

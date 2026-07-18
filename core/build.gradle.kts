@@ -70,6 +70,10 @@ kotlin {
             implementation(project.dependencies.platform(libs.firebase.bom))
             implementation(libs.firebase.ai)
             implementation(libs.firebase.config)
+            // On-device receipt OCR; the photo never leaves the phone.
+            implementation(libs.mlkit.text.recognition)
+            // rememberLauncherForActivityResult, for the system photo picker.
+            implementation(libs.androidx.activity.compose)
         }
         
         iosMain.dependencies {

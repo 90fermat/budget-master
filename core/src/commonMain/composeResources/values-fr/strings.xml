@@ -191,6 +191,12 @@
 
     <string name="transactions_recurring_detected">Prélèvements récurrents détectés</string>
     <string name="transactions_category_suggested">Suggéré : %1$s</string>
+    <!-- Numérisation de reçu (OCR sur l'appareil + analyse IA) -->
+    <string name="transactions_receipt_scan">Numériser un reçu</string>
+    <string name="transactions_receipt_reading">Lecture du reçu…</string>
+    <string name="transactions_receipt_no_text">Aucun texte trouvé dans cette image. Essayez une photo plus nette et bien éclairée.</string>
+    <string name="transactions_receipt_no_amount">Reçu lu, mais aucun total trouvé. Saisissez-le ci-dessous.</string>
+    <string name="transactions_receipt_failed">Impossible de lire ce reçu. Remplissez plutôt les champs ci-dessous.</string>
 
     <!-- Suppression du compte (exigence Play) -->
     <string name="settings_delete_account">Supprimer le compte</string>

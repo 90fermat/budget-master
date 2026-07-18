@@ -81,6 +81,8 @@ data class TransactionsState(
     val editor: EditorState = EditorState(),
     /** True when AI quick-add is available and the user has opted in; shows the parse field. */
     val quickAddEnabled: Boolean = false,
+    /** True when on-device OCR and an AI provider are both available and the user opted in. */
+    val receiptScanEnabled: Boolean = false,
     /** Locally-detected likely subscriptions; empty until enough history exists. No AI involved. */
     val recurringCharges: List<RecurringCharge> = emptyList(),
 ) {

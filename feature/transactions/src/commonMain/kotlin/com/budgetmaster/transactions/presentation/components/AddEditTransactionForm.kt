@@ -20,6 +20,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -70,11 +71,18 @@ import budgetmaster.core.generated.resources.transactions_recurring_label
 import budgetmaster.core.generated.resources.transactions_save
 import budgetmaster.core.generated.resources.transactions_type_expense
 import budgetmaster.core.generated.resources.transactions_type_income
+import budgetmaster.core.generated.resources.transactions_receipt_scan
+import budgetmaster.core.generated.resources.transactions_receipt_reading
+import budgetmaster.core.generated.resources.transactions_receipt_no_text
+import budgetmaster.core.generated.resources.transactions_receipt_no_amount
+import budgetmaster.core.generated.resources.transactions_receipt_failed
 import com.budgetmaster.core.designsystem.Spacing
 import com.budgetmaster.core.designsystem.categoryIconFor
 import com.budgetmaster.core.designsystem.pressScale
 import com.budgetmaster.core.util.DateUtils
 import com.budgetmaster.core.util.rememberHaptics
+import com.budgetmaster.core.ocr.ReceiptImage
+import com.budgetmaster.core.ocr.rememberReceiptPicker
 import com.budgetmaster.core.designsystem.categoryNameFor
 import com.budgetmaster.transactions.domain.model.TransactionAccount
 import com.budgetmaster.transactions.domain.model.TransactionCategory
@@ -83,6 +91,8 @@ import com.budgetmaster.transactions.domain.model.TransactionItem
 import com.budgetmaster.transactions.domain.usecase.QuickEntryDraft
 import com.budgetmaster.transactions.domain.usecase.QuickEntryError
 import com.budgetmaster.transactions.domain.usecase.QuickEntryException
+import com.budgetmaster.transactions.domain.usecase.ReceiptScanError
+import com.budgetmaster.transactions.domain.usecase.ReceiptScanException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
@@ -111,6 +121,9 @@ internal fun AddEditTransactionForm(
     // Suggests a category from a typed description (cached per merchant). Returns null when it
     // can't tell or AI is off — the suggestion chip simply doesn't appear.
     onSuggestCategory: suspend (String) -> String? = { null },
+    // Receipt scan: OCR runs on-device, then the extracted text is parsed into the same fields.
+    receiptScanEnabled: Boolean = false,
+    onScanReceipt: suspend (ReceiptImage) -> Result<QuickEntryDraft> = { Result.failure(NotImplementedError()) },
 ) {
     var isExpense by remember { mutableStateOf(editing?.isExpense ?: true) }
     var amountText by remember {
@@ -170,16 +183,20 @@ internal fun AddEditTransactionForm(
         // Quick-add is for new entries only: prefilling the fields of an edit would fight the
         // values the user is already correcting.
         if (quickAddEnabled && editing == null) {
-            QuickAddField(
-                onParse = onQuickParse,
-                onParsed = { draft ->
-                    isExpense = draft.isExpense
-                    amountText = draft.amountAbs.toString()
-                    description = draft.description
-                    draft.categoryId?.let { categoryId = it }
-                    timestamp = draft.timestamp
-                },
-            )
+            // Both AI capture paths land in the same place: they fill these fields for review.
+            val fillFromDraft: (QuickEntryDraft) -> Unit = { draft ->
+                isExpense = draft.isExpense
+                amountText = draft.amountAbs.toString()
+                if (draft.description.isNotBlank()) description = draft.description
+                draft.categoryId?.let { categoryId = it }
+                timestamp = draft.timestamp
+            }
+
+            QuickAddField(onParse = onQuickParse, onParsed = fillFromDraft)
+
+            if (receiptScanEnabled) {
+                ScanReceiptButton(onScan = onScanReceipt, onParsed = fillFromDraft)
+            }
         }
 
         // Expense / Income toggle
@@ -361,6 +378,68 @@ internal fun AddEditTransactionForm(
             }
         }
         Spacer(Modifier.height(Spacing.small))
+    }
+}
+
+/**
+ * "Scan receipt": pick a receipt photo, OCR it on-device, and fill the fields for review.
+ *
+ * The image is read by ML Kit locally and never uploaded — only the recognised text is summarised
+ * to the model. Like quick-add, this drafts an entry; the user still confirms and saves.
+ */
+@Composable
+private fun ScanReceiptButton(
+    onScan: suspend (ReceiptImage) -> Result<QuickEntryDraft>,
+    onParsed: (QuickEntryDraft) -> Unit,
+) {
+    var scanning by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+
+    // Resolved here because a coroutine callback can't call stringResource.
+    val noTextMsg = stringResource(Res.string.transactions_receipt_no_text)
+    val noAmountMsg = stringResource(Res.string.transactions_receipt_no_amount)
+    val failedMsg = stringResource(Res.string.transactions_receipt_failed)
+
+    val picker = rememberReceiptPicker { image ->
+        scanning = true
+        error = null
+        scope.launch {
+            onScan(image)
+                .onSuccess(onParsed)
+                .onFailure {
+                    error = when ((it as? ReceiptScanException)?.error) {
+                        ReceiptScanError.NoTextFound -> noTextMsg
+                        ReceiptScanError.NoAmount -> noAmountMsg
+                        else -> failedMsg
+                    }
+                }
+            scanning = false
+        }
+    }
+
+    if (!picker.isSupported) return
+
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.micro)) {
+        OutlinedButton(
+            onClick = { picker.launch() },
+            enabled = !scanning,
+            shape = RoundedCornerShape(14.dp),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+        ) {
+            if (scanning) {
+                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(Res.string.transactions_receipt_reading))
+            } else {
+                Icon(Icons.Default.ReceiptLong, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(Res.string.transactions_receipt_scan))
+            }
+        }
+        error?.let {
+            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+        }
     }
 }
 

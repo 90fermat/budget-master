@@ -190,6 +190,12 @@
 
     <string name="transactions_recurring_detected">Recurring charges detected</string>
     <string name="transactions_category_suggested">Suggested: %1$s</string>
+    <!-- Receipt scan (on-device OCR + AI parse) -->
+    <string name="transactions_receipt_scan">Scan a receipt</string>
+    <string name="transactions_receipt_reading">Reading receipt…</string>
+    <string name="transactions_receipt_no_text">No text found in that image. Try a clearer, well-lit photo.</string>
+    <string name="transactions_receipt_no_amount">Read the receipt, but couldn't find a total. Enter it below.</string>
+    <string name="transactions_receipt_failed">Couldn't read that receipt. Fill the fields below instead.</string>
 
     <!-- Account deletion (Play requirement) -->
     <string name="settings_delete_account">Delete account</string>

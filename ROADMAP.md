@@ -876,10 +876,22 @@ Phase 8 screenshots.
   description as a dismissible chip in the editor, with the learned `description → categoryId` pair
   cached in `KeyValueStore` so each merchant is asked once (a cache hit never calls the model).
   Enum schema so it can't invent a category; failures swallowed to null. 5 tests.
-- [ ] **Receipt scan** — the one remaining Phase 7 item. Needs ML Kit on-device OCR **and a
-  camera**: the OCR→parse step is buildable and testable (it's `ParseQuickEntry` over OCR text),
-  but the capture path (camera permission + image capture UI) is Android-only and can't be
-  *verified* without a device camera. Left for a focused pass on real hardware.
+- [x] **Receipt scan — done (Android).** "Scan a receipt" in the transaction editor: pick a photo,
+  ML Kit reads it **on-device**, and `ParseReceiptUseCase` turns the extracted text into the same
+  draft fields quick-add produces, for review before saving.
+  - **The image never leaves the phone.** OCR is local and free; only the recognised text (capped
+    at 4k chars) is summarised to the model. A receipt photo shows the card's last digits, the
+    address and the full basket — uploading it to a cloud OCR was rejected on exactly that basis.
+  - Uses the **system photo picker**, so it needs *no camera or storage permission at all* — the
+    user hands over one image. Also a better Play data-safety answer than requesting CAMERA. Full
+    resolution too; a camera-preview thumbnail is far too low-res to OCR.
+  - Always `isExpense = true`: a receipt is a purchase, and defaulting to income on a misread
+    would silently inflate the balance. Hallucinated categories are dropped; a missing total is a
+    typed `NoAmount` rather than a guess. 8 tests cover the parse half end to end.
+  - iOS/Web return `isAvailable = false` and the action hides itself (ML Kit is a native SDK with
+    no KMP wrapper).
+  - **Needs your manual check** — see the test script in the session notes; the picker + real OCR
+    can't be exercised without a device.
 
 **7.2 — Coaching & analysis** (needs Phases 2–3 budgets/reports) — **done**
 - [x] **Monthly narrative summary — done.** `GenerateNarrativeUseCase` sends the report

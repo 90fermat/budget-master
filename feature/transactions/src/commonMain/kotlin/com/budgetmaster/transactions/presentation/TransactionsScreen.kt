@@ -210,6 +210,8 @@ fun TransactionsScreen(
                                 quickAddEnabled = state.quickAddEnabled,
                                 onQuickParse = viewModel::parseQuickEntry,
                                 onSuggestCategory = viewModel::suggestCategory,
+                                receiptScanEnabled = state.receiptScanEnabled,
+                                onScanReceipt = viewModel::scanReceipt,
                             )
                         }
                     }
@@ -407,6 +409,8 @@ private fun TransactionEditor(state: TransactionsState, viewModel: TransactionsV
                 quickAddEnabled = state.quickAddEnabled,
                 onQuickParse = viewModel::parseQuickEntry,
                                 onSuggestCategory = viewModel::suggestCategory,
+                                receiptScanEnabled = state.receiptScanEnabled,
+                                onScanReceipt = viewModel::scanReceipt,
             )
         }
         if (isCompact) {

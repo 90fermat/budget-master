@@ -33,6 +33,7 @@ androidx-biometric = "1.2.0-alpha05"
 androidx-datastore = "1.2.1"
 google-services = "4.5.0"
 firebase-crashlytics-plugin = "3.0.7"
+mlkit-text-recognition = "16.0.1"
 # Google sign-in on Android: Credential Manager + the Google ID option helper.
 androidx-credentials = "1.6.0"
 googleid = "1.1.1"
@@ -98,6 +99,9 @@ firebase-ai = { module = "com.google.firebase:firebase-ai" }
 # Remote Config: a free server-side kill-switch for the AI features (no console setup needed for
 # the default; a project value overrides it once set).
 firebase-config = { module = "com.google.firebase:firebase-config" }
+# On-device receipt OCR. The bundled recognizer (not the Play-Services-downloaded one) so it works
+# offline on first launch — the receipt photo must never need a network round-trip.
+mlkit-text-recognition = { module = "com.google.mlkit:text-recognition", version.ref = "mlkit-text-recognition" }
 # App Check attests the caller. AI Logic enforces it as of early July 2026, so without a
 # provider the calls are rejected. Debug builds use a registered debug token; release uses
 # Play Integrity.

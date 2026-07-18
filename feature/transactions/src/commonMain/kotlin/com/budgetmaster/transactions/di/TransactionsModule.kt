@@ -17,6 +17,7 @@ import com.budgetmaster.transactions.domain.usecase.RestoreTransactionUseCase
 import com.budgetmaster.transactions.domain.usecase.SaveTransactionUseCase
 import com.budgetmaster.transactions.domain.usecase.DetectRecurringChargesUseCase
 import com.budgetmaster.transactions.domain.usecase.ParseQuickEntryUseCase
+import com.budgetmaster.transactions.domain.usecase.ParseReceiptUseCase
 import com.budgetmaster.transactions.domain.usecase.SuggestCategoryUseCase
 import com.budgetmaster.transactions.presentation.TransactionsViewModel
 import com.budgetmaster.transactions.presentation.recurring.RecurringViewModel
@@ -59,6 +60,7 @@ val transactionsModule = module {
     factory { ParseQuickEntryUseCase(get()) }
     factory { DetectRecurringChargesUseCase() }
     factory { SuggestCategoryUseCase(get(), get()) }
+    factory { ParseReceiptUseCase(get(), get()) }
 
     viewModel {
         TransactionsViewModel(
@@ -73,6 +75,7 @@ val transactionsModule = module {
             parseQuickEntry = get(),
             detectRecurringCharges = get(),
             suggestCategory = get(),
+            parseReceipt = get(),
         )
     }
 }
