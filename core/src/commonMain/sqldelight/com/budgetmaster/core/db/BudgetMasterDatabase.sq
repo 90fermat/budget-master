@@ -115,6 +115,13 @@ CREATE TABLE TransactionEntity (
     -- Non-null rows move money between the user's own wallets, so they are excluded
     -- from income/expense totals and from budget spend.
     transferGroupId TEXT,
+    -- The provider's own transaction id, for entries captured from a mobile-money message.
+    -- NULL for anything typed by hand. This is the dedup key: providers re-send messages, and
+    -- the user may also have entered the same transaction manually.
+    externalId TEXT,
+    -- How this entry got here: MANUAL | SMS | RECEIPT. Lets the UI mark imported rows and lets
+    -- an import be undone without touching hand-entered data.
+    source TEXT NOT NULL DEFAULT 'MANUAL',
     FOREIGN KEY(accountId) REFERENCES AccountEntity(id) ON DELETE CASCADE,
     FOREIGN KEY(categoryId) REFERENCES CategoryEntity(id) ON DELETE SET NULL
 );
@@ -122,11 +129,19 @@ CREATE TABLE TransactionEntity (
 CREATE INDEX idx_transaction_account ON TransactionEntity(accountId);
 CREATE INDEX idx_transaction_category ON TransactionEntity(categoryId);
 CREATE INDEX idx_transaction_timestamp ON TransactionEntity(timestamp);
+-- Partial index: SQLite lets a UNIQUE index hold many NULLs, which is exactly right here —
+-- every manual entry has a NULL externalId, while an imported one may appear only once.
+CREATE UNIQUE INDEX idx_transaction_external_id ON TransactionEntity(externalId) WHERE externalId IS NOT NULL;
 
 -- Queries for TransactionEntity
 insertTransaction:
 INSERT OR REPLACE INTO TransactionEntity (id, accountId, categoryId, amount, description, timestamp, notes, tags, isRecurring, transferGroupId)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- Insert for entries captured from a provider message: carries the dedup key and the source.
+insertImportedTransaction:
+INSERT OR REPLACE INTO TransactionEntity (id, accountId, categoryId, amount, description, timestamp, notes, tags, isRecurring, transferGroupId, externalId, source)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 selectAllTransactions:
 SELECT * FROM TransactionEntity ORDER BY timestamp DESC;
@@ -390,6 +405,68 @@ DELETE FROM SavingsGoalEntity WHERE userId = ?;
 
 deleteNotificationsByUser:
 DELETE FROM NotificationEntity WHERE userId = ?;
+
+
+-- ==========================================
+-- 11. IMPORTED MESSAGE ENTITY
+-- Mobile-money messages seen by the importer.
+--
+-- Exists for three reasons: idempotency (the same message must never import twice, and
+-- providers do re-send), a review queue for anything parsed with less than full confidence,
+-- and an audit trail so the user can see exactly what was read and what it became.
+--
+-- The message body is deliberately NOT stored — only its hash and the extracted fields. A
+-- mobile-money SMS names people and balances, and keeping it would make the local database a
+-- far more sensitive thing than it needs to be.
+-- ==========================================
+CREATE TABLE ImportedMessageEntity (
+    -- hash(sender + body + receivedAt): stable per message, and reveals nothing.
+    hash TEXT NOT NULL PRIMARY KEY,
+    userId TEXT NOT NULL,
+    provider TEXT NOT NULL,
+    sender TEXT NOT NULL,
+    receivedAt INTEGER NOT NULL,
+    -- IMPORTED | PENDING_REVIEW | IGNORED | DUPLICATE
+    status TEXT NOT NULL,
+    -- The transaction this became, when it was imported.
+    transactionId TEXT,
+    externalId TEXT
+);
+
+CREATE INDEX idx_imported_message_user ON ImportedMessageEntity(userId);
+CREATE INDEX idx_imported_message_status ON ImportedMessageEntity(status);
+
+-- Queries for ImportedMessageEntity
+insertImportedMessage:
+INSERT OR REPLACE INTO ImportedMessageEntity (hash, userId, provider, sender, receivedAt, status, transactionId, externalId)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+selectImportedMessageByHash:
+SELECT * FROM ImportedMessageEntity WHERE hash = ?;
+
+selectImportedMessagesByStatus:
+SELECT * FROM ImportedMessageEntity
+WHERE userId = ? AND status = ? ORDER BY receivedAt DESC;
+
+updateImportedMessageStatus:
+UPDATE ImportedMessageEntity SET status = ?, transactionId = ? WHERE hash = ?;
+
+deleteImportedMessagesByUser:
+DELETE FROM ImportedMessageEntity WHERE userId = ?;
+
+-- Dedup lookup: has this provider transaction already been recorded?
+selectTransactionByExternalId:
+SELECT * FROM TransactionEntity WHERE externalId = ?;
+
+-- Fuzzy dedup: the user may have typed the same transaction by hand before the message was
+-- imported. Same day, same magnitude, not already imported.
+selectTransactionsForDuplicateCheck:
+SELECT TransactionEntity.* FROM TransactionEntity
+JOIN AccountEntity ON TransactionEntity.accountId = AccountEntity.id
+WHERE AccountEntity.userId = ?
+  AND TransactionEntity.externalId IS NULL
+  AND TransactionEntity.timestamp BETWEEN ? AND ?
+  AND abs(TransactionEntity.amount) = ?;
 
 
 -- Additional Transactions Queries

@@ -1,0 +1,34 @@
+-- Migrates schema v2 -> v3: mobile-money message import.
+--
+-- Same rule as 1.sqm: the CREATE TABLE statements in `BudgetMasterDatabase.sq` only describe a
+-- *freshly created* database. An existing install stays on v2, and the first query naming a new
+-- column fails with "no such column" — which is exactly how v1 -> v2 broke every install that
+-- had already shipped. This file is what upgrades them.
+--
+-- Everything here is additive:
+--   * TransactionEntity.externalId — NULL for every existing row, which is correct: they were
+--     all entered by hand and have no provider transaction id.
+--   * TransactionEntity.source     — defaults to 'MANUAL', which is what every existing row is.
+--   * ImportedMessageEntity        — new, empty.
+ALTER TABLE TransactionEntity ADD COLUMN externalId TEXT;
+
+ALTER TABLE TransactionEntity ADD COLUMN source TEXT NOT NULL DEFAULT 'MANUAL';
+
+-- Partial unique index: many rows may have a NULL externalId (everything manual), but an
+-- imported provider transaction may appear only once.
+CREATE UNIQUE INDEX idx_transaction_external_id ON TransactionEntity(externalId) WHERE externalId IS NOT NULL;
+
+CREATE TABLE ImportedMessageEntity (
+    hash TEXT NOT NULL PRIMARY KEY,
+    userId TEXT NOT NULL,
+    provider TEXT NOT NULL,
+    sender TEXT NOT NULL,
+    receivedAt INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    transactionId TEXT,
+    externalId TEXT
+);
+
+CREATE INDEX idx_imported_message_user ON ImportedMessageEntity(userId);
+
+CREATE INDEX idx_imported_message_status ON ImportedMessageEntity(status);
