@@ -476,6 +476,14 @@
     <string name="transactions_paste_label">Paste a transaction message</string>
     <string name="transactions_paste_placeholder">Paste an Orange Money or MoMo SMS here</string>
     <string name="transactions_paste_action">Import</string>
+    <string name="transactions_paste_needs_review">Sent to review - it looks like one you already entered. Decide just below.</string>
+    <!-- Review queue: captured messages the importer could not tell apart from a manual entry. -->
+    <string name="transactions_review_title">Needs your decision</string>
+    <string name="transactions_review_subtitle">These captured messages look like transactions you already entered by hand. Nothing was added, so nothing is counted twice.</string>
+    <string name="transactions_review_fee">Plus %1$s in fees</string>
+    <string name="transactions_review_keep">Add it</string>
+    <string name="transactions_review_discard">Already have it</string>
+    <string name="transactions_review_hint">Check that day in the list below before deciding.</string>
     <string name="transactions_paste_imported">Imported.</string>
     <string name="transactions_paste_duplicate">Already recorded.</string>
     <string name="transactions_paste_unreadable">That does not look like a transaction message.</string>

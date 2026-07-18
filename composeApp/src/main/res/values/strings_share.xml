@@ -4,5 +4,7 @@
 <resources>
     <string name="share_import_ok">Transaction imported</string>
     <string name="share_import_skipped">Already recorded, or not a transaction message</string>
+    <!-- Distinct from "skipped": the message was understood, and is waiting on the user. -->
+    <string name="share_import_review">Sent to review in Transactions - it may be one you already entered</string>
     <string name="share_import_disabled">Turn on mobile-money import in Settings first</string>
 </resources>

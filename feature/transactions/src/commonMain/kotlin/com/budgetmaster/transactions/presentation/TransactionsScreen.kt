@@ -75,6 +75,7 @@ import budgetmaster.core.generated.resources.transactions_paste_placeholder
 import budgetmaster.core.generated.resources.transactions_paste_action
 import budgetmaster.core.generated.resources.transactions_paste_imported
 import budgetmaster.core.generated.resources.transactions_paste_duplicate
+import budgetmaster.core.generated.resources.transactions_paste_needs_review
 import budgetmaster.core.generated.resources.transactions_paste_unreadable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -97,6 +98,7 @@ import com.budgetmaster.core.util.formatSigned
 import com.budgetmaster.core.designsystem.categoryNameFor
 import com.budgetmaster.transactions.domain.model.TypeFilter
 import com.budgetmaster.transactions.presentation.components.AddEditTransactionForm
+import com.budgetmaster.transactions.presentation.components.PendingImportsCard
 import com.budgetmaster.transactions.presentation.components.TransactionRowItem
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
@@ -288,6 +290,19 @@ private fun TransactionList(state: TransactionsState, viewModel: TransactionsVie
     LazyColumn(verticalArrangement = Arrangement.spacedBy(Spacing.small)) {
         item(key = "paste_message") {
             PasteMessageCard(onImport = viewModel::importPastedMessage)
+        }
+        if (state.pendingImports.isNotEmpty()) {
+            // Above the list on purpose: it is a question addressed to the user, and a question
+            // parked below the fold is one that never gets answered.
+            item(key = "pending_imports") {
+                PendingImportsCard(
+                    items = state.pendingImports,
+                    currencyCode = state.currencyCode,
+                    onResolve = { hash, keep ->
+                        viewModel.onIntent(TransactionsIntent.ResolvePendingImport(hash, keep))
+                    },
+                )
+            }
         }
         if (state.recurringCharges.isNotEmpty()) {
             item(key = "recurring_charges") {
@@ -488,6 +503,7 @@ private fun PasteMessageCard(onImport: suspend (String) -> ImportOutcome) {
     // Resolved up front: a coroutine callback cannot call stringResource.
     val imported = stringResource(Res.string.transactions_paste_imported)
     val duplicate = stringResource(Res.string.transactions_paste_duplicate)
+    val needsReview = stringResource(Res.string.transactions_paste_needs_review)
     val unreadable = stringResource(Res.string.transactions_paste_unreadable)
 
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.micro)) {
@@ -511,8 +527,10 @@ private fun PasteMessageCard(onImport: suspend (String) -> ImportOutcome) {
                                 // Already-seen and already-recorded are both "we have this", which
                                 // is a success from the user's point of view, not an error.
                                 ImportOutcome.AlreadySeen,
-                                is ImportOutcome.AlreadyRecorded,
-                                is ImportOutcome.NeedsReview -> duplicate
+                                is ImportOutcome.AlreadyRecorded -> duplicate
+                                // Distinct from a duplicate: this one is a question, and the
+                                // answer is now waiting a few rows down the same screen.
+                                is ImportOutcome.NeedsReview -> { text = ""; needsReview }
                                 ImportOutcome.NotRecognised -> unreadable
                             }
                             busy = false

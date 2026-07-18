@@ -19,6 +19,10 @@ import com.budgetmaster.transactions.domain.usecase.DetectRecurringChargesUseCas
 import com.budgetmaster.transactions.domain.usecase.ParseQuickEntryUseCase
 import com.budgetmaster.transactions.domain.usecase.ImportMoneyMessageUseCase
 import com.budgetmaster.transactions.domain.repository.MoneyImportRepository
+import com.budgetmaster.transactions.domain.repository.PendingImport
+import com.budgetmaster.transactions.domain.repository.PendingImportDetails
+import com.budgetmaster.transactions.domain.usecase.ObservePendingImportsUseCase
+import com.budgetmaster.transactions.domain.usecase.ResolvePendingImportUseCase
 import com.budgetmaster.transactions.domain.repository.ImportStatus
 import com.budgetmaster.transactions.domain.repository.ImportedEntry
 import com.budgetmaster.transactions.domain.usecase.ParseReceiptUseCase
@@ -97,34 +101,12 @@ class TransactionsViewModelTest {
         ),
         // Import isn't exercised here; the paste path has its own tests against a real fake.
         importMoneyMessage = ImportMoneyMessageUseCase(
-            object : MoneyImportRepository {
-                override suspend fun hasSeenMessage(hash: String) = false
-                override suspend fun findTransactionIdByExternalId(externalId: String): String? = null
-                override suspend fun findPossibleManualDuplicate(
-                    amount: Double,
-                    dayStart: Long,
-                    dayEnd: Long,
-                ): String? = null
-                override suspend fun saveImported(
-                    hash: String,
-                    provider: String,
-                    sender: String,
-                    receivedAt: Long,
-                    externalId: String,
-                    entries: List<ImportedEntry>,
-                ): List<String> = emptyList()
-                override suspend fun recordMessageOutcome(
-                    hash: String,
-                    provider: String,
-                    sender: String,
-                    receivedAt: Long,
-                    status: ImportStatus,
-                    externalId: String?,
-                    transactionId: String?,
-                ) = Unit
-            },
+            EmptyImportRepository,
             emptyList(),
         ),
+        // The review queue is empty in these tests; its own behaviour is covered separately.
+        observePendingImports = ObservePendingImportsUseCase(EmptyImportRepository),
+        resolvePendingImport = ResolvePendingImportUseCase(EmptyImportRepository),
         // No OCR/AI in unit tests; receipt scan stays disabled, which these tests don't exercise.
         parseReceipt = ParseReceiptUseCase(
             object : ReceiptTextRecognizer {
@@ -167,4 +149,44 @@ class TransactionsViewModelTest {
         advanceUntilIdle()
         assertEquals("1", repository.restored?.id)
     }
+}
+
+/**
+ * A repository that has seen nothing and holds nothing.
+ *
+ * Import and the review queue are not what these tests are about — they have their own coverage
+ * against real fakes — so this keeps them out of the way without pretending to model them.
+ */
+private object EmptyImportRepository : MoneyImportRepository {
+    override suspend fun hasSeenMessage(hash: String) = false
+    override suspend fun findTransactionIdByExternalId(externalId: String): String? = null
+    override suspend fun findPossibleManualDuplicate(
+        amount: Double,
+        dayStart: Long,
+        dayEnd: Long,
+    ): String? = null
+
+    override suspend fun saveImported(
+        hash: String,
+        provider: String,
+        sender: String,
+        receivedAt: Long,
+        externalId: String,
+        entries: List<ImportedEntry>,
+    ): List<String> = emptyList()
+
+    override suspend fun recordMessageOutcome(
+        hash: String,
+        provider: String,
+        sender: String,
+        receivedAt: Long,
+        status: ImportStatus,
+        externalId: String?,
+        transactionId: String?,
+        pending: PendingImportDetails?,
+    ) = Unit
+
+    override fun observePendingReview(): Flow<List<PendingImport>> = flowOf(emptyList())
+
+    override suspend fun resolvePending(hash: String, keep: Boolean): List<String> = emptyList()
 }

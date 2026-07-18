@@ -220,10 +220,44 @@ class SchemaMigrationTest {
     }
 
     @Test
+    fun migratingV3AddsTheReviewQueueColumns() {
+        val driver = v1Database().apply {
+            BudgetMasterDatabase.Schema.synchronous().migrate(this, 1, 3)
+        }
+        // Sanity: the starting point genuinely lacks them, or the test proves nothing.
+        assertTrue("pendingAmount" !in driver.columnsOf("ImportedMessageEntity"))
+
+        // A v3 row that was already awaiting review: it must survive, with NULL fields, because
+        // there is nothing to back-fill from - the message body was never stored.
+        driver.exec(
+            """
+            INSERT INTO ImportedMessageEntity (hash, userId, provider, sender, receivedAt, status, transactionId, externalId)
+            VALUES ('h1', 'u1', 'orange_money', 'OrangeMoney', 100, 'PENDING_REVIEW', 't1', 'x1')
+            """.trimIndent(),
+        )
+
+        BudgetMasterDatabase.Schema.synchronous().migrate(driver, 3, 4)
+
+        val columns = driver.columnsOf("ImportedMessageEntity")
+        listOf(
+            "pendingAccountId", "pendingAmount", "pendingFee",
+            "pendingDescription", "pendingOccurredAt",
+        ).forEach { assertTrue(it in columns, "missing \$it") }
+
+        val amount = driver.executeQuery(
+            null,
+            "SELECT pendingAmount FROM ImportedMessageEntity WHERE hash = 'h1'",
+            { c -> c.next(); app.cash.sqldelight.db.QueryResult.Value(c.getDouble(0)) },
+            0,
+        ).value
+        assertNull(amount)
+    }
+
+    @Test
     fun freshDatabaseIsCreatedAtTheCurrentVersion() {
         // Guards the mistake that caused this: bumping the .sq without a matching migration
         // leaves fresh installs on a schema that upgraded installs can never reach.
-        // v3 added the mobile-money import columns and ImportedMessageEntity (2.sqm).
-        assertEquals(3L, BudgetMasterDatabase.Schema.version)
+        // v4 added the review-queue columns to ImportedMessageEntity (3.sqm).
+        assertEquals(4L, BudgetMasterDatabase.Schema.version)
     }
 }

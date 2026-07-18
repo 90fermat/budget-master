@@ -20,6 +20,8 @@ import com.budgetmaster.transactions.domain.usecase.ParseQuickEntryUseCase
 import com.budgetmaster.transactions.data.repository.SqlDelightMoneyImportRepository
 import com.budgetmaster.transactions.domain.repository.MoneyImportRepository
 import com.budgetmaster.transactions.domain.usecase.ImportMoneyMessageUseCase
+import com.budgetmaster.transactions.domain.usecase.ObservePendingImportsUseCase
+import com.budgetmaster.transactions.domain.usecase.ResolvePendingImportUseCase
 import com.budgetmaster.core.sms.MoneyMessageParser
 import com.budgetmaster.core.sms.OrangeMoneyParser
 import com.budgetmaster.transactions.domain.usecase.ParseReceiptUseCase
@@ -71,6 +73,8 @@ val transactionsModule = module {
     single { SqlDelightMoneyImportRepository(get(), get(), get()) } bind MoneyImportRepository::class
     single<List<MoneyMessageParser>> { listOf(OrangeMoneyParser()) }
     factory { ImportMoneyMessageUseCase(get(), get()) }
+    factory { ObservePendingImportsUseCase(get()) }
+    factory { ResolvePendingImportUseCase(get()) }
 
     viewModel {
         TransactionsViewModel(
@@ -87,6 +91,8 @@ val transactionsModule = module {
             suggestCategory = get(),
             parseReceipt = get(),
             importMoneyMessage = get(),
+            observePendingImports = get(),
+            resolvePendingImport = get(),
         )
     }
 }

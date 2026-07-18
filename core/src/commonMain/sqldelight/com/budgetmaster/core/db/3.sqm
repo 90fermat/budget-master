@@ -1,0 +1,22 @@
+-- Migrates schema v3 -> v4: the mobile-money review queue.
+--
+-- v3 recorded that a message needed review but kept none of what it said, because message bodies
+-- are deliberately never stored. That left a pending item unactionable: if the user decided it
+-- was *not* a duplicate, there was nothing left to create the transaction from.
+--
+-- These columns hold the parsed fields for PENDING_REVIEW rows only, and are cleared again the
+-- moment the review is answered. They are the same
+-- aggregates the resulting transaction would hold, so nothing more sensitive is retained — the
+-- raw message body is still never written to disk.
+--
+-- All additive and nullable: existing rows keep working with NULLs, which is correct since
+-- nothing already recorded is awaiting review with usable fields.
+ALTER TABLE ImportedMessageEntity ADD COLUMN pendingAccountId TEXT;
+
+ALTER TABLE ImportedMessageEntity ADD COLUMN pendingAmount REAL;
+
+ALTER TABLE ImportedMessageEntity ADD COLUMN pendingFee REAL;
+
+ALTER TABLE ImportedMessageEntity ADD COLUMN pendingDescription TEXT;
+
+ALTER TABLE ImportedMessageEntity ADD COLUMN pendingOccurredAt INTEGER;

@@ -23,7 +23,33 @@ sealed interface TransactionsIntent {
     data object LoadMore : TransactionsIntent
     data class EditClicked(val item: TransactionItem) : TransactionsIntent
     data object EditorDismissed : TransactionsIntent
+
+    /**
+     * Answers one review-queue item.
+     *
+     * @param keep true to record it as a separate transaction, false to accept it as the one the
+     *   user already entered.
+     */
+    data class ResolvePendingImport(val hash: String, val keep: Boolean) : TransactionsIntent
 }
+
+/**
+ * One review-queue item, ready to render.
+ *
+ * Carries what the message said rather than a reference to it, because message bodies are never
+ * stored — the parsed figures are the whole of what the user has to judge by, alongside their own
+ * ledger below.
+ */
+data class PendingImportItem(
+    val hash: String,
+    /** Display name of the provider, e.g. "Orange Money". */
+    val provider: String,
+    val description: String,
+    /** Signed, principal only; the fee is mentioned separately when there is one. */
+    val amount: Double,
+    val fee: Double,
+    val occurredAt: Long,
+)
 
 /** One-shot side effects. */
 sealed interface TransactionsEffect {
@@ -85,6 +111,11 @@ data class TransactionsState(
     val receiptScanEnabled: Boolean = false,
     /** Locally-detected likely subscriptions; empty until enough history exists. No AI involved. */
     val recurringCharges: List<RecurringCharge> = emptyList(),
+    /**
+     * Captured messages the importer could not place. Empty for almost everyone, almost always —
+     * the whole review section disappears with it.
+     */
+    val pendingImports: List<PendingImportItem> = emptyList(),
 ) {
     val isEmpty: Boolean get() = !isLoading && groups.isEmpty()
 }

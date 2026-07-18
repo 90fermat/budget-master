@@ -430,7 +430,15 @@ CREATE TABLE ImportedMessageEntity (
     status TEXT NOT NULL,
     -- The transaction this became, when it was imported.
     transactionId TEXT,
-    externalId TEXT
+    externalId TEXT,
+    -- Parsed fields, kept only for PENDING_REVIEW so the entry can still be created if the user
+    -- says it is not a duplicate. These are the same aggregates the transaction itself would
+    -- hold, so nothing more sensitive is retained — the message body is still never stored.
+    pendingAccountId TEXT,
+    pendingAmount REAL,
+    pendingFee REAL,
+    pendingDescription TEXT,
+    pendingOccurredAt INTEGER
 );
 
 CREATE INDEX idx_imported_message_user ON ImportedMessageEntity(userId);
@@ -438,8 +446,8 @@ CREATE INDEX idx_imported_message_status ON ImportedMessageEntity(status);
 
 -- Queries for ImportedMessageEntity
 insertImportedMessage:
-INSERT OR REPLACE INTO ImportedMessageEntity (hash, userId, provider, sender, receivedAt, status, transactionId, externalId)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+INSERT OR REPLACE INTO ImportedMessageEntity (hash, userId, provider, sender, receivedAt, status, transactionId, externalId, pendingAccountId, pendingAmount, pendingFee, pendingDescription, pendingOccurredAt)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 selectImportedMessageByHash:
 SELECT * FROM ImportedMessageEntity WHERE hash = ?;
@@ -450,6 +458,20 @@ WHERE userId = ? AND status = ? ORDER BY receivedAt DESC;
 
 updateImportedMessageStatus:
 UPDATE ImportedMessageEntity SET status = ?, transactionId = ? WHERE hash = ?;
+
+-- The review queue: messages that looked like an existing hand-entered transaction.
+selectPendingReview:
+SELECT * FROM ImportedMessageEntity
+WHERE userId = ? AND status = 'PENDING_REVIEW' ORDER BY receivedAt DESC;
+
+-- Closing a review. The parsed fields are cleared either way: once the question is answered they
+-- are no longer needed, so the app stops holding them.
+resolveImportedMessage:
+UPDATE ImportedMessageEntity
+SET status = ?, transactionId = ?,
+    pendingAccountId = NULL, pendingAmount = NULL, pendingFee = NULL,
+    pendingDescription = NULL, pendingOccurredAt = NULL
+WHERE hash = ?;
 
 deleteImportedMessagesByUser:
 DELETE FROM ImportedMessageEntity WHERE userId = ?;

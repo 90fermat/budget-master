@@ -10,6 +10,7 @@ import com.budgetmaster.core.util.DateUtils
 import com.budgetmaster.transactions.domain.repository.ImportStatus
 import com.budgetmaster.transactions.domain.repository.ImportedEntry
 import com.budgetmaster.transactions.domain.repository.MoneyImportRepository
+import com.budgetmaster.transactions.domain.repository.PendingImportDetails
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
@@ -100,6 +101,13 @@ class ImportMoneyMessageUseCase(
             repository.recordMessageOutcome(
                 hash, parsed.provider, sender, receivedAt,
                 ImportStatus.PENDING_REVIEW, parsed.externalId, existing,
+                pending = PendingImportDetails(
+                    accountId = accountId,
+                    amount = if (parsed.isOutflow) -parsed.amount else parsed.amount,
+                    fee = parsed.fee,
+                    description = parsed.describe(),
+                    occurredAt = occurredAt,
+                ),
             )
             return ImportOutcome.NeedsReview(existing)
         }
@@ -116,36 +124,15 @@ class ImportMoneyMessageUseCase(
     }
 
     /** The principal, plus a separate fee row when the provider charged one. */
-    private fun ParsedMoneyMessage.toEntries(accountId: String, occurredAt: Long): List<ImportedEntry> {
-        val signed = if (isOutflow) -amount else amount
-        val principal = ImportedEntry(
+    private fun ParsedMoneyMessage.toEntries(accountId: String, occurredAt: Long): List<ImportedEntry> =
+        ImportEntryFactory.build(
             accountId = accountId,
-            // Uncategorised on purpose. A transfer or merchant payment could be anything, and a
-            // wrong category is worse than none: it silently skews budgets and reports, and the
-            // user has no reason to go looking for it. The AI category suggester can fill this in
-            // on review, where the user sees the guess before it counts.
-            categoryId = null,
-            amount = signed,
+            amount = if (isOutflow) -amount else amount,
+            fee = fee,
             description = describe(),
-            timestamp = occurredAt,
+            occurredAt = occurredAt,
             externalId = externalId,
         )
-        if (fee <= 0.0) return listOf(principal)
-
-        return listOf(
-            principal,
-            ImportedEntry(
-                accountId = accountId,
-                categoryId = FEES_CATEGORY,
-                // A fee is always money out, even on an incoming transfer.
-                amount = -fee,
-                description = "$FEE_LABEL — ${describe()}",
-                timestamp = occurredAt,
-                // Suffixed so it is unique, and so both rows are still traceable to one message.
-                externalId = "$externalId$FEE_ID_SUFFIX",
-            ),
-        )
-    }
 
     private fun ParsedMoneyMessage.describe(): String =
         counterpartyName?.takeIf { it.isNotBlank() } ?: when (type) {
@@ -166,9 +153,6 @@ class ImportMoneyMessageUseCase(
     }
 
     private companion object {
-        const val FEES_CATEGORY = "cat_fees"
-        const val FEE_LABEL = "Fee"
-        const val FEE_ID_SUFFIX = "#fee"
         const val UNKNOWN_PROVIDER = "unknown"
     }
 }

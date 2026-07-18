@@ -52,6 +52,9 @@ class MainActivity : FragmentActivity() {
             val outcome = importer.import(sender = "", body = text, receivedAt = System.currentTimeMillis())
             val message = when (outcome) {
                 is ImportOutcome.Imported -> getString(R.string.share_import_ok)
+                // Not "skipped": the message was read, and the decision is now waiting in the
+                // review queue on the Transactions screen.
+                is ImportOutcome.NeedsReview -> getString(R.string.share_import_review)
                 null -> getString(R.string.share_import_disabled)
                 else -> getString(R.string.share_import_skipped)
             }

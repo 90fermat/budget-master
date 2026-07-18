@@ -19,7 +19,9 @@ import com.budgetmaster.transactions.domain.usecase.QuickEntryDraft
 import com.budgetmaster.transactions.domain.usecase.RestoreTransactionUseCase
 import com.budgetmaster.transactions.domain.usecase.ImportMoneyMessageUseCase
 import com.budgetmaster.transactions.domain.usecase.ImportOutcome
+import com.budgetmaster.transactions.domain.usecase.ObservePendingImportsUseCase
 import com.budgetmaster.transactions.domain.usecase.ParseReceiptUseCase
+import com.budgetmaster.transactions.domain.usecase.ResolvePendingImportUseCase
 import com.budgetmaster.transactions.domain.usecase.SuggestCategoryUseCase
 import com.budgetmaster.core.ocr.ReceiptImage
 import com.budgetmaster.transactions.domain.usecase.SaveTransactionUseCase
@@ -62,6 +64,8 @@ class TransactionsViewModel(
     private val suggestCategory: SuggestCategoryUseCase,
     private val parseReceipt: ParseReceiptUseCase,
     private val importMoneyMessage: ImportMoneyMessageUseCase,
+    observePendingImports: ObservePendingImportsUseCase,
+    private val resolvePendingImport: ResolvePendingImportUseCase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(TransactionsState())
@@ -82,6 +86,26 @@ class TransactionsViewModel(
 
         observeAccounts()
             .onEach { accounts -> _state.update { it.copy(accounts = accounts) } }
+            .launchIn(viewModelScope)
+
+        observePendingImports()
+            .catch { /* The queue is auxiliary: a failure here must not take the list down. */ }
+            .onEach { pending ->
+                _state.update { state ->
+                    state.copy(
+                        pendingImports = pending.map {
+                            PendingImportItem(
+                                hash = it.hash,
+                                provider = it.provider,
+                                description = it.details.description,
+                                amount = it.details.amount,
+                                fee = it.details.fee,
+                                occurredAt = it.details.occurredAt,
+                            )
+                        },
+                    )
+                }
+            }
             .launchIn(viewModelScope)
 
         settingsRepository.settings
@@ -150,6 +174,11 @@ class TransactionsViewModel(
                 _state.update { it.copy(editor = EditorState(visible = true, editing = intent.item)) }
             is TransactionsIntent.EditorDismissed ->
                 _state.update { it.copy(editor = EditorState(visible = false)) }
+            is TransactionsIntent.ResolvePendingImport -> viewModelScope.launch {
+                // The list is observed, so the answered item leaves the queue on its own; there is
+                // nothing to remove from state by hand.
+                resolvePendingImport(intent.hash, intent.keep)
+            }
         }
     }
 

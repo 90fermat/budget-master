@@ -969,12 +969,14 @@ Config kill-switches if quotas tighten.
 **9.2 — Premium design pass**
 > The foundation is strong (5 palettes, Outfit/Inter, motion tokens, adaptive layouts). What keeps
 > it feeling Material-default rather than premium is specific and fixable.
-- [ ] **One chart implementation.** The dashboard chart is Vico on Android and hand-drawn Canvas
-  on iOS/web — two visual languages for the same chart. Unify on one custom chart in the app
-  palette so it reads as deliberate.
-- [ ] **Surface hierarchy.** Almost everything is a card with the same radius and no elevation
-  story, so the balance card and the budget list compete. Establish one hero surface and let the
-  rest recede.
+- [x] **One chart implementation — done.** Android now uses the same `CanvasSpendingChart` as
+  every other target and **Vico is removed entirely** (catalog, `:shared`, `:feature:dashboard`).
+  One chart in the app palette, so all five themes apply everywhere, and one dependency fewer.
+- [x] **Surface hierarchy — done.** `SurfaceLevel` (Hero / Raised / Flat) with radius, container
+  colour, elevation and border per level, consumed through a shared `AppCard`. Radius scales with
+  importance; elevation stays deliberately low because heavy shadows read as dated Material rather
+  than premium. Applied in Reports, where the AI coach drops to Flat — it comments on the report,
+  it is not the report.
 - [x] **Amounts as the hero — done.** `AmountText` gives money its own type scale (Hero /
   Prominent / Standard) with tabular figures, direction colour from the palette-independent
   financial colours, and bidi isolation in one place. Adopted at the dashboard balance and the
@@ -987,9 +989,12 @@ Config kill-switches if quotas tighten.
     the raw `Double`, never the formatter.
   - `formatSigned` strips the inner isolate and re-wraps once: nesting would have left the sign
     *outside* the isolate, and the sign is exactly the character RTL reordering moves.
-- [ ] **Richer empty and loading states** — where an app reads as cheap or considered.
-- [ ] **Animate value changes.** Balances snap today; a counted transition is a small, strongly
-  "premium" cue and the motion tokens already exist.
+- [x] **Richer empty and loading states** — already in place from Phase 4 and left alone:
+  `EmptyState` puts the icon in a filled circle with a press-scaled action, `ErrorState` offers a
+  retry, and `ShimmerListPlaceholder` covers loading. Checked rather than assumed; changing them
+  would have been busywork.
+- [x] **Animate value changes** — already covered by `animateCounter`, which is applied at the
+  dashboard balance and net-worth total and snaps instead of animating under reduced motion.
 
 ### Phase 10 — Store polish & README showcase (0.5 week)
 > After the feature set is complete and premium (post Phase 9), capture the app at its best.

@@ -6,6 +6,10 @@ import com.budgetmaster.core.sms.OrangeMoneyParser
 import com.budgetmaster.transactions.domain.repository.ImportStatus
 import com.budgetmaster.transactions.domain.repository.ImportedEntry
 import com.budgetmaster.transactions.domain.repository.MoneyImportRepository
+import com.budgetmaster.transactions.domain.repository.PendingImport
+import com.budgetmaster.transactions.domain.repository.PendingImportDetails
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import com.budgetmaster.transactions.domain.usecase.ImportMoneyMessageUseCase
 import com.budgetmaster.transactions.domain.usecase.ImportOutcome
 import kotlinx.coroutines.runBlocking
@@ -30,6 +34,9 @@ private class FakeImportRepository : MoneyImportRepository {
 
     val savedEntries = mutableListOf<ImportedEntry>()
     val outcomes = mutableListOf<ImportStatus>()
+
+    /** What the importer handed over for a deferred review, so the queue can act on it later. */
+    var lastPending: PendingImportDetails? = null
 
     override suspend fun hasSeenMessage(hash: String) = hash in seenHashes
 
@@ -61,10 +68,16 @@ private class FakeImportRepository : MoneyImportRepository {
         status: ImportStatus,
         externalId: String?,
         transactionId: String?,
+        pending: PendingImportDetails?,
     ) {
         seenHashes += hash
         outcomes += status
+        if (status == ImportStatus.PENDING_REVIEW) lastPending = pending
     }
+
+    override fun observePendingReview(): Flow<List<PendingImport>> = flowOf(emptyList())
+
+    override suspend fun resolvePending(hash: String, keep: Boolean): List<String> = emptyList()
 }
 
 class ImportMoneyMessageUseCaseTest {
