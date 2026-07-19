@@ -1006,6 +1006,45 @@ Config kill-switches if quotas tighten.
     type resolution, so it flags imports that are genuinely used — acting on its 33 findings broke
     the build in three modules. Verified this the hard way; use the compiler, not detekt, for it.
 
+## Phase 11 — Real-device bug fixes
+
+> Seven defects from the first real-device test session, plus three found while investigating them.
+> All on branch `feature/device-fixes-and-sync`; nothing merges to `main` until the whole branch is
+> verified on device.
+
+### 11.1 Dashboard quick actions — done
+
+- [x] **"Add expense" / "Add income" / "Transfer" did nothing at all.** The buttons were wired
+  end to end at the MVI layer and had a *passing* ViewModel test asserting the effect was emitted.
+  They died in the UI: the screen's effect collector ended in `else -> Unit`, and
+  `NavigateToAddTransaction` fell into it. Testing the emission proved only half the wire existed.
+  - The collector is now an **exhaustive `when` with no `else`**, so an unrouted effect is a
+    compile error rather than a dead button. This is the actual fix; the rest is plumbing.
+  - There was also nowhere to navigate *to*: `AuthRoute.Transactions` and `AuthRoute.Accounts` are
+    now `data class`es carrying `openEditorFor` / `openTransfer`, and the editor pre-selects the
+    kind the button named.
+  - **Transfer routes to Accounts, not the transaction editor** — a transfer writes two linked legs
+    between the user's own wallets, which the editor has no concept of.
+  - Trap found while doing it: once a route carries arguments, `destination.route` stops equalling
+    the bare qualified name, so the four `currentRoute == …qualifiedName` comparisons in the shell
+    would have silently hidden the whole navigation bar on those tabs. Now matched with
+    `hasRoute`, which is indifferent to arguments.
+  - `onInsightNavigate` was never passed by the nav graph either, so AI insight taps were dead
+    too. Now wired, with the mapping closed over the three values the AI schema permits.
+
+### 11.2 Dashboard swipe-to-delete had no undo — done
+
+- [x] Found by making the `when` exhaustive: `ShowUndoDelete` and `ShowError` **were** being
+  emitted and silently dropped, so swiping a row on the dashboard deleted it permanently with no
+  acknowledgement, and errors were invisible. In a finance app that is the worst kind of dead code.
+  - The display model was too lossy to undo from — it carries no `accountId`, `externalId` or
+    `source`, so restoring from it would have put the money in the wrong wallet and broken
+    mobile-money dedup, letting the provider's next re-send import a second copy. The repository
+    now captures the full row as a `DeletedTransaction` snapshot before deleting and restores from
+    that, via the one insert that carries `externalId` and `source`.
+  - Two effect cases (`NavigateToAnalytics`, `NavigateToBudgetDetail`) were **deleted**: nothing
+    ever emitted them. They were speculative API that the `else ->` branch kept invisible.
+
 ### Phase 9 — Insight & polish
 
 > Two gaps found by using the app rather than reading it.

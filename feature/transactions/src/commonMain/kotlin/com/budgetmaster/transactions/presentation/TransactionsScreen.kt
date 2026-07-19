@@ -91,6 +91,7 @@ import com.budgetmaster.core.designsystem.components.HelpIconButton
 import com.budgetmaster.core.designsystem.components.ShimmerListPlaceholder
 import com.budgetmaster.core.designsystem.components.rememberGuidance
 import com.budgetmaster.core.guidance.GuidanceKey
+import com.budgetmaster.core.navigation.TransactionKind
 import com.budgetmaster.core.designsystem.categoryIconFor
 import com.budgetmaster.core.util.MoneyFormatter
 import com.budgetmaster.transactions.domain.usecase.RecurringCharge
@@ -116,8 +117,18 @@ import org.koin.compose.viewmodel.koinViewModel
 fun TransactionsScreen(
     viewModel: TransactionsViewModel = koinViewModel(),
     onManageRecurring: () -> Unit = {},
+    openEditorFor: TransactionKind? = null,
 ) {
     val state by viewModel.state.collectAsState()
+
+    // Arriving from a Dashboard quick action: open the editor straight away, pre-set to the kind
+    // the button named. Keyed on the argument so returning to this screen normally does not
+    // re-open it, and a configuration change does not open it twice.
+    LaunchedEffect(openEditorFor) {
+        if (openEditorFor != null) {
+            viewModel.onIntent(TransactionsIntent.AddClicked(openEditorFor))
+        }
+    }
     val snackbarHostState = remember { SnackbarHostState() }
     val guidance = rememberGuidance(GuidanceKey.TRANSACTIONS)
 
@@ -131,7 +142,7 @@ fun TransactionsScreen(
         containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { viewModel.onIntent(TransactionsIntent.AddClicked) },
+                onClick = { viewModel.onIntent(TransactionsIntent.AddClicked()) },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
             ) {
@@ -203,7 +214,7 @@ fun TransactionsScreen(
                         state.isEmpty -> EmptyState(
                             filtered = !state.query.isBlank() || state.categoryFilterId != null ||
                                 state.typeFilter != TypeFilter.ALL,
-                            onAdd = { viewModel.onIntent(TransactionsIntent.AddClicked) },
+                            onAdd = { viewModel.onIntent(TransactionsIntent.AddClicked()) },
                         )
                         else -> TransactionList(state, viewModel)
                     }
@@ -227,6 +238,7 @@ fun TransactionsScreen(
                                 onSuggestCategory = viewModel::suggestCategory,
                                 receiptScanEnabled = state.receiptScanEnabled,
                                 onScanReceipt = viewModel::scanReceipt,
+                                initialKind = state.editor.initialKind,
                             )
                         }
                     }
@@ -440,6 +452,7 @@ private fun TransactionEditor(state: TransactionsState, viewModel: TransactionsV
                                 onSuggestCategory = viewModel::suggestCategory,
                                 receiptScanEnabled = state.receiptScanEnabled,
                                 onScanReceipt = viewModel::scanReceipt,
+                                initialKind = state.editor.initialKind,
             )
         }
         if (isCompact) {

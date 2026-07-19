@@ -7,6 +7,7 @@ import com.budgetmaster.core.prefs.AppSettingsRepository
 import com.budgetmaster.core.session.SessionStore
 import com.budgetmaster.core.session.SessionUser
 import com.budgetmaster.dashboard.InMemoryKeyValueStore
+import com.budgetmaster.dashboard.domain.model.DeletedTransaction
 import com.budgetmaster.dashboard.domain.model.BalanceSummary
 import com.budgetmaster.dashboard.domain.model.BalanceTrend
 import com.budgetmaster.dashboard.domain.model.BudgetProgress
@@ -141,9 +142,30 @@ class DashboardViewModelTest {
             return aiInsightsResult
         }
 
-        override suspend fun deleteTransaction(id: String) {
+        /** Rows handed back by delete, so a test can assert undo puts the right one back. */
+        val restored = mutableListOf<DeletedTransaction>()
+
+        override suspend fun deleteTransaction(id: String): DeletedTransaction? {
             if (shouldThrowOnDelete) throw RuntimeException("Failed to delete from database")
             deletedTransactions.add(id)
+            return DeletedTransaction(
+                id = id,
+                accountId = "acc_1",
+                categoryId = "cat_food",
+                amount = -12.0,
+                description = "Lunch",
+                timestamp = 1_000L,
+                notes = null,
+                tags = null,
+                isRecurring = 0L,
+                transferGroupId = null,
+                externalId = "OM250717.1200.A1",
+                source = "SMS",
+            )
+        }
+
+        override suspend fun restoreTransaction(snapshot: DeletedTransaction) {
+            restored.add(snapshot)
         }
 
         override suspend fun dismissInsight(id: String) {

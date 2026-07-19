@@ -36,6 +36,13 @@ sealed interface DashboardIntent {
     data class TransactionSwiped(val id: String) : DashboardIntent
 
     /**
+     * Restores the most recently swiped-away transaction, exactly as it was.
+     *
+     * Emitted from the undo action on the snackbar that [DashboardEffect.ShowUndoDelete] raises.
+     */
+    data object UndoDelete : DashboardIntent
+
+    /**
      * Dismisses an AI-generated insight from the dashboard feed.
      *
      * @property id The unique identifier of the insight to dismiss.

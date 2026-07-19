@@ -24,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -66,8 +67,17 @@ import org.koin.compose.viewmodel.koinViewModel
 
 /** Accounts management screen: net-worth overview, wallet list, and create/edit/archive/delete. */
 @Composable
-fun AccountsScreen(viewModel: AccountsViewModel = koinViewModel()) {
+fun AccountsScreen(
+    viewModel: AccountsViewModel = koinViewModel(),
+    openTransfer: Boolean = false,
+) {
     val state by viewModel.state.collectAsState()
+
+    // Arriving from the Dashboard's "Transfer" quick action. Transfers live here rather than in
+    // the transaction editor because they write two linked legs between the user's own wallets.
+    LaunchedEffect(openTransfer) {
+        if (openTransfer) viewModel.onIntent(AccountsIntent.OpenTransfer)
+    }
     var pendingDelete by remember { mutableStateOf<String?>(null) }
     val guidance = rememberGuidance(GuidanceKey.ACCOUNTS)
     GuidanceHost(guidance)

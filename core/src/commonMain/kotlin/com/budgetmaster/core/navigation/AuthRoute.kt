@@ -51,9 +51,14 @@ sealed interface AuthRoute {
 
     /**
      * Route representing the Transactions screen.
+     *
+     * @param openEditorFor when non-null, the screen opens its editor on arrival, pre-set to this
+     *   kind. This is what makes the Dashboard's "Add expense" / "Add income" quick actions work:
+     *   before it existed the editor was only reachable from this screen's own FAB, so the
+     *   Dashboard had a button with nowhere to send the user.
      */
     @Serializable
-    data object Transactions : AuthRoute
+    data class Transactions(val openEditorFor: TransactionKind? = null) : AuthRoute
 
     /**
      * Route representing the Budgets screen.
@@ -81,9 +86,13 @@ sealed interface AuthRoute {
 
     /**
      * Route representing the Accounts (wallets) management screen.
+     *
+     * @param openTransfer opens the transfer sheet on arrival. Transfers live here rather than in
+     *   the transaction editor because they move money between the user's own wallets and write
+     *   two linked legs, which the editor has no concept of.
      */
     @Serializable
-    data object Accounts : AuthRoute
+    data class Accounts(val openTransfer: Boolean = false) : AuthRoute
 
     /**
      * Route representing the recurring-schedules management screen.

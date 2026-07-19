@@ -6,6 +6,7 @@ import com.budgetmaster.core.model.Transaction
 import com.budgetmaster.core.prefs.AppSettingsRepository
 import com.budgetmaster.core.session.SessionStore
 import com.budgetmaster.dashboard.domain.model.BalanceSummary
+import com.budgetmaster.dashboard.domain.model.DeletedTransaction
 import com.budgetmaster.dashboard.domain.model.Period
 import com.budgetmaster.dashboard.domain.repository.DashboardRepository
 import com.budgetmaster.dashboard.domain.usecase.GetAiInsightsUseCase
@@ -60,6 +61,9 @@ class DashboardViewModel(
     private val sessionStore: SessionStore,
 ) : ViewModel() {
 
+    /** The last swiped-away row, held only until undo is taken or the snackbar lapses. */
+    private var lastDeleted: DeletedTransaction? = null
+
     private val _state = MutableStateFlow(DashboardState())
 
     /** Observable UI state. Collected by the Dashboard Composable. */
@@ -99,6 +103,7 @@ class DashboardViewModel(
             is DashboardIntent.RefreshRequested -> refresh()
             is DashboardIntent.PeriodChanged -> changePeriod(intent.period)
             is DashboardIntent.TransactionSwiped -> swipeTransaction(intent.id)
+            is DashboardIntent.UndoDelete -> undoDelete()
             is DashboardIntent.InsightsDismissed -> dismissInsight(intent.id)
             is DashboardIntent.QuickActionClicked -> emitEffect(
                 DashboardEffect.NavigateToAddTransaction(intent.type)
@@ -224,7 +229,9 @@ class DashboardViewModel(
 
         viewModelScope.launch {
             try {
-                repository.deleteTransaction(id)
+                // The snapshot, not the display model, is what undo restores from - the display
+                // model has no accountId, externalId or source to put back.
+                lastDeleted = repository.deleteTransaction(id)
                 emitEffect(DashboardEffect.ShowUndoDelete(deleted))
             } catch (e: Exception) {
                 // Rollback optimistic update
@@ -236,6 +243,20 @@ class DashboardViewModel(
                     )
                 }
                 emitEffect(DashboardEffect.ShowError(e.message ?: "Failed to delete transaction."))
+            }
+        }
+    }
+
+    /** Puts back the last swiped-away row. No-op if nothing was deleted or it was already undone. */
+    private fun undoDelete() {
+        val snapshot = lastDeleted ?: return
+        lastDeleted = null
+        viewModelScope.launch {
+            try {
+                repository.restoreTransaction(snapshot)
+                // The dashboard's lists are observed, so the row reappears on its own.
+            } catch (e: Exception) {
+                emitEffect(DashboardEffect.ShowError(e.message ?: "Failed to restore transaction."))
             }
         }
     }

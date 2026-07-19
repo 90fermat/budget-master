@@ -169,7 +169,15 @@ class TransactionsViewModel(
             is TransactionsIntent.UndoDelete -> undoDelete()
             is TransactionsIntent.SaveTransaction -> save(intent)
             is TransactionsIntent.AddClicked ->
-                _state.update { it.copy(editor = EditorState(visible = true, editing = null)) }
+                _state.update {
+                    it.copy(
+                        editor = EditorState(
+                            visible = true,
+                            editing = null,
+                            initialKind = intent.kind,
+                        ),
+                    )
+                }
             is TransactionsIntent.EditClicked ->
                 _state.update { it.copy(editor = EditorState(visible = true, editing = intent.item)) }
             is TransactionsIntent.EditorDismissed ->

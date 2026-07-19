@@ -48,7 +48,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.toRoute
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -195,19 +197,25 @@ private fun AppShell() {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
 
-    // Identify which destinations belong to the core dashboard sub-navigation tabs
+    // Identify which destinations belong to the core dashboard sub-navigation tabs.
+    //
+    // Matched by route *class*, not by `destination.route` string equality. Once a route carries
+    // arguments its route string becomes "…Transactions/{openEditorFor}" rather than the bare
+    // qualified name, so string equality silently stops matching and the whole navigation bar
+    // disappears on that tab. `hasRoute` compares the class and is indifferent to arguments.
     val mainDestinations = listOf(
-        AuthRoute.Dashboard::class.qualifiedName,
-        AuthRoute.Transactions::class.qualifiedName,
-        AuthRoute.Budgets::class.qualifiedName,
-        AuthRoute.Goals::class.qualifiedName,
-        AuthRoute.Reports::class.qualifiedName,
-        AuthRoute.Settings::class.qualifiedName,
-        AuthRoute.Accounts::class.qualifiedName,
-        AuthRoute.Recurring::class.qualifiedName
+        AuthRoute.Dashboard::class,
+        AuthRoute.Transactions::class,
+        AuthRoute.Budgets::class,
+        AuthRoute.Goals::class,
+        AuthRoute.Reports::class,
+        AuthRoute.Settings::class,
+        AuthRoute.Accounts::class,
+        AuthRoute.Recurring::class,
     )
 
-    val isTabDestination = currentRoute in mainDestinations
+    val destination = backStackEntry?.destination
+    val isTabDestination = destination != null && mainDestinations.any { destination.hasRoute(it) }
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val isTablet = maxWidth >= 600.dp && maxWidth < 1240.dp
@@ -235,7 +243,7 @@ private fun AppShell() {
                                 navigationItems.forEach { item ->
                                     NavigationDrawerItem(
                                         label = { Text(stringResource(item.title)) },
-                                        selected = currentRoute == item.route::class.qualifiedName,
+                                        selected = destination?.hasRoute(item.route::class) == true,
                                         onClick = {
                                             navController.navigate(item.route) {
                                                 popUpTo(navController.graph.findStartDestination().id) {
@@ -280,7 +288,7 @@ private fun AppShell() {
                         Spacer(modifier = Modifier.weight(1f))
                         navigationItems.forEach { item ->
                             NavigationRailItem(
-                                selected = currentRoute == item.route::class.qualifiedName,
+                                selected = destination?.hasRoute(item.route::class) == true,
                                 onClick = {
                                     navController.navigate(item.route) {
                                         popUpTo(navController.graph.findStartDestination().id) {
@@ -322,7 +330,7 @@ private fun AppShell() {
                         ) {
                             navigationItems.forEach { item ->
                                 NavigationBarItem(
-                                    selected = currentRoute == item.route::class.qualifiedName,
+                                    selected = destination?.hasRoute(item.route::class) == true,
                                     onClick = {
                                         navController.navigate(item.route) {
                                             popUpTo(navController.graph.findStartDestination().id) {
@@ -481,12 +489,29 @@ private fun MainNavGraph(navController: androidx.navigation.NavHostController) {
         composable<AuthRoute.Dashboard> {
             DashboardScreen(
                 onNavigateToSettings = { navController.navigate(AuthRoute.Settings) },
-                onViewAllTransactions = { navController.navigate(AuthRoute.Transactions) },
+                onViewAllTransactions = { navController.navigate(AuthRoute.Transactions()) },
+                onAddTransaction = { kind -> navController.navigate(AuthRoute.Transactions(kind)) },
+                onTransfer = { navController.navigate(AuthRoute.Accounts(openTransfer = true)) },
+                // The AI schema constrains actionRoute to exactly these three values
+                // (GeminiInsightsService: GenAiSchema.Enumeration), so the mapping is closed and
+                // anything else is a model that ignored its schema - ignored rather than crashed.
+                onInsightNavigate = { route ->
+                    when (route) {
+                        "transactions" -> navController.navigate(AuthRoute.Transactions())
+                        "budgets" -> navController.navigate(AuthRoute.Budgets)
+                        "goals" -> navController.navigate(AuthRoute.Goals)
+                        else -> Unit
+                    }
+                },
             )
         }
 
-        composable<AuthRoute.Transactions> {
-            TransactionsScreen(onManageRecurring = { navController.navigate(AuthRoute.Recurring) })
+        composable<AuthRoute.Transactions> { entry ->
+            val route: AuthRoute.Transactions = entry.toRoute()
+            TransactionsScreen(
+                onManageRecurring = { navController.navigate(AuthRoute.Recurring) },
+                openEditorFor = route.openEditorFor,
+            )
         }
 
         composable<AuthRoute.Budgets> {
@@ -501,8 +526,9 @@ private fun MainNavGraph(navController: androidx.navigation.NavHostController) {
             ReportsScreen()
         }
 
-        composable<AuthRoute.Accounts> {
-            AccountsScreen()
+        composable<AuthRoute.Accounts> { entry ->
+            val route: AuthRoute.Accounts = entry.toRoute()
+            AccountsScreen(openTransfer = route.openTransfer)
         }
 
         composable<AuthRoute.Recurring> {
@@ -562,7 +588,7 @@ private fun AccountScopeBar(navController: androidx.navigation.NavHostController
             AccountSwitcher(
                 state = accountsState,
                 onSelect = { accountsViewModel.onIntent(AccountsIntent.SelectActive(it)) },
-                onManage = { navController.navigate(AuthRoute.Accounts) },
+                onManage = { navController.navigate(AuthRoute.Accounts()) },
             )
         }
     }
@@ -582,7 +608,7 @@ private data class NavigationItem(
  */
 private val navigationItems: List<NavigationItem> = listOf(
     NavigationItem(Res.string.nav_home, Icons.Default.Home, AuthRoute.Dashboard),
-    NavigationItem(Res.string.nav_history, Icons.AutoMirrored.Filled.List, AuthRoute.Transactions),
+    NavigationItem(Res.string.nav_history, Icons.AutoMirrored.Filled.List, AuthRoute.Transactions()),
     NavigationItem(Res.string.nav_budgets, Icons.Default.PieChart, AuthRoute.Budgets),
     NavigationItem(Res.string.nav_goals, Icons.Default.Flag, AuthRoute.Goals),
     NavigationItem(Res.string.nav_reports, Icons.Default.BarChart, AuthRoute.Reports),
