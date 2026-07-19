@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.budgetmaster.settings.domain.usecase.ObserveAppSettingsUseCase
 import com.budgetmaster.settings.domain.usecase.ResetOnboardingUseCase
 import com.budgetmaster.settings.domain.usecase.SetAiEnabledUseCase
+import com.budgetmaster.settings.domain.usecase.SetSecureScreenUseCase
 import com.budgetmaster.settings.domain.usecase.SetSmsImportEnabledUseCase
 import com.budgetmaster.settings.domain.usecase.SetSmsOwnerMsisdnsUseCase
 import com.budgetmaster.settings.domain.usecase.SetCurrencyUseCase
@@ -36,6 +37,7 @@ class SettingsViewModel(
     private val setLanguage: SetLanguageUseCase,
     private val setCurrency: SetCurrencyUseCase,
     private val setAiEnabled: SetAiEnabledUseCase,
+    private val setSecureScreen: SetSecureScreenUseCase,
     private val setSmsImportEnabled: SetSmsImportEnabledUseCase,
     private val setSmsOwnerMsisdns: SetSmsOwnerMsisdnsUseCase,
     private val resetOnboarding: ResetOnboardingUseCase,
@@ -50,6 +52,7 @@ class SettingsViewModel(
                 language = it.language,
                 currency = it.currency,
                 aiEnabled = it.aiEnabled,
+                secureScreen = it.secureScreen,
                 smsImportEnabled = it.smsImportEnabled,
                 smsOwnerMsisdns = it.smsOwnerMsisdns,
             )
@@ -79,6 +82,7 @@ class SettingsViewModel(
             is SettingsIntent.LanguageSelected -> viewModelScope.launch { setLanguage(intent.language) }
             is SettingsIntent.CurrencySelected -> viewModelScope.launch { setCurrency(intent.currencyCode) }
             is SettingsIntent.AiEnabledChanged -> viewModelScope.launch { setAiEnabled(intent.enabled) }
+            is SettingsIntent.SecureScreenChanged -> viewModelScope.launch { setSecureScreen(intent.enabled) }
             is SettingsIntent.SmsImportEnabledChanged -> viewModelScope.launch { setSmsImportEnabled(intent.enabled) }
             // Not a bare launch: one coroutine per keystroke gives no ordering guarantee, so
             // fast typing could land writes out of order and persist an older string. Funnelling

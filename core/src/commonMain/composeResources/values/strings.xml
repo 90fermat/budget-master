@@ -153,6 +153,9 @@
     <string name="category_fees">Fees &amp; Charges</string>
     <string name="category_other">Other</string>
     <!-- AI features (opt-in) -->
+    <string name="settings_privacy_title">Privacy</string>
+    <string name="settings_secure_screen">Hide from screenshots</string>
+    <string name="settings_secure_screen_desc">Blocks screenshots and screen recording, and keeps your balances out of the recents preview. Turn this off if you need to capture the screen.</string>
     <string name="settings_ai_title">AI insights</string>
     <string name="settings_ai_enable">Enable AI insights</string>
     <string name="settings_ai_enable_desc">Sends a summary of your spending — category totals and monthly income and expenses — to Google’s Gemini to generate insights. Your transaction descriptions, names, and dates are never sent. Off by default.</string>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Backup and device-transfer rules for Android 12+ (API 31+).
+
+  `allowBackup` is false, so neither path runs today and these rules are belt and braces: if
+  backup is ever re-enabled, the finance data must not be what gets copied. Before this, the app
+  declared `allowBackup="true"` with no rules at all, which meant the unencrypted SQLDelight
+  database and the DataStore preferences were eligible for Google Drive auto-backup and for
+  device-to-device transfer — a complete financial ledger leaving the device in cleartext,
+  outside anything the app controls.
+
+  The sanctioned replacement for that convenience is the encrypted export in Settings, where the
+  user holds the passphrase and chooses where the file goes.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <!-- The ledger itself. -->
+        <exclude domain="database" path="." />
+        <!-- Settings, including the mobile-money numbers the SMS importer matches against. -->
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="file" path="datastore" />
+    </cloud-backup>
+
+    <device-transfer>
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="file" path="datastore" />
+    </device-transfer>
+</data-extraction-rules>

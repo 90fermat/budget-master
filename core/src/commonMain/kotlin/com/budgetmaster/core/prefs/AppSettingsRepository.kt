@@ -40,6 +40,17 @@ data class AppSettings(
      * money arrived or left, and only matching these numbers against each side resolves it.
      */
     val smsOwnerMsisdns: String = "",
+    /**
+     * Whether to block screenshots and hide the app's contents from the recents screen.
+     *
+     * **On by default**, unlike the other privacy switches here. Those govern what leaves the
+     * device, where an unset preference must never be read as consent. This one governs what a
+     * passer-by can see over the user's shoulder or in a recents thumbnail, and defaulting it off
+     * would mean shipping balances visible in the app switcher until someone thought to look for
+     * a setting. It is a toggle rather than fixed because it also blocks the user's own
+     * screenshots, which is occasionally a legitimate thing to want.
+     */
+    val secureScreen: Boolean = true,
 )
 
 /**
@@ -60,6 +71,7 @@ class AppSettingsRepository(private val store: KeyValueStore) {
         store.observeString(KEY_AI_ENABLED),
         store.observeString(KEY_SMS_IMPORT_ENABLED),
         store.observeString(KEY_SMS_OWNER_MSISDNS),
+        store.observeString(KEY_SECURE_SCREEN),
     ) { values ->
         AppSettings(
             palette = AppPalette.fromId(values[0]),
@@ -70,6 +82,8 @@ class AppSettingsRepository(private val store: KeyValueStore) {
             aiEnabled = values[4].toBoolean(),
             smsImportEnabled = values[5].toBoolean(),
             smsOwnerMsisdns = values[6].orEmpty(),
+            // Absent means on: see the property doc for why this default runs the other way.
+            secureScreen = values[7]?.toBoolean() ?: true,
         )
     }
 
@@ -86,6 +100,9 @@ class AppSettingsRepository(private val store: KeyValueStore) {
     suspend fun setSmsImportEnabled(enabled: Boolean) =
         store.putString(KEY_SMS_IMPORT_ENABLED, enabled.toString())
 
+    suspend fun setSecureScreen(enabled: Boolean) =
+        store.putString(KEY_SECURE_SCREEN, enabled.toString())
+
     /** @param msisdns comma-separated; whitespace is tolerated and stripped on read. */
     suspend fun setSmsOwnerMsisdns(msisdns: String) =
         store.putString(KEY_SMS_OWNER_MSISDNS, msisdns)
@@ -98,6 +115,7 @@ class AppSettingsRepository(private val store: KeyValueStore) {
         const val KEY_LANGUAGE = "app.language"
         const val KEY_CURRENCY = "app.currency"
         const val KEY_AI_ENABLED = "app.ai_enabled"
+        const val KEY_SECURE_SCREEN = "app.secure_screen"
         const val KEY_SMS_IMPORT_ENABLED = "app.sms_import_enabled"
         const val KEY_SMS_OWNER_MSISDNS = "app.sms_owner_msisdns"
     }

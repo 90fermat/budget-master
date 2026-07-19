@@ -43,6 +43,10 @@ class SetAiEnabledUseCase(private val repository: AppSettingsRepository) {
 }
 
 /** Turns automatic mobile-money message import on or off. */
+class SetSecureScreenUseCase(private val repository: AppSettingsRepository) {
+    suspend operator fun invoke(enabled: Boolean) = repository.setSecureScreen(enabled)
+}
+
 class SetSmsImportEnabledUseCase(private val repository: AppSettingsRepository) {
     suspend operator fun invoke(enabled: Boolean) = repository.setSmsImportEnabled(enabled)
 }

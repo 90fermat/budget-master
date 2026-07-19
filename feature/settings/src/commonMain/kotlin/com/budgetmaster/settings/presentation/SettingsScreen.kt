@@ -76,6 +76,9 @@ import budgetmaster.core.generated.resources.guide_tips_reset_done
 import budgetmaster.core.generated.resources.guide_tips_show
 import budgetmaster.core.generated.resources.guide_tips_show_desc
 import budgetmaster.core.generated.resources.guide_tips_title
+import budgetmaster.core.generated.resources.settings_privacy_title
+import budgetmaster.core.generated.resources.settings_secure_screen
+import budgetmaster.core.generated.resources.settings_secure_screen_desc
 import budgetmaster.core.generated.resources.settings_ai_title
 import budgetmaster.core.generated.resources.settings_ai_enable
 import budgetmaster.core.generated.resources.settings_ai_enable_desc
@@ -274,6 +277,12 @@ fun SettingsScreen(
             onEnabledChange = { viewModel.onIntent(SettingsIntent.SmsImportEnabledChanged(it)) },
             onMsisdnsChange = { viewModel.onIntent(SettingsIntent.SmsOwnerMsisdnsChanged(it)) },
             onBackfill = onBackfillMessages,
+        )
+
+        Spacer(modifier = Modifier.height(Spacing.medium))
+        PrivacySection(
+            secureScreen = state.secureScreen,
+            onSecureScreenChange = { viewModel.onIntent(SettingsIntent.SecureScreenChanged(it)) },
         )
 
         Spacer(modifier = Modifier.height(Spacing.medium))
@@ -613,6 +622,47 @@ private fun SmsImportSection(
  * The description spells out exactly what is and isn't sent, because "enable AI insights" alone
  * doesn't tell anyone that a summary of their money leaves the device. Off by default.
  */
+/**
+ * Screen-capture protection.
+ *
+ * Separate from the AI section because it protects something different: the AI switch governs what
+ * leaves the device, this governs what a passer-by or the recents switcher can see.
+ */
+@Composable
+private fun PrivacySection(
+    secureScreen: Boolean,
+    onSecureScreenChange: (Boolean) -> Unit,
+) {
+    Text(
+        text = stringResource(Res.string.settings_privacy_title),
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.onBackground,
+    )
+    Spacer(modifier = Modifier.height(Spacing.small))
+
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.small),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = stringResource(Res.string.settings_secure_screen),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+            Text(
+                text = stringResource(Res.string.settings_secure_screen_desc),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Spacer(modifier = Modifier.width(Spacing.small))
+        Switch(checked = secureScreen, onCheckedChange = onSecureScreenChange)
+    }
+}
+
 @Composable
 private fun AiSection(
     enabled: Boolean,

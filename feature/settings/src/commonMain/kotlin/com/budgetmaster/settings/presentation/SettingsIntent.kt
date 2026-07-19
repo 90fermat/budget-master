@@ -21,6 +21,9 @@ sealed class SettingsIntent {
     /** The user turned AI insights on or off. Off means nothing is sent to a cloud model. */
     data class AiEnabledChanged(val enabled: Boolean) : SettingsIntent()
 
+    /** Toggles FLAG_SECURE: screenshots, screen recording, and the recents thumbnail. */
+    data class SecureScreenChanged(val enabled: Boolean) : SettingsIntent()
+
     /** The user turned automatic mobile-money message import on or off. */
     data class SmsImportEnabledChanged(val enabled: Boolean) : SettingsIntent()
 

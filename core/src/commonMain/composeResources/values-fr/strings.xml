@@ -154,6 +154,9 @@
     <string name="category_other">Autre</string>
     <!-- French writes the day before the month: "20 janvier". -->
     <!-- Fonctions IA (activation facultative) -->
+    <string name="settings_privacy_title">Confidentialité</string>
+    <string name="settings_secure_screen">Masquer aux captures d'écran</string>
+    <string name="settings_secure_screen_desc">Bloque les captures et l'enregistrement d'écran, et garde vos soldes hors de l'aperçu des applications récentes. Désactivez-le si vous devez capturer l'écran.</string>
     <string name="settings_ai_title">Analyses IA</string>
     <string name="settings_ai_enable">Activer les analyses IA</string>
     <string name="settings_ai_enable_desc">Envoie un résumé de vos dépenses — totaux par catégorie et revenus et dépenses du mois — à Gemini de Google pour générer des analyses. Les libellés de vos transactions, les noms et les dates ne sont jamais envoyés. Désactivé par défaut.</string>

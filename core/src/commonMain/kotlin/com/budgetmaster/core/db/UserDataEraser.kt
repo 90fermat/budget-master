@@ -14,6 +14,11 @@ import kotlinx.coroutines.withContext
  *
  * The shared insight cache is cleared too — it's derived from the user's spending, so it must not
  * survive them. The generic exchange-rate cache is market data, not personal, and is left.
+ *
+ * The imported-message ledger is erased as well. It was missed originally, which meant deleting an
+ * account left behind a record of every mobile-money message the app had read — sender, arrival
+ * time, and for anything awaiting review the parsed amount and description. That is arguably the
+ * most invasive table in the database, and the query to clear it already existed for this purpose.
  */
 class UserDataEraser(
     private val databaseProvider: DatabaseProvider,
@@ -29,6 +34,7 @@ class UserDataEraser(
             queries.deleteBudgetsByUser(userId)
             queries.deleteGoalsByUser(userId)
             queries.deleteNotificationsByUser(userId)
+            queries.deleteImportedMessagesByUser(userId)
             queries.deleteAllInsights()
             queries.deleteUser(userId)
         }

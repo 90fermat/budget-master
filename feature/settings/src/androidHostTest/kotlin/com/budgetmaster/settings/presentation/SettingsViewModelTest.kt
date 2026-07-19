@@ -12,6 +12,7 @@ import com.budgetmaster.core.prefs.OnboardingPreferences
 import com.budgetmaster.settings.domain.usecase.ObserveAppSettingsUseCase
 import com.budgetmaster.settings.domain.usecase.ResetOnboardingUseCase
 import com.budgetmaster.settings.domain.usecase.SetAiEnabledUseCase
+import com.budgetmaster.settings.domain.usecase.SetSecureScreenUseCase
 import com.budgetmaster.settings.domain.usecase.SetSmsImportEnabledUseCase
 import com.budgetmaster.settings.domain.usecase.SetSmsOwnerMsisdnsUseCase
 import com.budgetmaster.settings.domain.usecase.SetCurrencyUseCase
@@ -60,6 +61,7 @@ class SettingsViewModelTest {
             setLanguage = SetLanguageUseCase(repository),
             setCurrency = SetCurrencyUseCase(repository),
             setAiEnabled = SetAiEnabledUseCase(repository),
+            setSecureScreen = SetSecureScreenUseCase(repository),
             setSmsImportEnabled = SetSmsImportEnabledUseCase(repository),
             setSmsOwnerMsisdns = SetSmsOwnerMsisdnsUseCase(repository),
             resetOnboarding = ResetOnboardingUseCase(OnboardingPreferences(FakeStore())),
