@@ -966,6 +966,46 @@ Config kill-switches if quotas tighten.
     that the parsed fields survive a write and a read back — a fake handing its own objects back
     would prove nothing about the columns.
 
+### Phase 9.3 — Warning and deprecation sweep
+
+> 95 compiler warnings down to 2. The point was not the count: at 95 a real one has nowhere to
+> show, and two of these turned out to be genuine bugs.
+
+- [x] **iOS CSV export was broken.** `(content as NSString)` cannot succeed — a Kotlin String is
+  not an instance of the Objective-C NSString class, and bridging only happens implicitly at an
+  interop boundary, never for an explicit Kotlin-side cast. Every iOS CSV export would have
+  thrown. Now written through `NSData`, which also pins the UTF-8 the CSV claims to be.
+- [x] **Directional icons did not mirror in RTL.** Seven icons (`TrendingUp`, `ArrowForward`,
+  `CompareArrows`, `ReceiptLong`, `Rule`, `HelpOutline`, `TrendingDown`) used the deprecated
+  non-mirroring variants, so an RTL layout got LTR arrows. Moved to `Icons.AutoMirrored`. The two
+  RTL snapshots changed and nothing else did, which is the proof it was RTL-only.
+  - Worth a native RTL reader's eye: the trend arrow now rises leftward, which is correct for a
+    right-to-left time axis but is the kind of call worth confirming with someone who reads that
+    way daily.
+- [x] `monthNumber` → `Month.number` (kotlinx-datetime deprecation, needs its own import as it is
+  an extension property).
+- [x] `confirmValueChange` on `rememberSwipeToDismissBoxState` is deprecated in favour of leaving
+  disallowed anchors out of the set. The swipe direction was **already** restricted by
+  `enableDismissFromStartToEnd = false`, so the veto was redundant; the delete now runs off the
+  settled state instead of from inside a callback used for its side effects.
+- [x] `-Xexpect-actual-classes` set once in the root `subprojects` block. That was 24 of the 95:
+  the feature is Beta upstream (KT-61573), load-bearing here, and has no alternative spelling, so
+  the flag acknowledges it rather than pretending the warning was actionable.
+- [x] File-level opt-ins for `ExperimentalWasmJsInterop` (5 wasm files that are interop by nature)
+  and `ExperimentalCoroutinesApi` (the settings test).
+- [x] Dead `!!`, redundant casts, an unnecessary safe call, and a stray `Unit` removed.
+- [x] **`feature/accounts` was missing from detekt's source list** and had never been linted.
+- [ ] **Two warnings remain, deliberately.** `org.jetbrains.compose`'s `@Preview` is deprecated in
+  favour of the androidx one, which does not resolve on wasmJs — taking the replacement trades a
+  warning for a broken web build. Both sites are commented; revisit when the replacement covers
+  every target.
+- [ ] **Detekt still reports ~900 findings**, `ignoreFailures = true`. Overwhelmingly formatting
+  (`ArgumentListWrapping` 371, `Indentation` 156, `ImportOrdering` 57). Auto-correctable, but that
+  is a whole-repo reformat that would bury real changes in review, so it wants its own commit.
+  - Note for whoever does it: **`NoUnusedImports` cannot be trusted here.** Detekt runs without
+    type resolution, so it flags imports that are genuinely used — acting on its 33 findings broke
+    the build in three modules. Verified this the hard way; use the compiler, not detekt, for it.
+
 ### Phase 9 — Insight & polish
 
 > Two gaps found by using the app rather than reading it.
