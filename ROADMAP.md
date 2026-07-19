@@ -1144,6 +1144,58 @@ Config kill-switches if quotas tighten.
 - [ ] `TopTransactionsList` calls `categoryNameFor(id, id)`, so a user-created category renders as
   a raw UUID.
 
+## Phase 12 — Security hardening
+
+### 12.1 Data-at-rest and deletion — done
+
+- [x] **`allowBackup` was `true` with no extraction rules**, so the unencrypted SQLDelight database
+  and the DataStore preferences were eligible for Google Drive auto-backup and device-to-device
+  transfer: a complete financial ledger leaving the device in cleartext, outside anything the app
+  controls. Now `false`, with `data_extraction_rules.xml` (API 31+) and `backup_rules.xml`
+  (API 30-) as belt and braces should backup ever be re-enabled. Both files are needed — the newer
+  one is ignored on older versions, which would otherwise keep the permissive behaviour.
+  - The convenience this removes is replaced by the encrypted export in Settings, where the user
+    holds the passphrase and chooses where the file goes.
+- [x] **`UserDataEraser` never erased the imported-message ledger.** "Delete my account" left
+  behind a record of every mobile-money message the app had read — sender, arrival time, and for
+  anything awaiting review the parsed amount and description. Arguably the most invasive table in
+  the database, and the query to clear it already existed for exactly this purpose. One line.
+  - Covered by a test that was **verified to fail without the fix**, rather than assumed to.
+
+### 12.2 Screen-capture protection — done
+
+- [x] `FLAG_SECURE`, applied from a new `secureScreen` setting: no screenshots, no screen
+  recording, and no live thumbnail of the user's balances in the recents switcher. It has to be a
+  window flag rather than anything in Compose, because the recents snapshot is taken by the system
+  outside the app's own drawing.
+- [x] **On by default**, unlike the other privacy switches. Those govern what leaves the device,
+  where an unset preference must never be read as consent; this governs what a passer-by can see,
+  and defaulting it off would ship balances visible in the app switcher until someone went looking
+  for a setting. A toggle rather than fixed because it also blocks the user's own screenshots.
+- [x] Collected for the activity's lifetime, so toggling it applies immediately rather than on
+  next launch.
+
+### 12.3 Secure logging — done
+
+- [x] Audited every logging call in the app. The result was better than expected and worth
+  recording: **no `android.util.Log` anywhere, and no Crashlytics `setCustomKey`, `log` or
+  `recordException`** — so crash reports carry stack traces only, with no attached user data.
+- [x] One real leak found and removed: `GeminiInsightsService` printed the exception message on
+  failure. That path handles a failure while generating insights *from the user's spending*, so
+  the message can carry prompt or response fragments — on Android that means the user's finances
+  in logcat, readable by anything with log access on a rooted device and captured verbatim in bug
+  reports. The fallback handling below it was always the real behaviour; the `println` added
+  nothing.
+- [x] **Konsist rule so the next one fails the build**, covering the packages where a stray line
+  would be worst: SMS parsers (raw message bodies), repositories (amounts, account ids), AI
+  services (prompts built from spending), and auth. Verified by planting a `println` in the SMS
+  parser and confirming the rule fails — a rule that passes on a real violation is worse than none.
+  - Deliberately a build failure rather than a review convention: the cost of logging is invisible
+    at the call site and only shows up in someone else's log capture.
+- [ ] The Google sign-in exception `cause` is still dropped rather than reported. Now that
+  Crashlytics is confirmed clean, `recordException` is the right home for it — but it needs a
+  `commonMain`-visible abstraction, which belongs with the app-lock work rather than here.
+
 ### Phase 9 — Insight & polish
 
 > Two gaps found by using the app rather than reading it.
