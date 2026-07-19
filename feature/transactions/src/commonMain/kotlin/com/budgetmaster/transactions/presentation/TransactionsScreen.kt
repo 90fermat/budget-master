@@ -330,7 +330,14 @@ private fun TransactionList(state: TransactionsState, viewModel: TransactionsVie
                 TransactionRowItem(
                     item = item,
                     currencyCode = state.currencyCode,
-                    categoryLabel = item.category?.name ?: uncategorized,
+                    // Through categoryNameFor, not the raw stored name. Default categories
+                    // are seeded into the database as English literals at first run, so the
+                    // stored name is English whatever the app language is. The picker in the
+                    // editor already localised; this row did not, which is why a category chosen
+                    // in French reappeared in English the moment it was saved.
+                    categoryLabel = item.category
+                        ?.let { categoryNameFor(it.id, it.name) }
+                        ?: uncategorized,
                     onClick = { viewModel.onIntent(TransactionsIntent.EditClicked(item)) },
                     onDelete = { viewModel.onIntent(TransactionsIntent.DeleteRequested(item.id)) },
                 )

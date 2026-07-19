@@ -1100,6 +1100,50 @@ Config kill-switches if quotas tighten.
   failure of this kind is undiagnosable. Needs a logging abstraction `:feature:auth` can use from
   `commonMain` — deliberately not invented here; folded into the secure-logging work.
 
+### 11.6 AI requests rejected as invalid App Check tokens — code side done
+
+> The ~97% rejection rate is **environmental, not a code fault**. Init order is correct and the
+> debug/release provider selection via variant source sets is the right pattern. What the code got
+> wrong was making the failure invisible.
+
+- [x] **`GenAiClient` had no generic catch.** Any `FirebaseAIException` subtype not named
+  explicitly escaped `generateJson` un-wrapped, past callers that only catch `GenAiException`.
+  There is now a catch-all for the SDK's hierarchy.
+- [x] **App Check refusals get their own error**, `GenAiException.NotAuthorized`, and their own
+  copy. Retrying cannot fix them and the fix is not the user's, but the old generic
+  "could not reach the AI, try again in a moment" invited exactly the retry that kept failing —
+  which is how a 97% rejection rate passed for a flaky network for so long.
+- [x] `setTokenAutoRefreshEnabled(true)`, which was unset, so refresh followed the global
+  data-collection default and an expiring token was renewed only after something already failed.
+- [x] README now spells out the trap that actually caused this: the debug token is stored in
+  SharedPreferences and is **regenerated on every fresh install or clear-data**, so a burst of
+  reinstall-driven testing invalidates it repeatedly. Also documents where to see the rejection
+  rate in the console, and that release builds must come from Play.
+- [ ] **Operational, needs doing on your side:** register the current debug token in
+  Firebase Console → App Check → Manage debug tokens. No code change will fix the rejections.
+
+### 11.7 Category names shown in English in a French UI — partly done
+
+> Root cause: default categories are seeded into the database as **English literals** at first
+> run, once, guarded — so the stored name is English whatever the app language is, and re-seeding
+> will not fix an existing install. `categoryNameFor(id, storedName)` exists to compensate by
+> mapping the eleven seeded ids to string resources. The design was right; adoption was patchy.
+
+- [x] **The reported one:** the editor's category picker localised, but the row it produced did
+  not. A category chosen in French reappeared in English the moment it was saved.
+- [x] The category icon's accessibility label was the raw English name too.
+- [ ] **Search still matches the stored name**, so searching "Alimentation" in French finds
+  nothing. Deliberately not half-fixed: the filter is a pure predicate in the domain layer, and
+  `categoryNameFor` is `@Composable`. Doing this properly means a non-composable localized lookup
+  (compose-resources' suspend `getString`) or passing a resolved id→name map into the filter.
+- [ ] **Reports and budget suggestions bake the raw name in the data layer**, so they cannot be
+  localized at render time at all — the id never reaches the UI. Needs those models to carry
+  `categoryId`, which is a wider change than the render-site fixes above.
+- [ ] `NotifyBudgetThresholdsUseCase` builds **hardcoded English sentences** in the domain layer.
+  Folded into the notifications-screen work, which has to localize that producer anyway.
+- [ ] `TopTransactionsList` calls `categoryNameFor(id, id)`, so a user-created category renders as
+  a raw UUID.
+
 ### Phase 9 — Insight & polish
 
 > Two gaps found by using the app rather than reading it.
