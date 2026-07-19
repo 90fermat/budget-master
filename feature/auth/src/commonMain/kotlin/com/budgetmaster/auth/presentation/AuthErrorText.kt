@@ -5,6 +5,7 @@ import budgetmaster.core.generated.resources.Res
 import budgetmaster.core.generated.resources.auth_error_email_in_use
 import budgetmaster.core.generated.resources.auth_error_empty_fields
 import budgetmaster.core.generated.resources.auth_error_google_cancelled
+import budgetmaster.core.generated.resources.auth_error_google_transient
 import budgetmaster.core.generated.resources.auth_error_google_unavailable
 import budgetmaster.core.generated.resources.auth_error_invalid_credentials
 import budgetmaster.core.generated.resources.auth_error_invalid_email
@@ -37,6 +38,7 @@ fun AuthError.localizedMessage(): String = stringResource(
         AuthError.Network -> Res.string.auth_error_network
         AuthError.GoogleCancelled -> Res.string.auth_error_google_cancelled
         AuthError.GoogleUnavailable -> Res.string.auth_error_google_unavailable
+        AuthError.GoogleTransient -> Res.string.auth_error_google_transient
         AuthError.Unknown -> Res.string.auth_error_unknown
     },
 )

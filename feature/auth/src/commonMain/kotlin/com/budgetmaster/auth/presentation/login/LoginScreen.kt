@@ -200,7 +200,10 @@ fun LoginScreen(
 
             if (isGoogleSignInSupported) {
                 OutlinedButton(
-                    onClick = { launchGoogleSignIn() },
+                    onClick = {
+                        viewModel.onIntent(LoginIntent.GoogleSignInStarted)
+                        launchGoogleSignIn()
+                    },
                     enabled = !state.isLoading,
                     modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp),
                 ) {

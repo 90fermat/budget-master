@@ -52,6 +52,8 @@ class LoginViewModel(
                 _state.update { it.copy(isPasswordVisible = !it.isPasswordVisible) }
             is LoginIntent.LoginClicked -> performLogin()
             is LoginIntent.BiometricLoginClicked -> handleBiometricLogin()
+            is LoginIntent.GoogleSignInStarted ->
+                _state.update { it.copy(isLoading = true, error = null) }
             is LoginIntent.GoogleIdTokenReceived -> performGoogleSignIn(intent.idToken)
             is LoginIntent.GoogleSignInFailed ->
                 // A cancelled sheet is not an error worth shouting about.
