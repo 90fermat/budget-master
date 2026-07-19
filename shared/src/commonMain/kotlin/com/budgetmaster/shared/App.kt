@@ -217,6 +217,26 @@ private fun AppShell() {
     val destination = backStackEntry?.destination
     val isTabDestination = destination != null && mainDestinations.any { destination.hasRoute(it) }
 
+    // Auth guard.
+    //
+    // Routing used to be entirely imperative: whoever called navigate() decided, and nothing
+    // checked afterwards. That is how a first install reached the Dashboard without signing in -
+    // the onboarding flow simply navigated there. It also meant that losing the session while the
+    // app was open (token revoked, account deleted elsewhere) cleared SessionStore but left the
+    // user sitting on their finances.
+    //
+    // This closes the class rather than the instance: whenever the session is gone and the user
+    // is on a signed-in destination, they go to Login regardless of how they got there.
+    val checkAuthStatus = koinInject<CheckAuthStatusUseCase>()
+    val authStatus by checkAuthStatus().collectAsState(initial = null)
+    LaunchedEffect(authStatus, isTabDestination) {
+        if (authStatus is AuthStatus.Unauthenticated && isTabDestination) {
+            navController.navigate(AuthRoute.Login) {
+                popUpTo(navController.graph.findStartDestination().id) { inclusive = true }
+            }
+        }
+    }
+
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val isTablet = maxWidth >= 600.dp && maxWidth < 1240.dp
         val isDesktop = maxWidth >= 1240.dp
@@ -418,11 +438,6 @@ private fun MainNavGraph(navController: androidx.navigation.NavHostController) {
             val onboardingViewModel: OnboardingViewModel = koinViewModel()
             OnboardingScreen(
                 viewModel = onboardingViewModel,
-                onNavigateToBiometric = {
-                    navController.navigate(AuthRoute.Biometric) {
-                        popUpTo(AuthRoute.Onboarding) { inclusive = true }
-                    }
-                },
                 onNavigateToLogin = {
                     navController.navigate(AuthRoute.Login) {
                         popUpTo(AuthRoute.Onboarding) { inclusive = true }
@@ -474,6 +489,10 @@ private fun MainNavGraph(navController: androidx.navigation.NavHostController) {
             )
         }
 
+        // Currently unreachable by design: onboarding no longer routes here, because biometric
+        // setup protects an account and there is no account until the user signs in. Kept rather
+        // than deleted because the app-lock work re-enters it from *after* sign-in, where it makes
+        // sense - and where, unlike today, it will actually gate something.
         composable<AuthRoute.Biometric> {
             val biometricViewModel: BiometricViewModel = koinViewModel()
             BiometricScreen(

@@ -41,6 +41,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -555,9 +556,25 @@ private fun SmsImportSection(
     }
 
     if (enabled) {
+        // The field owns its own text once the user starts typing.
+        //
+        // It used to render `msisdns` straight from the ViewModel, which meant every keystroke
+        // made a round trip through a DataStore write and a 7-way combine before coming back --
+        // and a plain String value carries no selection for Compose to preserve, so the cursor
+        // snapped every time the delayed value landed. Holding a local draft and never reading
+        // the echo back removes the round trip from the typing path entirely.
+        //
+        // Null means "nothing typed yet", so the persisted value still shows on first load. That
+        // matters because the state flow starts at SettingsState() with an empty string and fills
+        // in a moment later; seeding from it eagerly would have shown a blank field.
+        var draft by rememberSaveable { mutableStateOf<String?>(null) }
+
         OutlinedTextField(
-            value = msisdns,
-            onValueChange = onMsisdnsChange,
+            value = draft ?: msisdns,
+            onValueChange = { typed ->
+                draft = typed
+                onMsisdnsChange(typed)
+            },
             label = { Text(stringResource(Res.string.settings_sms_number_label)) },
             placeholder = { Text(stringResource(Res.string.settings_sms_number_placeholder)) },
             supportingText = { Text(stringResource(Res.string.settings_sms_number_help)) },

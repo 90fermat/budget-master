@@ -1045,6 +1045,42 @@ Config kill-switches if quotas tighten.
   - Two effect cases (`NavigateToAnalytics`, `NavigateToBudgetDetail`) were **deleted**: nothing
     ever emitted them. They were speculative API that the `else ->` branch kept invisible.
 
+### 11.3 Phone-number field cursor jumped backward — done
+
+- [x] Every keystroke round-tripped through a DataStore write and a 7-way `combine` before coming
+  back to the field, and a plain `String` value carries no selection for Compose to preserve, so
+  the cursor snapped when the delayed value landed. The field now holds a local draft and never
+  reads the echo back. Null means "nothing typed yet", so the persisted value still shows on first
+  load — seeding eagerly would have blanked the field, because the state flow starts empty and
+  fills in a moment later.
+- [x] The write path was also unordered: one `viewModelScope.launch` per keystroke gave no
+  guarantee, so fast typing could persist an *older* string. Now funnelled through a conflated
+  flow and debounced, which also stops hammering the disk.
+- [ ] Same shape exists in seven other fields (search, login/register/forgot-password email and
+  password) that round-trip through an in-memory `MutableStateFlow` rather than disk, so they are
+  far less visible. Worth converting together; not urgent.
+- [ ] Separately: ten amount fields filter inside `onValueChange`, which moves the cursor when a
+  rejected character is typed mid-string. Needs `TextFieldValue`.
+
+### 11.4 First install reached the Dashboard without signing in — done
+
+- [x] Splash was correct. The break was downstream: onboarding branched on
+  `isBiometricAuthSupported`, true on Android, so a first install went **Splash → Onboarding →
+  Biometric → Dashboard** and never asked anyone to sign in. Every button on the biometric screen,
+  including "Skip", led to the Dashboard.
+  - Onboarding now always routes to Login. Biometric setup is an *enrolment* step: it protects an
+    account, so it can only sensibly run once there is an account to protect.
+  - **"Bonjour, vous" was not a separate bug** and was deliberately left alone — it is the honest
+    rendering of no session. Patching the greeting would have hidden the routing bug.
+- [x] **Added an auth guard**, because the instance was a symptom of the class: routing was
+  entirely imperative, so whoever called `navigate()` decided and nothing checked afterwards.
+  Losing the session while the app was open also left the user sitting on their finances. Now, if
+  the session is gone and the user is on a signed-in destination, they go to Login regardless of
+  how they arrived.
+- [x] Removed the dead onboarding→biometric edge. `AuthRoute.Biometric` is deliberately kept but
+  currently unreachable; the app-lock phase re-enters it from after sign-in, where it will
+  actually gate something.
+
 ### Phase 9 — Insight & polish
 
 > Two gaps found by using the app rather than reading it.

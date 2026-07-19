@@ -74,13 +74,11 @@ private val onboardingPages = listOf(
  * themed vector illustrations and localized copy.
  *
  * @param viewModel The ViewModel managing page state and navigation.
- * @param onNavigateToBiometric Called on completion when biometric setup is available.
  * @param onNavigateToLogin Called on completion when biometric setup is skipped (e.g. Web).
  */
 @Composable
 fun OnboardingScreen(
     viewModel: OnboardingViewModel,
-    onNavigateToBiometric: () -> Unit,
     onNavigateToLogin: () -> Unit,
 ) {
     val state by viewModel.state.collectAsState()
@@ -88,7 +86,6 @@ fun OnboardingScreen(
     LaunchedEffect(Unit) {
         viewModel.effects.collect { effect ->
             when (effect) {
-                OnboardingEffect.NavigateToBiometric -> onNavigateToBiometric()
                 OnboardingEffect.NavigateToLogin -> onNavigateToLogin()
             }
         }
