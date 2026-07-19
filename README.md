@@ -33,9 +33,19 @@ be trusted:
   and hide the feature rather than degrade. The toggle lives in Settings and is off by default:
   only category totals and monthly income/expense sums are ever sent — never transaction
   descriptions, names or dates.
-  - Running a debug build locally? App Check prints a debug token to logcat on first launch;
-    register it under **App Check → Apps → Manage debug tokens** in the Firebase console or the
-    insights call will be rejected.
+  - **Running a debug build locally? Register the App Check debug token, and expect to redo it.**
+    App Check prints a token to logcat on first launch (filter `DebugAppCheckProvider`); register
+    it under **App Check → Apps → Manage debug tokens** in the Firebase console or every AI call
+    is rejected.
+    - The token lives in SharedPreferences, so it is **regenerated on every fresh install, clear
+      data, or new emulator** — and the old one keeps occupying a slot in the console. A burst of
+      reinstall-driven testing is enough to make almost every request fail attestation.
+    - The symptom is not obvious from inside the app: a rejection reads as a normal failure. Check
+      **App Check → Requests** in the console, where rejected calls are counted as
+      "invalid App Check token". A high rejection rate there almost always means an unregistered
+      debug token rather than anything wrong with the code.
+    - Release builds attest with Play Integrity instead, which requires the app to have been
+      **installed from Play**. A sideloaded release APK fails attestation by design.
 - **No receipt scanning, tags, heatmaps, or PDF export.** These were listed here before they
   existed; they are planned, not built. CSV export is real.
 - **Web has no real authentication** — it keeps a local-only profile rather than signing in to

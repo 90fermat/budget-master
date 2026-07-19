@@ -183,6 +183,7 @@
     <string name="reports_ai_ask_placeholder">ex. Où est parti l'essentiel de mon argent ?</string>
     <string name="reports_ai_ask_action">Demander</string>
     <string name="reports_ai_failed">Impossible de joindre l'IA. Réessayez dans un instant.</string>
+    <string name="reports_ai_not_authorized">Les fonctions IA ne sont pas autorisées pour cette version. C'est un problème de configuration, pas un incident passager : réessayer n'y changera rien.</string>
     <string name="reports_ai_rate_limited">L'IA est occupée pour le moment. Réessayez bientôt.</string>
 
     <!-- Suggestions de budgets IA -->

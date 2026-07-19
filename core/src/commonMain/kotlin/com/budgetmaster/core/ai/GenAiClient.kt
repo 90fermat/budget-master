@@ -46,7 +46,18 @@ sealed class GenAiException(message: String, cause: Throwable? = null) : Excepti
     /** No provider on this platform/build. */
     class Unavailable(message: String = "No AI provider is configured") : GenAiException(message)
 
-    /** Anything else: network, auth, App Check rejection, malformed response. */
+    /**
+     * The backend refused to attest this app instance (App Check).
+     *
+     * Separate from [Failed] because retrying cannot help and the fix is not the user's: a debug
+     * build needs its debug token registered in the Firebase console, and a release build needs
+     * to have come from Play. Bucketing it with network errors is what made a 97% rejection rate
+     * invisible - the UI said "could not reach the AI, try again in a moment" and users obligingly
+     * retried into the same refusal.
+     */
+    class NotAuthorized(message: String, cause: Throwable? = null) : GenAiException(message, cause)
+
+    /** Anything else: network, malformed response. */
     class Failed(message: String, cause: Throwable? = null) : GenAiException(message, cause)
 }
 

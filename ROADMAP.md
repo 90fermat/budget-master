@@ -1081,6 +1081,25 @@ Config kill-switches if quotas tighten.
   currently unreachable; the app-lock phase re-enters it from after sign-in, where it will
   actually gate something.
 
+### 11.5 Google sign-in failed the first time, worked the second — done
+
+- [x] Two causes, both fixed.
+  - The catch chain mapped **every** remaining `GetCredentialException` to `GoogleUnavailable`,
+    so a cold-started provider told users with a perfectly good Google account that their device
+    did not support Google sign-in. There is now a separate `GoogleTransient` error, because the
+    two need opposite advice: "try again" versus "this will not work here".
+  - The request used a single, non-retried `setFilterByAuthorizedAccounts(false)`, which forces
+    the provider to cold-start and enumerate every account on the device — the call most likely to
+    fail first time. It now asks for **authorized accounts first** and only falls back to the full
+    enumeration on `NoCredentialException`, which is the documented order and the fast path for
+    returning users. `GetCredentialUnknownException` and `GetCredentialInterruptedException` get
+    one retry, so the "second tap" now happens without the user having to think of it.
+- [x] The spinner starts at the tap rather than when a token returns. The sheet can take a moment
+  to open on a cold provider, and the button looked dead for exactly that window.
+- [ ] The exception `cause` is still discarded before it reaches anywhere observable, so the next
+  failure of this kind is undiagnosable. Needs a logging abstraction `:feature:auth` can use from
+  `commonMain` — deliberately not invented here; folded into the secure-logging work.
+
 ### Phase 9 — Insight & polish
 
 > Two gaps found by using the app rather than reading it.

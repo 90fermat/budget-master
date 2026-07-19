@@ -182,6 +182,7 @@
     <string name="reports_ai_ask_placeholder">e.g. Where did most of my money go?</string>
     <string name="reports_ai_ask_action">Ask</string>
     <string name="reports_ai_failed">Couldn't reach the AI. Try again in a moment.</string>
+    <string name="reports_ai_not_authorized">AI features are not authorised for this build. This is a setup problem, not a temporary one - retrying will not help.</string>
     <string name="reports_ai_rate_limited">The AI is busy right now. Try again shortly.</string>
 
     <!-- AI budget suggestions -->

@@ -60,6 +60,9 @@ class BudgetMasterApplication : Application(), KoinComponent {
     private fun initializeAppCheck() {
         FirebaseApp.initializeApp(this)
         Firebase.appCheck.installAppCheckProviderFactory(appCheckProviderFactory())
+        // Without this, refresh follows the global data-collection default and a token that
+        // expires mid-session is not renewed until something already failed.
+        Firebase.appCheck.setTokenAutoRefreshEnabled(true)
     }
 
     /**
