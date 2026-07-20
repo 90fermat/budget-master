@@ -1196,6 +1196,36 @@ Config kill-switches if quotas tighten.
   Crashlytics is confirmed clean, `recordException` is the right home for it — but it needs a
   `commonMain`-visible abstraction, which belongs with the app-lock work rather than here.
 
+## Phase 13 — SMS import: destination, feedback, and trust (second device test)
+
+> Second real-device test. Verdict on the importer: the capture machinery is correct, but it is
+> **unaccountable** — it guesses the destination, reports nothing, and cannot be told apart from
+> "did nothing at all".
+
+- [ ] **13.1 The destination account was guessed, and guessed wrong.** Imports land in
+  `observeAccounts().first().firstOrNull()` — the first wallet ever created — with a comment
+  admitting a per-wallet mapping is "the obvious refinement". The user's transactions were
+  imported into an account they weren't looking at. Fix: an explicit **import destination wallet**
+  setting in the SMS section; enabling import or running a backfill with no destination set
+  requires choosing one. Designed per-provider from day one (a map `provider → accountId`), so
+  MTN MoMo slots in as a second row rather than a schema change; with one provider the UI reads
+  as a single picker.
+- [ ] **13.2 Imports are invisible.** Live capture happens (if it does) with no acknowledgement,
+  and backfill reports only a count — nothing says *what* was imported or *where it went*. Fix:
+  every import writes a `NotificationEntity` row (provider, amount, description, destination
+  wallet), including deferred-to-review outcomes; live captures additionally post an Android
+  system notification, because the app is not open when an SMS arrives. This is also what makes
+  "is automatic capture working?" *answerable* — today the receiver, manifest and permissions all
+  look correct, but silence is indistinguishable from failure, including for the case where the
+  network's actual sender ID does not match the `orange|^OM$` allowlist.
+- [ ] **13.3 Multiple numbers already work but the UI says otherwise.** The parser accepts a
+  comma-separated list; the field is labelled "Your mobile money number", singular, with a
+  one-number placeholder. Fix the copy and placeholder. The *owner numbers* stay one shared list
+  across providers — any of the user's numbers can appear on either side of a transfer regardless
+  of which SIM received the SMS — while the *destination* is what becomes per-provider.
+- [ ] 13.4 Merged with the notifications screen (Phase 3 of the branch plan): same table, same
+  surfaces, one unread badge. The bell answers "did my SMS import, and where?".
+
 ### Phase 9 — Insight & polish
 
 > Two gaps found by using the app rather than reading it.
