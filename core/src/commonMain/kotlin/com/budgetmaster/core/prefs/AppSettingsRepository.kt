@@ -64,6 +64,19 @@ data class AppSettings(
      * screenshots, which is occasionally a legitimate thing to want.
      */
     val secureScreen: Boolean = true,
+    /**
+     * App lock: require biometrics or a PIN to open the app.
+     *
+     * All four default to a *disabled* lock. Enabling it is an explicit choice in Settings, and
+     * requires a PIN to be set first so there is always a fallback if biometrics are unavailable.
+     */
+    val appLockEnabled: Boolean = false,
+    /** The stored PIN as a [com.budgetmaster.core.security.PinHasher] record, or null if unset. */
+    val appLockPinHash: String? = null,
+    /** Whether to offer biometrics at the lock screen (the PIN is always available as fallback). */
+    val appLockBiometricEnabled: Boolean = true,
+    /** Grace period, in seconds, before a backgrounded app re-locks. 0 locks immediately. */
+    val appLockTimeoutSeconds: Int = 0,
 )
 
 /**
@@ -86,6 +99,10 @@ class AppSettingsRepository(private val store: KeyValueStore) {
         store.observeString(KEY_SMS_OWNER_MSISDNS),
         store.observeString(KEY_SECURE_SCREEN),
         store.observeString(KEY_SMS_IMPORT_ACCOUNTS),
+        store.observeString(KEY_APP_LOCK_ENABLED),
+        store.observeString(KEY_APP_LOCK_PIN_HASH),
+        store.observeString(KEY_APP_LOCK_BIOMETRIC),
+        store.observeString(KEY_APP_LOCK_TIMEOUT),
     ) { values ->
         AppSettings(
             palette = AppPalette.fromId(values[0]),
@@ -99,6 +116,12 @@ class AppSettingsRepository(private val store: KeyValueStore) {
             // Absent means on: see the property doc for why this default runs the other way.
             secureScreen = values[7]?.toBoolean() ?: true,
             smsImportAccounts = parseImportAccounts(values[8]),
+            appLockEnabled = values[9].toBoolean(),
+            appLockPinHash = values[10],
+            // Absent means on: if the user set a lock, offering the biometric they have is the
+            // expected default; they can turn it off to force PIN-only.
+            appLockBiometricEnabled = values[11]?.toBoolean() ?: true,
+            appLockTimeoutSeconds = values[12]?.toIntOrNull() ?: 0,
         )
     }
 
@@ -128,6 +151,19 @@ class AppSettingsRepository(private val store: KeyValueStore) {
     suspend fun setSecureScreen(enabled: Boolean) =
         store.putString(KEY_SECURE_SCREEN, enabled.toString())
 
+    suspend fun setAppLockEnabled(enabled: Boolean) =
+        store.putString(KEY_APP_LOCK_ENABLED, enabled.toString())
+
+    /** @param hash a PinHasher record, or null to clear the PIN. */
+    suspend fun setAppLockPinHash(hash: String?) =
+        if (hash == null) store.remove(KEY_APP_LOCK_PIN_HASH) else store.putString(KEY_APP_LOCK_PIN_HASH, hash)
+
+    suspend fun setAppLockBiometricEnabled(enabled: Boolean) =
+        store.putString(KEY_APP_LOCK_BIOMETRIC, enabled.toString())
+
+    suspend fun setAppLockTimeoutSeconds(seconds: Int) =
+        store.putString(KEY_APP_LOCK_TIMEOUT, seconds.toString())
+
     /** @param msisdns comma-separated; whitespace is tolerated and stripped on read. */
     suspend fun setSmsOwnerMsisdns(msisdns: String) =
         store.putString(KEY_SMS_OWNER_MSISDNS, msisdns)
@@ -142,6 +178,10 @@ class AppSettingsRepository(private val store: KeyValueStore) {
         const val KEY_AI_ENABLED = "app.ai_enabled"
         const val KEY_SECURE_SCREEN = "app.secure_screen"
         const val KEY_SMS_IMPORT_ACCOUNTS = "app.sms_import_accounts"
+        const val KEY_APP_LOCK_ENABLED = "app.lock_enabled"
+        const val KEY_APP_LOCK_PIN_HASH = "app.lock_pin_hash"
+        const val KEY_APP_LOCK_BIOMETRIC = "app.lock_biometric"
+        const val KEY_APP_LOCK_TIMEOUT = "app.lock_timeout"
 
         private fun parseImportAccounts(raw: String?): Map<String, String> =
             raw.orEmpty()
