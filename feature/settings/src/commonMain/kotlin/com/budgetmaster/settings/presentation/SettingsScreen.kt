@@ -159,6 +159,14 @@ fun SettingsScreen(
      * created. Runs when the user switches import on, so the ledger starts with their history.
      */
     onBackfillMessages: suspend () -> Int = { 0 },
+    /**
+     * Writes an encrypted backup and hands it to the platform. Returns a message to show inline.
+     */
+    onExportBackup: suspend (passphrase: String) -> String = { "" },
+    /**
+     * Replaces all local data from a backup file. Returns a message to show inline.
+     */
+    onRestoreBackup: suspend (content: String, passphrase: String) -> String = { _, _ -> "" },
 ) {
     val state by viewModel.state.collectAsState()
     val scrollState = rememberScrollState()
@@ -316,6 +324,9 @@ fun SettingsScreen(
             onBiometricChange = { viewModel.onIntent(SettingsIntent.AppLockBiometricChanged(it)) },
             onTimeoutChange = { viewModel.onIntent(SettingsIntent.AppLockTimeoutChanged(it)) },
         )
+
+        Spacer(modifier = Modifier.height(Spacing.medium))
+        BackupSection(onExport = onExportBackup, onRestore = onRestoreBackup)
 
         Spacer(modifier = Modifier.height(Spacing.medium))
         AiSection(

@@ -537,6 +537,25 @@
     <string name="pin_confirm_title">Confirm your PIN</string>
     <string name="pin_confirm_mismatch">Those did not match. Start again.</string>
     <string name="pin_current_title">Enter your current PIN</string>
+    <string name="settings_backup_title">Backup</string>
+    <string name="settings_backup_export">Export a backup</string>
+    <string name="settings_backup_export_desc">Saves everything to an encrypted file you keep. Auto-backup to Google is deliberately off, so this is how your data survives a reinstall.</string>
+    <string name="settings_backup_import">Restore from a backup</string>
+    <string name="settings_backup_import_desc">Replaces everything currently in the app with the contents of a backup file.</string>
+    <string name="backup_passphrase_title">Choose a passphrase</string>
+    <string name="backup_passphrase_desc">You will need this exact passphrase to restore. It is not stored anywhere and cannot be recovered.</string>
+    <string name="backup_passphrase_restore_title">Enter the backup passphrase</string>
+    <string name="backup_passphrase_label">Passphrase</string>
+    <string name="backup_export_ok">Backup created.</string>
+    <string name="backup_export_failed">Could not create the backup file.</string>
+    <string name="backup_restore_confirm_title">Replace everything?</string>
+    <string name="backup_restore_confirm_body">Restoring replaces all wallets, transactions, budgets and goals currently in the app. This cannot be undone. Type RESTORE to confirm.</string>
+    <string name="backup_restore_confirm_word">RESTORE</string>
+    <string name="backup_restore_ok">Backup restored.</string>
+    <string name="backup_error_not_a_backup">That file is not a Budget Master backup.</string>
+    <string name="backup_error_wrong_passphrase">Wrong passphrase, or the file has been altered.</string>
+    <string name="backup_error_version">That backup was made by a newer version of the app. Update first.</string>
+    <string name="action_continue">Continue</string>
     <string name="provider_orange_money">Orange Money</string>
     <string name="provider_mtn_momo">MTN MoMo</string>
 </resources>

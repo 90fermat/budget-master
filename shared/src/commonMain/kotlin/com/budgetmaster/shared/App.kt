@@ -66,6 +66,8 @@ import budgetmaster.core.generated.resources.nav_settings
 import com.budgetmaster.core.security.AppLockController
 import com.budgetmaster.core.security.BiometricPrompter
 import com.budgetmaster.shared.lock.presentation.LockScreen
+import com.budgetmaster.settings.domain.usecase.ExportBackupUseCase
+import com.budgetmaster.settings.domain.usecase.RestoreBackupUseCase
 import com.budgetmaster.shared.notifications.presentation.NotificationsScreen
 import com.budgetmaster.auth.presentation.forgotpassword.ForgotPasswordScreen
 import com.budgetmaster.auth.presentation.forgotpassword.ForgotPasswordViewModel
@@ -583,7 +585,16 @@ private fun MainNavGraph(navController: androidx.navigation.NavHostController) {
             val deleteAccountUseCase = koinInject<DeleteAccountUseCase>()
             val backfillMessages = rememberMessageBackfill()
             val signOutScope = rememberCoroutineScope()
+            val exportBackup = koinInject<ExportBackupUseCase>()
+            val restoreBackup = koinInject<RestoreBackupUseCase>()
+            val backupMessages = rememberBackupMessages()
             SettingsScreen(
+                onExportBackup = { passphrase ->
+                    backupMessages(exportBackup(passphrase, defaultBackupFileName()))
+                },
+                onRestoreBackup = { content, passphrase ->
+                    backupMessages(restoreBackup(content, passphrase))
+                },
                 onSignOut = {
                     signOutScope.launch {
                         // Clear the real auth session so getAuthStatus() flips to

@@ -5,6 +5,8 @@ import com.budgetmaster.settings.domain.usecase.ResetOnboardingUseCase
 import com.budgetmaster.settings.domain.usecase.SetAiEnabledUseCase
 import com.budgetmaster.settings.domain.usecase.SetSecureScreenUseCase
 import com.budgetmaster.settings.domain.usecase.AppLockSettingsUseCase
+import com.budgetmaster.settings.domain.usecase.ExportBackupUseCase
+import com.budgetmaster.settings.domain.usecase.RestoreBackupUseCase
 import com.budgetmaster.settings.domain.usecase.SetSmsImportAccountUseCase
 import com.budgetmaster.settings.domain.usecase.SetSmsImportEnabledUseCase
 import com.budgetmaster.settings.domain.usecase.SetSmsOwnerMsisdnsUseCase
@@ -32,6 +34,8 @@ val settingsModule = module {
     factory { SetSmsImportEnabledUseCase(get()) }
     factory { SetSmsImportAccountUseCase(get()) }
     factory { AppLockSettingsUseCase(get()) }
+    factory { ExportBackupUseCase(get()) }
+    factory { RestoreBackupUseCase(get()) }
     factory { SetSmsOwnerMsisdnsUseCase(get()) }
     factory { ResetOnboardingUseCase(get()) }
 

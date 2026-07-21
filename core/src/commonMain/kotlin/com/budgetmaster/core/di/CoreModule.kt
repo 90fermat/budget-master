@@ -1,5 +1,6 @@
 package com.budgetmaster.core.di
 
+import com.budgetmaster.core.backup.BackupService
 import com.budgetmaster.core.db.AppDataSeeder
 import com.budgetmaster.core.db.DatabaseDriverFactory
 import com.budgetmaster.core.db.UserDataEraser
@@ -54,6 +55,7 @@ val coreModule = module {
     single<GenAiClient> { createGenAiClient(get()) }
     single { NotificationRepository(get(), get()) }
     single { BiometricPrompter() }
+    single { BackupService(get()) }
     // One controller for the process: the lock state must outlive any screen that shows it, and
     // the failed-attempt count must survive the unlock UI being closed and reopened.
     single { AppLockController(get(), CoroutineScope(SupervisorJob() + Dispatchers.Default)) }
