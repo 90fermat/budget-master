@@ -28,6 +28,10 @@ actual class DatabaseDriverFactory actual constructor() {
         // load, so the schema must be created here (Android/iOS drivers do this
         // internally via their schema callbacks).
         BudgetMasterDatabase.Schema.awaitCreate(driver)
+        // Same reason as the Android and iOS drivers: SQLite leaves foreign keys off, so the
+        // schema's cascades do nothing unless asked. Kept consistent across platforms so a delete
+        // does not mean one thing on a phone and another in a browser.
+        driver.execute(null, "PRAGMA foreign_keys=ON", 0)
         return driver
     }
 }

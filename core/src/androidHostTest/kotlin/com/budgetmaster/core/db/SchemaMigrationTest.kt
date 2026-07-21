@@ -354,10 +354,63 @@ class SchemaMigrationTest {
     }
 
     @Test
+    fun migratingV7ClearsRowsOrphanedWhileForeignKeysWereOff() {
+        val driver = v1Database().apply {
+            BudgetMasterDatabase.Schema.synchronous().migrate(this, 1, 5)
+            otherSyncedTablesAsOfV5().forEach { exec(it) }
+            BudgetMasterDatabase.Schema.synchronous().migrate(this, 5, 7)
+        }
+        driver.exec(
+            "INSERT INTO UserEntity (id, name, email, currency, createdAt) VALUES ('u1', 'C', 'c@e.com', 'XAF', 0)",
+        )
+        driver.exec(
+            """
+            INSERT INTO AccountEntity (id, userId, name, type, balance, currency, createdAt, isArchived, includeInTotals)
+            VALUES ('a_live', 'u1', 'Cash', 'CASH', 0.0, 'XAF', 0, 0, 1)
+            """.trimIndent(),
+        )
+        // The state a real device is in: the wallet was deleted, the cascade never fired because
+        // nothing had enabled foreign keys, and its transactions stayed on disk.
+        driver.exec(
+            "INSERT INTO TransactionEntity (id, accountId, categoryId, amount, description, timestamp, " +
+                "notes, tags, isRecurring, transferGroupId, externalId, source) VALUES " +
+                "('t_orphan', 'a_deleted', NULL, -5.0, 'Ghost', 1, NULL, NULL, 0, NULL, NULL, 'MANUAL')",
+        )
+        driver.exec(
+            "INSERT INTO TransactionEntity (id, accountId, categoryId, amount, description, timestamp, " +
+                "notes, tags, isRecurring, transferGroupId, externalId, source) VALUES " +
+                "('t_live', 'a_live', 'cat_gone', -5.0, 'Real', 1, NULL, NULL, 0, NULL, NULL, 'MANUAL')",
+        )
+
+        BudgetMasterDatabase.Schema.synchronous().migrate(driver, 7, 8)
+
+        fun scalar(sql: String) = driver.executeQuery(
+            null,
+            sql,
+            { c -> c.next(); app.cash.sqldelight.db.QueryResult.Value(c.getLong(0)) },
+            0,
+        ).value
+
+        assertEquals(
+            0L,
+            scalar("SELECT COUNT(*) FROM TransactionEntity WHERE id = 't_orphan'"),
+            "a transaction whose wallet is gone would otherwise be uploaded to every other device",
+        )
+        // The live row survives, and only loses a category that no longer exists — which is what
+        // ON DELETE SET NULL would have done. Deleting it would throw away a real spend record
+        // over a missing label.
+        assertEquals(1L, scalar("SELECT COUNT(*) FROM TransactionEntity WHERE id = 't_live'"))
+        assertEquals(
+            1L,
+            scalar("SELECT COUNT(*) FROM TransactionEntity WHERE id = 't_live' AND categoryId IS NULL"),
+        )
+    }
+
+    @Test
     fun freshDatabaseIsCreatedAtTheCurrentVersion() {
         // Guards the mistake that caused this: bumping the .sq without a matching migration
         // leaves fresh installs on a schema that upgraded installs can never reach.
-        // v7 added SyncTombstone.pushed (6.sqm).
-        assertEquals(7L, BudgetMasterDatabase.Schema.version)
+        // v8 purged rows orphaned while foreign keys were off (7.sqm).
+        assertEquals(8L, BudgetMasterDatabase.Schema.version)
     }
 }
