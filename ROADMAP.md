@@ -1271,8 +1271,10 @@ Config kill-switches if quotas tighten.
   backfill writes inbox rows only — 500 system notifications from one backfill is an attack.
 - [ ] Notification text resolved at write time in the language of that moment: a notification is a
   historical record, so one written in French stays French after a language switch.
-- [ ] `POST_NOTIFICATIONS` (Android 13+) requested when the user enables import — without it the
-  system notification silently no-ops.
+- [x] `POST_NOTIFICATIONS` (Android 13+) requested when the user enables import — without it the
+  system notification silently no-ops. Expect/actual so the request is a no-op below Android 13
+  and on iOS/web, which post no OS notifications. Denial is not fatal: the in-app inbox still
+  records everything.
 
 ### 13.3 Settings
 
@@ -1287,16 +1289,22 @@ Config kill-switches if quotas tighten.
 
 ### 13.4 Notifications inbox screen
 
-- [ ] `AuthRoute.Notifications` + a screen over the existing `NotificationRepository`: unread
-  emphasis, tap-to-read, swipe-delete, empty state, unread badge on the bell. **Points the bell at
-  it — closes bug 11.7** (the bell currently navigates to Settings with a mismatched icon).
-- [ ] Localize `NotifyBudgetThresholdsUseCase`, which builds English sentences in the domain
-  layer (carried over from Phase 11.6). Store type + params, resolve strings at render/write time.
+- [x] `AuthRoute.Notifications` + a screen over the existing `NotificationRepository`: unread items
+  on Raised cards, read ones receding to Flat, tap-to-read, delete, empty state, and an unread
+  badge on the bell (capped "9+"). **Closes bug 11.7** — the bell now opens the inbox with an icon
+  and description that match. The unread count is threaded through `DashboardState` rather than
+  injected in the composable, so the screenshot tests need no Koin. Screenshot-tested (populated
+  light/dark, empty) via a stateless `NotificationsContent`, mirroring `DashboardContent`.
+- [x] Localized `NotifyBudgetThresholdsUseCase` — it built English sentences in the domain layer.
+  Now resolves strings at write time via a new non-composable `categoryNameRes` (which also chips
+  at the Phase 11.6 debt: default category names are stored as English literals), so a budget
+  alert is written in the language of the moment and stays that way, as a record should.
 
 ### 13.5 Verification
 
-- [ ] Unit tests: configured provider → its wallet; unconfigured → `NoDestination`; paste →
-  active-wallet fallback; backfill writes inbox rows but no system notification.
+- [x] Unit tests: configured provider → its wallet; unconfigured → `NoDestination`; held message
+  imports on re-run once a wallet is set; the imported outcome carries the notification fields.
+  Settings: enabling defaults to the active wallet, an existing choice survives, round-trip/clear.
 - [ ] On-device: the final confirmation of automatic capture is a live SMS, which host tests
   cannot exercise. The notifications make it self-evident — an arriving message now visibly
   announces itself and its wallet, so "is it working?" is answerable at a glance.

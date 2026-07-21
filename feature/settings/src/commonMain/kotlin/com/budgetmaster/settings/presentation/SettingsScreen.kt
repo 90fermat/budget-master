@@ -89,6 +89,7 @@ import budgetmaster.core.generated.resources.settings_delete_account_body
 import budgetmaster.core.generated.resources.settings_delete_account_confirm
 import budgetmaster.core.generated.resources.settings_delete_account_failed
 import budgetmaster.core.generated.resources.settings_sms_title
+import budgetmaster.core.generated.resources.settings_sms_numbers_registered
 import budgetmaster.core.generated.resources.settings_sms_no_wallets
 import budgetmaster.core.generated.resources.settings_sms_destination_help
 import budgetmaster.core.generated.resources.settings_sms_destination_label
@@ -125,6 +126,8 @@ import com.budgetmaster.core.db.WalletRef
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import com.budgetmaster.core.currency.SUPPORTED_CURRENCY_CODES
@@ -692,6 +695,26 @@ private fun SmsImportSection(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
             modifier = Modifier.fillMaxWidth(),
         )
+
+        // Echo the parsed numbers back as chips, so it is obvious that several are registered and
+        // exactly how the text was split - the same split the importer uses to identify "me".
+        val registered = (draft ?: msisdns)
+            .split(',', ';')
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+        if (registered.isNotEmpty()) {
+            Text(
+                text = stringResource(Res.string.settings_sms_numbers_registered),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = Spacing.small),
+            )
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.small)) {
+                registered.forEach { number ->
+                    AssistChip(onClick = {}, label = { Text(number) })
+                }
+            }
+        }
 
         when {
             backfilling -> Text(

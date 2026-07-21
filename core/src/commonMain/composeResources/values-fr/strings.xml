@@ -211,11 +211,12 @@
     <string name="settings_sms_enable_desc">Lit les messages Orange Money et MTN MoMo sur cet appareil et enregistre les transactions pour vous. Les messages sont lus sur votre téléphone et ne sont jamais envoyés ; seuls les montants et les noms des commerçants sont conservés.</string>
     <string name="settings_sms_number_label">Votre numéro mobile money</string>
     <string name="settings_sms_number_placeholder">ex. 659228030</string>
-    <string name="settings_sms_number_help">Nécessaire pour distinguer l'argent envoyé de l'argent reçu.</string>
+    <string name="settings_sms_numbers_registered">Numéros enregistrés</string>
+    <string name="settings_sms_number_help">Nécessaire pour distinguer l'argent envoyé de l'argent reçu. Ajoutez-en plusieurs, séparés par des virgules, si vous utilisez plus d'un numéro (par exemple une ligne Orange et une ligne MTN).</string>
     <string name="settings_sms_permission_needed">L'autorisation est requise pour lire les messages de transaction.</string>
     <string name="settings_sms_backfill">Importer les anciens messages</string>
     <string name="settings_sms_backfill_running">Lecture de vos messages…</string>
-    <string name="settings_sms_backfill_done">%1$d transactions importées.</string>
+    <string name="settings_sms_backfill_done">%1$d transactions importées. Ouvrez Notifications pour voir lesquelles et où.</string>
 
     <string name="settings_delete_account">Supprimer le compte</string>
     <string name="settings_delete_account_title">Supprimer votre compte ?</string>
