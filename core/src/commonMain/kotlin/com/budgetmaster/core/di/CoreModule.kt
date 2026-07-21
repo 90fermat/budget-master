@@ -22,6 +22,7 @@ import com.budgetmaster.core.security.AppLockController
 import com.budgetmaster.core.security.BiometricPrompter
 import com.budgetmaster.core.session.SessionStore
 import com.budgetmaster.core.sync.DeviceIdProvider
+import com.budgetmaster.core.sync.LocalDataAdoption
 import com.budgetmaster.core.sync.SyncController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -62,6 +63,7 @@ val coreModule = module {
     // the failed-attempt count must survive the unlock UI being closed and reopened.
     single { AppLockController(get(), CoroutineScope(SupervisorJob() + Dispatchers.Default)) }
     single { DeviceIdProvider(get()) }
+    single { LocalDataAdoption(get()) }
     // One per process: two passes at once would each be pushing rows the other is still
     // reconciling, and the status the UI shows has to be the whole app's, not one screen's.
     single { SyncController(get(), get(), get(), CoroutineScope(SupervisorJob() + Dispatchers.Default)) }

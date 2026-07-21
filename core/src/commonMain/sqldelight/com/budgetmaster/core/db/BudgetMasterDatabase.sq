@@ -616,6 +616,9 @@ CREATE TABLE SyncCursorEntity (
 );
 
 -- Queries for sync bookkeeping.
+selectAllTombstones:
+SELECT * FROM SyncTombstone;
+
 selectUnpushedTombstones:
 SELECT * FROM SyncTombstone WHERE pushed = 0 ORDER BY deletedAt ASC;
 
@@ -846,4 +849,67 @@ UPDATE RecurringTransactionEntity SET
     updatedAt = ?,
     dirty = ?
 WHERE id = ?;
+
+-- ==========================================
+-- ADOPTION: anonymous local data joining a signed-in account
+-- ==========================================
+-- Rows written while signed out belong to DefaultData.DEFAULT_USER_ID. Signing in has to decide
+-- what becomes of them; see LocalDataAdoption for the three cases and why each behaves as it does.
+--
+-- Default categories are excluded from re-parenting throughout: `isDefault = 1` rows are seeded
+-- constants owned by the system user and shared by everyone, so moving them would make one user's
+-- account the owner of everybody's category list.
+
+countAccountsByUser:
+SELECT COUNT(*) FROM AccountEntity WHERE userId = ?;
+
+countTransactionsByUser:
+SELECT COUNT(*) FROM TransactionEntity
+JOIN AccountEntity ON TransactionEntity.accountId = AccountEntity.id
+WHERE AccountEntity.userId = ?;
+
+countBudgetsByUser:
+SELECT COUNT(*) FROM BudgetEntity WHERE userId = ?;
+
+countGoalsByUser:
+SELECT COUNT(*) FROM SavingsGoalEntity WHERE userId = ?;
+
+countOwnCategoriesByUser:
+SELECT COUNT(*) FROM CategoryEntity WHERE userId = ? AND isDefault = 0;
+
+reparentAccounts:
+UPDATE AccountEntity SET userId = ? WHERE userId = ?;
+
+reparentOwnCategories:
+UPDATE CategoryEntity SET userId = ? WHERE userId = ? AND isDefault = 0;
+
+reparentBudgets:
+UPDATE BudgetEntity SET userId = ? WHERE userId = ?;
+
+reparentGoals:
+UPDATE SavingsGoalEntity SET userId = ? WHERE userId = ?;
+
+-- Re-keying, for the merge case only. Deterministic ids like `${userId}_cash` are identical on
+-- every device that was ever anonymous, so two such devices joining one account would otherwise
+-- collide on a single row id and silently overwrite each other's wallet.
+rekeyAccount:
+UPDATE AccountEntity SET id = ? WHERE id = ?;
+
+rekeyAccountTransactions:
+UPDATE TransactionEntity SET accountId = ? WHERE accountId = ?;
+
+rekeyRecurringForAccount:
+UPDATE RecurringTransactionEntity SET accountId = ? WHERE accountId = ?;
+
+selectAccountIdsByUser:
+SELECT id FROM AccountEntity WHERE userId = ?;
+
+-- Accounts, budgets and goals are cleared with the deleteXByUser queries the account-deletion
+-- path already defines. Categories need their own, because that one would take the shared
+-- `isDefault = 1` rows with it.
+deleteOwnCategoriesByUser:
+DELETE FROM CategoryEntity WHERE userId = ? AND isDefault = 0;
+
+
+
 
