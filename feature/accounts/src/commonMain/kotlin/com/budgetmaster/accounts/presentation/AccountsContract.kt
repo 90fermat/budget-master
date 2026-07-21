@@ -20,8 +20,13 @@ data class AccountsState(
      */
     val netWorthConverted: NetWorth? = null,
 ) {
-    /** The active accounts (archived excluded) used for the overview total. */
-    val activeAccounts: List<Account> = accounts.filter { !it.isArchived }
+    /**
+     * The accounts the overview total is built from: not archived, and counted in totals.
+     *
+     * Both exclusions matter and they mean different things — archived is "no longer in use",
+     * excluded-from-totals is "in use, but kept apart".
+     */
+    val activeAccounts: List<Account> = accounts.filter { !it.isArchived && it.includeInTotals }
 
     /** Currency to label the overview with (the most common among active accounts). */
     val primaryCurrency: String =
@@ -44,6 +49,9 @@ sealed interface AccountsIntent {
     data object DismissEditor : AccountsIntent
     data class Submit(val draft: AccountDraft) : AccountsIntent
     data class SetArchived(val id: String, val archived: Boolean) : AccountsIntent
+
+    /** Includes or excludes a wallet from the consolidated "All accounts" view. */
+    data class SetIncludedInTotals(val id: String, val included: Boolean) : AccountsIntent
     data class Delete(val id: String) : AccountsIntent
     data class SelectActive(val id: String?) : AccountsIntent
 

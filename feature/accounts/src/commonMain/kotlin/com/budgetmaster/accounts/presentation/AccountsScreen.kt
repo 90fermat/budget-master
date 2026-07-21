@@ -143,6 +143,11 @@ fun AccountsScreen(
                     account = account,
                     onEdit = { viewModel.onIntent(AccountsIntent.OpenEdit(account)) },
                     onArchiveToggle = { viewModel.onIntent(AccountsIntent.SetArchived(account.id, true)) },
+                    onIncludeInTotalsToggle = {
+                        viewModel.onIntent(
+                            AccountsIntent.SetIncludedInTotals(account.id, !account.includeInTotals),
+                        )
+                    },
                     onReconcile = { viewModel.onIntent(AccountsIntent.OpenReconcile(account)) },
                     onDelete = { pendingDelete = account.id },
                     modifier = Modifier.fillMaxWidth(),
@@ -162,6 +167,11 @@ fun AccountsScreen(
                         account = account,
                         onEdit = { viewModel.onIntent(AccountsIntent.OpenEdit(account)) },
                         onArchiveToggle = { viewModel.onIntent(AccountsIntent.SetArchived(account.id, false)) },
+                        onIncludeInTotalsToggle = {
+                            viewModel.onIntent(
+                                AccountsIntent.SetIncludedInTotals(account.id, !account.includeInTotals),
+                            )
+                        },
                         onReconcile = { viewModel.onIntent(AccountsIntent.OpenReconcile(account)) },
                         onDelete = { pendingDelete = account.id },
                         modifier = Modifier.fillMaxWidth(),

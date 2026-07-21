@@ -1372,6 +1372,57 @@ Config kill-switches if quotas tighten.
   `false`, so it could only ever fail — and had that preference ever been true it would have
   navigated straight home with no authentication at all.
 
+## Phase 15 — Encrypted backup & restore
+
+> Phase 12 turned off Google auto-backup because it was copying the finance database to Drive in
+> cleartext. That closed a hole and opened another: until an export existed, a reinstall lost
+> everything. This is the sanctioned replacement — the user holds the passphrase and chooses where
+> the file goes.
+
+### 15.1 Format and crypto — done
+
+- [x] **Key derivation reuses our vector-checked PBKDF2; AES-GCM comes from the platform.** The
+  split is deliberate and differs from the PIN work: hand-writing a block cipher and a GHASH is a
+  far larger and more dangerous surface than a hash function. Where no AES is wired, backup
+  reports itself unsupported and the UI hides — encryption a user *believes* in but which does not
+  hold is worse than an absent feature.
+- [x] Text format `BMBAK1.salt.iv.ciphertext`, not binary, because that survives being mailed to
+  oneself or dropped in a notes app, which is realistically where backups live. The header sits
+  **outside** the ciphertext so a wrong file is reported as a wrong file, before anyone is asked
+  for a passphrase.
+- [x] Per-file salt and IV, so the same data backed up twice produces unrelated bytes and two
+  backups cannot be compared for equality.
+- [x] Versioned: a newer file is refused with an explanation rather than misparsed.
+
+### 15.2 Scope and restore semantics — done
+
+- [x] Includes the imported-message ledger, unlike sync — the artefacts differ: a backup is
+  encrypted under the user's own passphrase and goes where they choose, and restoring benefits
+  from the dedup ledger. Excludes exchange rates (refetched in a day) and AI insights (a derived
+  cache that would only go stale).
+- [x] **Restore is replace-all in one transaction, not a merge.** Without sync metadata there is no
+  way to tell an edited row from a different row sharing an id, and guessing about someone's money
+  is worse than a predictable overwrite they were warned about. Decryption and parsing happen
+  *before* the database is touched, so an unreadable file leaves existing data untouched.
+- [x] Guarded twice in the UI: the passphrase, and a typed confirmation word.
+- [x] `externalId` and `source` carried through explicitly, because losing them would silently
+  break mobile-money deduplication after a restore.
+
+### 15.3 Proven — done
+
+- [x] Seven tests against a real SQLite driver and the shipping crypto path: every table restores
+  into a **different** empty database, restore erases what was there rather than merging, a wrong
+  passphrase fails, a single flipped ciphertext character is caught by the GCM tag, a non-backup
+  file is named as such, a future version is refused, and the same data encrypted twice differs.
+
+### 15.4 Bug found on the way — done
+
+- [x] **CSV export had never worked on Android.** `CsvSharing` called
+  `FileProvider.getUriForFile`, but no `<provider>` was declared in the manifest — so it threw,
+  the `runCatching` swallowed it, and the export silently did nothing. Declared the provider with
+  a path list scoped to the export cache directory only, which fixes CSV export and enables
+  backup sharing.
+
 ### Phase 9 — Insight & polish
 
 > Two gaps found by using the app rather than reading it.

@@ -554,6 +554,9 @@
     <string name="backup_error_wrong_passphrase">Phrase secrète incorrecte, ou fichier modifié.</string>
     <string name="backup_error_version">Cette sauvegarde vient d'une version plus récente. Mettez à jour d'abord.</string>
     <string name="action_continue">Continuer</string>
+    <string name="accounts_include_in_totals">Compter dans « Tous les comptes »</string>
+    <string name="accounts_exclude_from_totals">Exclure de « Tous les comptes »</string>
+    <string name="accounts_excluded_badge">Gardé à part</string>
     <string name="provider_orange_money">Orange Money</string>
     <string name="provider_mtn_momo">MTN MoMo</string>
 </resources>

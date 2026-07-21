@@ -31,6 +31,9 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import budgetmaster.core.generated.resources.Res
+import budgetmaster.core.generated.resources.accounts_excluded_badge
+import budgetmaster.core.generated.resources.accounts_exclude_from_totals
+import budgetmaster.core.generated.resources.accounts_include_in_totals
 import budgetmaster.core.generated.resources.accounts_archive
 import budgetmaster.core.generated.resources.accounts_edit
 import budgetmaster.core.generated.resources.accounts_reconcile
@@ -52,6 +55,7 @@ fun AccountCard(
     account: Account,
     onEdit: () -> Unit,
     onArchiveToggle: () -> Unit,
+    onIncludeInTotalsToggle: () -> Unit,
     onReconcile: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
@@ -94,6 +98,15 @@ fun AccountCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                // Said on the card itself: a wallet silently missing from the combined balance
+                // would read as a bug rather than as the choice it is.
+                if (!account.includeInTotals) {
+                    Text(
+                        text = stringResource(Res.string.accounts_excluded_badge),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
             }
 
             Text(
@@ -129,6 +142,20 @@ fun AccountCard(
                             )
                         },
                         onClick = { menuOpen = false; onArchiveToggle() },
+                    )
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                stringResource(
+                                    if (account.includeInTotals) {
+                                        Res.string.accounts_exclude_from_totals
+                                    } else {
+                                        Res.string.accounts_include_in_totals
+                                    },
+                                ),
+                            )
+                        },
+                        onClick = { menuOpen = false; onIncludeInTotalsToggle() },
                     )
                     DropdownMenuItem(
                         text = {

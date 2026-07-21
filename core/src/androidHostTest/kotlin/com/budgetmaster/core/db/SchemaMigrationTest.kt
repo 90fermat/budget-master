@@ -253,10 +253,38 @@ class SchemaMigrationTest {
     }
 
     @Test
+    fun migratingV4AddsIncludeInTotalsDefaultingToOn() {
+        val driver = v1Database().apply {
+            BudgetMasterDatabase.Schema.synchronous().migrate(this, 1, 4)
+        }
+        assertTrue("includeInTotals" !in driver.columnsOf("AccountEntity"))
+
+        // An account that existed before the column did.
+        driver.exec(
+            """
+            INSERT INTO AccountEntity (id, userId, name, type, balance, currency, createdAt, isArchived)
+            VALUES ('a_old', 'u1', 'Everyday', 'CASH', 10.0, 'XAF', 0, 0)
+            """.trimIndent(),
+        )
+
+        BudgetMasterDatabase.Schema.synchronous().migrate(driver, 4, 5)
+
+        assertTrue("includeInTotals" in driver.columnsOf("AccountEntity"))
+        // Defaults to counted, so nobody's totals silently change on upgrade.
+        val included = driver.executeQuery(
+            null,
+            "SELECT includeInTotals FROM AccountEntity WHERE id = 'a_old'",
+            { c -> c.next(); app.cash.sqldelight.db.QueryResult.Value(c.getLong(0)) },
+            0,
+        ).value
+        assertEquals(1L, included)
+    }
+
+    @Test
     fun freshDatabaseIsCreatedAtTheCurrentVersion() {
         // Guards the mistake that caused this: bumping the .sq without a matching migration
         // leaves fresh installs on a schema that upgraded installs can never reach.
-        // v4 added the review-queue columns to ImportedMessageEntity (3.sqm).
-        assertEquals(4L, BudgetMasterDatabase.Schema.version)
+        // v5 added AccountEntity.includeInTotals (4.sqm).
+        assertEquals(5L, BudgetMasterDatabase.Schema.version)
     }
 }

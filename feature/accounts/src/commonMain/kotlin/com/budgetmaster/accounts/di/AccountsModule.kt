@@ -3,6 +3,7 @@ package com.budgetmaster.accounts.di
 import com.budgetmaster.accounts.data.repository.SqlDelightAccountRepository
 import com.budgetmaster.accounts.domain.repository.AccountRepository
 import com.budgetmaster.accounts.domain.usecase.ArchiveAccountUseCase
+import com.budgetmaster.accounts.domain.usecase.SetAccountIncludedInTotalsUseCase
 import com.budgetmaster.accounts.domain.usecase.CalculateNetWorthUseCase
 import com.budgetmaster.accounts.domain.usecase.DeleteAccountUseCase
 import com.budgetmaster.accounts.domain.usecase.ObserveAccountsUseCase
@@ -23,6 +24,7 @@ val accountsModule = module {
     factory { ObserveAccountsUseCase(get()) }
     factory { SaveAccountUseCase(get()) }
     factory { ArchiveAccountUseCase(get()) }
+    factory { SetAccountIncludedInTotalsUseCase(get()) }
     factory { DeleteAccountUseCase(get(), get()) }
     factory { ObserveActiveAccountUseCase(get()) }
     factory { SelectActiveAccountUseCase(get()) }
@@ -30,5 +32,5 @@ val accountsModule = module {
     factory { ReconcileAccountUseCase(get()) }
     factory { CalculateNetWorthUseCase(get()) }
 
-    viewModel { AccountsViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    viewModel { AccountsViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 }

@@ -33,6 +33,12 @@ CREATE TABLE AccountEntity (
     currency TEXT NOT NULL,
     createdAt INTEGER NOT NULL,
     isArchived INTEGER NOT NULL DEFAULT 0, -- 0 = active, 1 = archived (hidden, history kept)
+    -- 1 = counted in the consolidated "All accounts" view, 0 = kept separate.
+    -- For wallets the user thinks of as apart from day-to-day money: savings, a tontine, a wallet
+    -- held for someone else. The account still exists and is fully usable; it just does not blend
+    -- into the combined balance, and its transactions do not appear in the combined list either,
+    -- because a total and a list that disagree are worse than either alone.
+    includeInTotals INTEGER NOT NULL DEFAULT 1,
     FOREIGN KEY(userId) REFERENCES UserEntity(id) ON DELETE CASCADE
 );
 
@@ -40,8 +46,8 @@ CREATE INDEX idx_account_user ON AccountEntity(userId);
 
 -- Queries for AccountEntity
 insertAccount:
-INSERT OR REPLACE INTO AccountEntity (id, userId, name, type, balance, currency, createdAt, isArchived)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+INSERT OR REPLACE INTO AccountEntity (id, userId, name, type, balance, currency, createdAt, isArchived, includeInTotals)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 selectAccountsByUserId:
 SELECT * FROM AccountEntity WHERE userId = ? ORDER BY isArchived ASC, createdAt ASC;
@@ -60,6 +66,9 @@ UPDATE AccountEntity SET name = ?, type = ?, balance = ?, currency = ? WHERE id 
 
 updateAccountBalance:
 UPDATE AccountEntity SET balance = ? WHERE id = ?;
+
+setAccountIncludedInTotals:
+UPDATE AccountEntity SET includeInTotals = ? WHERE id = ?;
 
 setAccountArchived:
 UPDATE AccountEntity SET isArchived = ? WHERE id = ?;
@@ -146,10 +155,12 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 selectAllTransactions:
 SELECT * FROM TransactionEntity ORDER BY timestamp DESC;
 
+-- The consolidated view: only wallets the user counts as part of their day-to-day money.
 selectTransactionsByUser:
 SELECT TransactionEntity.* FROM TransactionEntity
 JOIN AccountEntity ON TransactionEntity.accountId = AccountEntity.id
-WHERE AccountEntity.userId = ? ORDER BY TransactionEntity.timestamp DESC;
+WHERE AccountEntity.userId = ? AND AccountEntity.includeInTotals = 1
+ORDER BY TransactionEntity.timestamp DESC;
 
 selectTransactionsByAccount:
 SELECT * FROM TransactionEntity WHERE accountId = ? ORDER BY timestamp DESC;
@@ -160,7 +171,8 @@ SELECT * FROM TransactionEntity WHERE accountId = ? ORDER BY timestamp DESC;
 selectTransactionsByUserPaged:
 SELECT TransactionEntity.* FROM TransactionEntity
 JOIN AccountEntity ON TransactionEntity.accountId = AccountEntity.id
-WHERE AccountEntity.userId = ? ORDER BY TransactionEntity.timestamp DESC LIMIT ?;
+WHERE AccountEntity.userId = ? AND AccountEntity.includeInTotals = 1
+ORDER BY TransactionEntity.timestamp DESC LIMIT ?;
 
 selectTransactionsByAccountPaged:
 SELECT * FROM TransactionEntity WHERE accountId = ? ORDER BY timestamp DESC LIMIT ?;

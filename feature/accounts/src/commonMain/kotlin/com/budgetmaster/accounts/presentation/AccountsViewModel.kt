@@ -5,6 +5,7 @@ package com.budgetmaster.accounts.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.budgetmaster.accounts.domain.usecase.ArchiveAccountUseCase
+import com.budgetmaster.accounts.domain.usecase.SetAccountIncludedInTotalsUseCase
 import com.budgetmaster.accounts.domain.usecase.CalculateNetWorthUseCase
 import com.budgetmaster.accounts.domain.usecase.DeleteAccountUseCase
 import com.budgetmaster.accounts.domain.usecase.ObserveAccountsUseCase
@@ -29,6 +30,7 @@ class AccountsViewModel(
     private val observeActiveAccount: ObserveActiveAccountUseCase,
     private val saveAccount: SaveAccountUseCase,
     private val archiveAccount: ArchiveAccountUseCase,
+    private val setIncludedInTotals: SetAccountIncludedInTotalsUseCase,
     private val deleteAccount: DeleteAccountUseCase,
     private val selectActiveAccount: SelectActiveAccountUseCase,
     private val transferBetweenAccounts: TransferBetweenAccountsUseCase,
@@ -68,6 +70,9 @@ class AccountsViewModel(
             }
             is AccountsIntent.SetArchived -> viewModelScope.launch {
                 archiveAccount(intent.id, intent.archived)
+            }
+            is AccountsIntent.SetIncludedInTotals -> viewModelScope.launch {
+                setIncludedInTotals(intent.id, intent.included)
             }
             is AccountsIntent.Delete -> viewModelScope.launch {
                 // If the deleted account was active, fall back to the "All accounts" view.

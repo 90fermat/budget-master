@@ -36,8 +36,8 @@ class UserDataEraserTest {
         // Two users, each with an account + a transaction on it, plus a category and a budget.
         q.insertUser("u1", "One", "u1@x.com", "USD", 0L)
         q.insertUser("u2", "Two", "u2@x.com", "USD", 0L)
-        q.insertAccount("acc1", "u1", "Wallet 1", "CHECKING", 0.0, "USD", 0L, 0)
-        q.insertAccount("acc2", "u2", "Wallet 2", "CHECKING", 0.0, "USD", 0L, 0)
+        q.insertAccount("acc1", "u1", "Wallet 1", "CHECKING", 0.0, "USD", 0L, 0, 1)
+        q.insertAccount("acc2", "u2", "Wallet 2", "CHECKING", 0.0, "USD", 0L, 0, 1)
         q.insertTransaction("t1", "acc1", "cat_food", -10.0, "u1 spend", 1L, null, null, 0, null)
         q.insertTransaction("t2", "acc2", "cat_food", -20.0, "u2 spend", 1L, null, null, 0, null)
         q.insertCategory("c1", "u1", "Food", "🍔", "#000000", 0)

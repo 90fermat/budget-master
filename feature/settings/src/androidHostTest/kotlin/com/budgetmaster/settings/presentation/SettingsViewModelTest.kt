@@ -97,7 +97,7 @@ class SettingsViewModelTest {
     private suspend fun seedWallet(id: String, name: String) {
         val q = database.budgetMasterDatabaseQueries
         q.insertUser(DefaultData.DEFAULT_USER_ID, "You", "you@x.com", "USD", 0L)
-        q.insertAccount(id, DefaultData.DEFAULT_USER_ID, name, "CASH", 0.0, "USD", 0L, 0)
+        q.insertAccount(id, DefaultData.DEFAULT_USER_ID, name, "CASH", 0.0, "USD", 0L, 0, 1)
     }
 
     @BeforeTest fun setUp() = Dispatchers.setMain(dispatcher)

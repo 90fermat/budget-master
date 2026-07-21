@@ -59,6 +59,11 @@ data class BackupAccount(
     val currency: String,
     val createdAt: Long,
     val isArchived: Long,
+    /**
+     * Defaulted, so a backup written before this column existed still restores — an added field
+     * with a default is not a breaking change and needs no format-version bump.
+     */
+    val includeInTotals: Long = 1,
 )
 
 @Serializable

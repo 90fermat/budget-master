@@ -27,6 +27,14 @@ data class Account(
     val currentBalance: Double,
     val currency: String,
     val isArchived: Boolean,
+    /**
+     * Whether this wallet counts toward the consolidated "All accounts" view.
+     *
+     * False keeps a savings or tontine wallet fully usable but apart from everyday money: out of
+     * the combined balance, and out of the combined transaction list too — a total and a list that
+     * disagree would be worse than either alone.
+     */
+    val includeInTotals: Boolean,
 )
 
 /** Editable payload for creating (id == null) or updating an account. */

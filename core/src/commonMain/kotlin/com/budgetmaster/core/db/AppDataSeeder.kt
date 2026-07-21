@@ -61,6 +61,8 @@ class AppDataSeeder(private val databaseProvider: DatabaseProvider) {
                     currency = DefaultData.DEFAULT_CURRENCY,
                     createdAt = now,
                     isArchived = 0,
+                    // The first wallet is everyday money by definition.
+                    includeInTotals = 1,
                 )
             }
             seededUsers.add(userId)

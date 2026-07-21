@@ -42,8 +42,8 @@ class BackupRoundTripTest {
     private suspend fun seed(db: BudgetMasterDatabase) {
         val q = db.budgetMasterDatabaseQueries
         q.insertUser("u1", "Cyrille", "c@example.com", "XAF", 100L)
-        q.insertAccount("acc1", "u1", "Everyday", "CASH", 1_000.0, "XAF", 100L, 0)
-        q.insertAccount("acc2", "u1", "Epargne", "SAVINGS", 5_000.0, "XAF", 100L, 1)
+        q.insertAccount("acc1", "u1", "Everyday", "CASH", 1_000.0, "XAF", 100L, 0, 1)
+        q.insertAccount("acc2", "u1", "Epargne", "SAVINGS", 5_000.0, "XAF", 100L, 1, 1)
         q.insertCategory("cat_custom", "u1", "Tontine", "💰", "#123456", 0)
         q.insertImportedTransaction(
             id = "t1",
@@ -122,7 +122,7 @@ class BackupRoundTripTest {
         val target = freshDatabase()
         val tq = target.budgetMasterDatabaseQueries
         tq.insertUser("other", "Someone", "other@example.com", "USD", 1L)
-        tq.insertAccount("accX", "other", "Stale wallet", "CASH", 42.0, "USD", 1L, 0)
+        tq.insertAccount("accX", "other", "Stale wallet", "CASH", 42.0, "USD", 1L, 0, 1)
 
         service(target).restore(BackupFile.read(file, passphrase).getOrThrow())
 

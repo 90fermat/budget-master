@@ -556,6 +556,9 @@
     <string name="backup_error_wrong_passphrase">Wrong passphrase, or the file has been altered.</string>
     <string name="backup_error_version">That backup was made by a newer version of the app. Update first.</string>
     <string name="action_continue">Continue</string>
+    <string name="accounts_include_in_totals">Count in "All accounts"</string>
+    <string name="accounts_exclude_from_totals">Keep out of "All accounts"</string>
+    <string name="accounts_excluded_badge">Kept separate</string>
     <string name="provider_orange_money">Orange Money</string>
     <string name="provider_mtn_momo">MTN MoMo</string>
 </resources>

@@ -36,7 +36,7 @@ class BackupService(
                 BackupUser(it.id, it.name, it.email, it.currency, it.createdAt)
             },
             accounts = q.selectAllAccountsForBackup().awaitAsList().map {
-                BackupAccount(it.id, it.userId, it.name, it.type, it.balance, it.currency, it.createdAt, it.isArchived)
+                BackupAccount(it.id, it.userId, it.name, it.type, it.balance, it.currency, it.createdAt, it.isArchived, it.includeInTotals)
             },
             categories = q.selectAllCategoriesForBackup().awaitAsList().map {
                 BackupCategory(it.id, it.userId, it.name, it.icon, it.color, it.isDefault)
@@ -121,7 +121,7 @@ class BackupService(
             // Parents before children, mirroring the delete order in reverse.
             envelope.users.forEach { q.insertUser(it.id, it.name, it.email, it.currency, it.createdAt) }
             envelope.accounts.forEach {
-                q.insertAccount(it.id, it.userId, it.name, it.type, it.balance, it.currency, it.createdAt, it.isArchived)
+                q.insertAccount(it.id, it.userId, it.name, it.type, it.balance, it.currency, it.createdAt, it.isArchived, it.includeInTotals)
             }
             envelope.categories.forEach {
                 q.insertCategory(it.id, it.userId, it.name, it.icon, it.color, it.isDefault)

@@ -89,8 +89,22 @@ class SqlDelightDashboardRepository(
                     // Account balances are opening balances; the live total is that plus
                     // the signed sum of the transactions in scope (single source of truth
                     // shared with the transactions/accounts features).
+                    // Scoped the same way the transactions above are, or the opening balance and
+                    // the movement would be measured over different sets of wallets and the total
+                    // would reconcile with neither.
+                    //
+                    // In the consolidated view that means: not archived, and counted in totals.
+                    // Archived was previously ignored here while the Accounts screen excluded it,
+                    // so the dashboard balance and the net worth disagreed for anyone who had
+                    // archived a wallet.
                     val accounts = queries.selectAccountsByUserId(userId()).awaitAsList()
-                        .filter { activeAccountId == null || it.id == activeAccountId }
+                        .filter { account ->
+                            if (activeAccountId != null) {
+                                account.id == activeAccountId
+                            } else {
+                                account.isArchived == 0L && account.includeInTotals == 1L
+                            }
+                        }
                     val openingBalance = accounts.sumOf { it.balance }
                     val totalBalance = openingBalance + transactions.sumOf { it.amount }
 
