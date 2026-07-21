@@ -84,6 +84,9 @@ class ImportMoneyMessageUseCaseTest {
 
     private val sender = "OrangeMoney"
     private val account = "acc_momo"
+
+    /** A resolver that sends every provider to the one test wallet. */
+    private val toAccount: suspend (String) -> String? = { account }
     private val owner = setOf("659228030")
     private val receivedAt = 1_752_753_600_000L
 
@@ -102,7 +105,7 @@ class ImportMoneyMessageUseCaseTest {
             "Frais: 0 FCFA, Nouveau Solde: 116010.99 FCFA."
 
     private suspend fun MoneyImportRepository.import(body: String) =
-        useCase(this).invoke(sender, body, receivedAt, account, owner)
+        useCase(this).invoke(sender, body, receivedAt, toAccount, owner)
 
     // ── Fee splitting ────────────────────────────────────────────────────────
 
@@ -169,7 +172,7 @@ class ImportMoneyMessageUseCaseTest {
         repo.import(outgoingWithFee)
 
         // A different receivedAt changes the fingerprint, so only the provider id can catch this.
-        val resent = useCase(repo).invoke(sender, outgoingWithFee, receivedAt + 60_000, account, owner)
+        val resent = useCase(repo).invoke(sender, outgoingWithFee, receivedAt + 60_000, toAccount, owner)
 
         assertTrue(resent is ImportOutcome.AlreadyRecorded)
         assertEquals(2, repo.savedEntries.size)
@@ -180,7 +183,8 @@ class ImportMoneyMessageUseCaseTest {
         val repo = FakeImportRepository().apply { manualDuplicateId = "tx_manual_1" }
         val outcome = repo.import(outgoingWithFee)
 
-        assertEquals(ImportOutcome.NeedsReview("tx_manual_1"), outcome)
+        assertTrue(outcome is ImportOutcome.NeedsReview, "got $outcome")
+        assertEquals("tx_manual_1", outcome.existingTransactionId)
         assertTrue(repo.savedEntries.isEmpty(), "nothing is written until the user decides")
         assertEquals(ImportStatus.PENDING_REVIEW, repo.outcomes.single())
     }
@@ -200,7 +204,7 @@ class ImportMoneyMessageUseCaseTest {
     @Test
     fun `a message from an unknown sender is not imported`() = runBlocking {
         val repo = FakeImportRepository()
-        val outcome = useCase(repo).invoke("RandomBank", outgoingWithFee, receivedAt, account, owner)
+        val outcome = useCase(repo).invoke("RandomBank", outgoingWithFee, receivedAt, toAccount, owner)
 
         assertEquals(ImportOutcome.NotRecognised, outcome)
         assertTrue(repo.savedEntries.isEmpty())
@@ -237,7 +241,7 @@ class ImportMoneyMessageUseCaseTest {
     fun importsAMessageWithNoSenderByMatchingOnTheBody(): Unit = runBlocking {
         val repo = FakeImportRepository()
 
-        val outcome = useCase(repo).invoke("", outgoingWithFee, receivedAt, account, owner)
+        val outcome = useCase(repo).invoke("", outgoingWithFee, receivedAt, toAccount, owner)
 
         assertTrue(outcome is ImportOutcome.Imported, "expected an import, got $outcome")
     }
@@ -248,10 +252,10 @@ class ImportMoneyMessageUseCaseTest {
         val repo = FakeImportRepository()
         val subject = useCase(repo)
 
-        val pasted = subject.invoke("", outgoingWithFee, receivedAt, account, owner)
+        val pasted = subject.invoke("", outgoingWithFee, receivedAt, toAccount, owner)
         // Same transaction arriving later with a real sender and a different delivery time, so the
         // message fingerprint differs and only the provider id can catch it.
-        val captured = subject.invoke(sender, outgoingWithFee, receivedAt + 60_000, account, owner)
+        val captured = subject.invoke(sender, outgoingWithFee, receivedAt + 60_000, toAccount, owner)
 
         assertTrue(pasted is ImportOutcome.Imported)
         assertTrue(
@@ -271,7 +275,7 @@ class ImportMoneyMessageUseCaseTest {
     fun aParseableBodyFromAnUnknownSenderIsStillRefused(): Unit = runBlocking {
         val repo = FakeImportRepository()
 
-        val outcome = useCase(repo).invoke("RandomBank", outgoingWithFee, receivedAt, account, owner)
+        val outcome = useCase(repo).invoke("RandomBank", outgoingWithFee, receivedAt, toAccount, owner)
 
         assertTrue(outcome is ImportOutcome.NotRecognised, "the allowlist must still hold; got $outcome")
     }
@@ -280,8 +284,69 @@ class ImportMoneyMessageUseCaseTest {
     fun unrecognisableTextWithNoSenderIsRejectedRatherThanGuessed(): Unit = runBlocking {
         val repo = FakeImportRepository()
 
-        val outcome = useCase(repo).invoke("", "Hey, are we still on for lunch?", receivedAt, account, owner)
+        val outcome = useCase(repo).invoke("", "Hey, are we still on for lunch?", receivedAt, toAccount, owner)
 
         assertTrue(outcome is ImportOutcome.NotRecognised)
+    }
+
+    // ── Destination routing (the third device-test bug) ──────────────────────
+
+    @Test
+    fun `imports into the wallet the resolver returns for the provider`(): Unit = runBlocking {
+        val repo = FakeImportRepository()
+        // Orange goes to one wallet, everything else to another; the import must pick the first.
+        val resolver: suspend (String) -> String? = { provider ->
+            if (provider == "orange_money") "wallet_orange" else "wallet_other"
+        }
+
+        val outcome = useCase(repo).invoke(sender, outgoingWithFee, receivedAt, resolver, owner)
+
+        assertTrue(outcome is ImportOutcome.Imported, "got $outcome")
+        assertEquals("wallet_orange", outcome.accountId, "the configured destination, not a guess")
+        assertTrue(repo.savedEntries.all { it.accountId == "wallet_orange" })
+    }
+
+    @Test
+    fun `a parsed message with no configured wallet is held, not misfiled`(): Unit = runBlocking {
+        val repo = FakeImportRepository()
+        // No destination for any provider - the pre-fix code would have used the first wallet.
+        val noWallet: suspend (String) -> String? = { null }
+
+        val outcome = useCase(repo).invoke(sender, outgoingWithFee, receivedAt, noWallet, owner)
+
+        assertTrue(outcome is ImportOutcome.NoDestination, "got $outcome")
+        assertEquals("orange_money", outcome.provider)
+        assertTrue(repo.savedEntries.isEmpty(), "nothing written when there is nowhere to put it")
+    }
+
+    @Test
+    fun `a held message imports once a wallet is configured and it is re-run`(): Unit = runBlocking {
+        val repo = FakeImportRepository()
+        var wallet: String? = null
+        val resolver: suspend (String) -> String? = { wallet }
+
+        // First pass: no wallet, so it is held and - crucially - NOT recorded as seen, or the
+        // re-run below would be swallowed as AlreadySeen and the transaction lost forever.
+        val first = useCase(repo).invoke(sender, outgoingWithFee, receivedAt, resolver, owner)
+        assertTrue(first is ImportOutcome.NoDestination)
+
+        // User picks a wallet, backfill re-runs the same message.
+        wallet = "wallet_orange"
+        val second = useCase(repo).invoke(sender, outgoingWithFee, receivedAt, resolver, owner)
+
+        assertTrue(second is ImportOutcome.Imported, "got $second")
+        assertEquals("wallet_orange", second.accountId)
+    }
+
+    @Test
+    fun `the imported outcome carries what a notification needs to say`(): Unit = runBlocking {
+        val repo = FakeImportRepository()
+
+        val outcome = useCase(repo).invoke(sender, incoming, receivedAt, toAccount, owner)
+
+        assertTrue(outcome is ImportOutcome.Imported, "got $outcome")
+        assertEquals("orange_money", outcome.provider)
+        assertEquals(100000.0, outcome.amount, "money in is positive, principal only")
+        assertTrue(outcome.description.isNotBlank(), "a notification needs something to name it")
     }
 }

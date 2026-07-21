@@ -5,6 +5,7 @@ import com.budgetmaster.core.designsystem.DarkModeSetting
 import com.budgetmaster.core.localization.AppLanguage
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 
 /**
  * App-wide user settings applied by the app shell in `:shared`.
@@ -41,6 +42,18 @@ data class AppSettings(
      */
     val smsOwnerMsisdns: String = "",
     /**
+     * Where imported mobile-money transactions go, as `provider → accountId`.
+     *
+     * Explicit rather than guessed. Imports used to land in the first wallet ever created, which
+     * put money in an account the user was not looking at and, worse, was silent about it. A map
+     * rather than a single id because a user with an Orange number and an MTN number keeps two
+     * real wallets; with one provider configured the settings UI reads as a single picker.
+     *
+     * Serialized as `provider=accountId` pairs joined with `,` — flat and diff-friendly, and the
+     * provider ids (`orange_money`, `mtn_momo`) never contain either delimiter.
+     */
+    val smsImportAccounts: Map<String, String> = emptyMap(),
+    /**
      * Whether to block screenshots and hide the app's contents from the recents screen.
      *
      * **On by default**, unlike the other privacy switches here. Those govern what leaves the
@@ -72,6 +85,7 @@ class AppSettingsRepository(private val store: KeyValueStore) {
         store.observeString(KEY_SMS_IMPORT_ENABLED),
         store.observeString(KEY_SMS_OWNER_MSISDNS),
         store.observeString(KEY_SECURE_SCREEN),
+        store.observeString(KEY_SMS_IMPORT_ACCOUNTS),
     ) { values ->
         AppSettings(
             palette = AppPalette.fromId(values[0]),
@@ -84,6 +98,7 @@ class AppSettingsRepository(private val store: KeyValueStore) {
             smsOwnerMsisdns = values[6].orEmpty(),
             // Absent means on: see the property doc for why this default runs the other way.
             secureScreen = values[7]?.toBoolean() ?: true,
+            smsImportAccounts = parseImportAccounts(values[8]),
         )
     }
 
@@ -99,6 +114,16 @@ class AppSettingsRepository(private val store: KeyValueStore) {
 
     suspend fun setSmsImportEnabled(enabled: Boolean) =
         store.putString(KEY_SMS_IMPORT_ENABLED, enabled.toString())
+
+    /** Sets (or clears, with null) the destination wallet for one provider's imports. */
+    suspend fun setSmsImportAccount(provider: String, accountId: String?) {
+        val current = parseImportAccounts(store.observeString(KEY_SMS_IMPORT_ACCOUNTS).first())
+        val next = if (accountId == null) current - provider else current + (provider to accountId)
+        store.putString(
+            KEY_SMS_IMPORT_ACCOUNTS,
+            next.entries.joinToString(",") { "${it.key}=${it.value}" },
+        )
+    }
 
     suspend fun setSecureScreen(enabled: Boolean) =
         store.putString(KEY_SECURE_SCREEN, enabled.toString())
@@ -116,6 +141,19 @@ class AppSettingsRepository(private val store: KeyValueStore) {
         const val KEY_CURRENCY = "app.currency"
         const val KEY_AI_ENABLED = "app.ai_enabled"
         const val KEY_SECURE_SCREEN = "app.secure_screen"
+        const val KEY_SMS_IMPORT_ACCOUNTS = "app.sms_import_accounts"
+
+        private fun parseImportAccounts(raw: String?): Map<String, String> =
+            raw.orEmpty()
+                .split(',')
+                .mapNotNull { entry ->
+                    val (provider, accountId) = entry.split('=', limit = 2)
+                        .takeIf { it.size == 2 } ?: return@mapNotNull null
+                    provider.trim().takeIf { it.isNotEmpty() }?.let { p ->
+                        accountId.trim().takeIf { it.isNotEmpty() }?.let { a -> p to a }
+                    }
+                }
+                .toMap()
         const val KEY_SMS_IMPORT_ENABLED = "app.sms_import_enabled"
         const val KEY_SMS_OWNER_MSISDNS = "app.sms_owner_msisdns"
     }

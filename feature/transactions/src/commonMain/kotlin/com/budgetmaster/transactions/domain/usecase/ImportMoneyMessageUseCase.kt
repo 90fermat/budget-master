@@ -19,8 +19,22 @@ import kotlin.time.ExperimentalTime
 
 /** What happened to a message the importer was handed. */
 sealed class ImportOutcome {
-    /** Entries were written. */
-    data class Imported(val transactionIds: List<String>) : ImportOutcome()
+    /**
+     * Entries were written.
+     *
+     * Carries what a notification needs to say so — the whole point of the redesign this came
+     * from was that imports were invisible: money appeared in a wallet the user wasn't looking
+     * at, and nothing said which message, which amount, or which wallet.
+     *
+     * @property amount signed, principal only.
+     */
+    data class Imported(
+        val transactionIds: List<String>,
+        val provider: String,
+        val description: String,
+        val amount: Double,
+        val accountId: String,
+    ) : ImportOutcome()
 
     /** This exact message was already processed. */
     data object AlreadySeen : ImportOutcome()
@@ -32,7 +46,21 @@ sealed class ImportOutcome {
      * A hand-entered transaction looks like the same event. Surfaced rather than merged or
      * double-counted: guessing wrong either way corrupts the ledger silently.
      */
-    data class NeedsReview(val existingTransactionId: String) : ImportOutcome()
+    data class NeedsReview(
+        val existingTransactionId: String,
+        val provider: String,
+        val description: String,
+        val amount: Double,
+    ) : ImportOutcome()
+
+    /**
+     * The message parsed but no destination wallet is configured for its provider.
+     *
+     * A real outcome rather than an exception, because it needs the same accountability as the
+     * others: a message silently dropped for want of configuration is indistinguishable from the
+     * importer not working at all — which is exactly the doubt that prompted this redesign.
+     */
+    data class NoDestination(val provider: String) : ImportOutcome()
 
     /** Not a transaction message — an advert, a balance check, an OTP, an unknown provider. */
     data object NotRecognised : ImportOutcome()
@@ -54,11 +82,17 @@ class ImportMoneyMessageUseCase(
     private val repository: MoneyImportRepository,
     private val parsers: List<MoneyMessageParser>,
 ) {
+    /**
+     * @param accountFor resolves the destination wallet for a provider, or null when none is
+     *   configured. A resolver rather than a fixed id because the provider is only known after
+     *   the sender or body has been matched — and the fixed id it replaced was the bug: every
+     *   import landed in the first wallet ever created, whatever the user was actually using.
+     */
     suspend operator fun invoke(
         sender: String,
         body: String,
         receivedAt: Long,
-        accountId: String,
+        accountFor: suspend (provider: String) -> String?,
         ownerMsisdns: Set<String>,
     ): ImportOutcome {
         val hash = messageFingerprint(sender, body, receivedAt)
@@ -95,21 +129,29 @@ class ImportMoneyMessageUseCase(
             return ImportOutcome.AlreadyRecorded(existing)
         }
 
+        // Resolved only now: the provider is known, and the destination is the user's explicit
+        // choice or nothing. Deliberately checked before recording anything, so an unconfigured
+        // provider leaves the message unclaimed and a later backfill - after the user picks a
+        // wallet - can import it.
+        val accountId = accountFor(parsed.provider)
+            ?: return ImportOutcome.NoDestination(parsed.provider)
+
         val occurredAt = parsed.occurredAt ?: receivedAt
         val (dayStart, dayEnd) = dayBounds(occurredAt)
+        val signedAmount = if (parsed.isOutflow) -parsed.amount else parsed.amount
         repository.findPossibleManualDuplicate(parsed.amount, dayStart, dayEnd)?.let { existing ->
             repository.recordMessageOutcome(
                 hash, parsed.provider, sender, receivedAt,
                 ImportStatus.PENDING_REVIEW, parsed.externalId, existing,
                 pending = PendingImportDetails(
                     accountId = accountId,
-                    amount = if (parsed.isOutflow) -parsed.amount else parsed.amount,
+                    amount = signedAmount,
                     fee = parsed.fee,
                     description = parsed.describe(),
                     occurredAt = occurredAt,
                 ),
             )
-            return ImportOutcome.NeedsReview(existing)
+            return ImportOutcome.NeedsReview(existing, parsed.provider, parsed.describe(), signedAmount)
         }
 
         val ids = repository.saveImported(
@@ -120,7 +162,7 @@ class ImportMoneyMessageUseCase(
             externalId = parsed.externalId,
             entries = parsed.toEntries(accountId, occurredAt),
         )
-        return ImportOutcome.Imported(ids)
+        return ImportOutcome.Imported(ids, parsed.provider, parsed.describe(), signedAmount, accountId)
     }
 
     /** The principal, plus a separate fee row when the provider charged one. */

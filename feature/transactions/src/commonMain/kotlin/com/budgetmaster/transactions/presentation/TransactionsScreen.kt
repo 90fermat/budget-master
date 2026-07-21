@@ -75,6 +75,7 @@ import budgetmaster.core.generated.resources.transactions_paste_action
 import budgetmaster.core.generated.resources.transactions_paste_imported
 import budgetmaster.core.generated.resources.transactions_paste_duplicate
 import budgetmaster.core.generated.resources.transactions_paste_needs_review
+import budgetmaster.core.generated.resources.transactions_paste_no_wallet
 import budgetmaster.core.generated.resources.transactions_paste_unreadable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -523,6 +524,7 @@ private fun PasteMessageCard(onImport: suspend (String) -> ImportOutcome) {
     val imported = stringResource(Res.string.transactions_paste_imported)
     val duplicate = stringResource(Res.string.transactions_paste_duplicate)
     val needsReview = stringResource(Res.string.transactions_paste_needs_review)
+    val noWallet = stringResource(Res.string.transactions_paste_no_wallet)
     val unreadable = stringResource(Res.string.transactions_paste_unreadable)
 
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.micro)) {
@@ -551,6 +553,9 @@ private fun PasteMessageCard(onImport: suspend (String) -> ImportOutcome) {
                                 // answer is now waiting a few rows down the same screen.
                                 is ImportOutcome.NeedsReview -> { text = ""; needsReview }
                                 ImportOutcome.NotRecognised -> unreadable
+                                // Only reachable with zero wallets: the paste path falls back to
+                                // the active wallet, so a configured destination is not required.
+                                is ImportOutcome.NoDestination -> noWallet
                             }
                             busy = false
                         }

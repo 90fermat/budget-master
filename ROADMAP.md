@@ -1226,6 +1226,77 @@ Config kill-switches if quotas tighten.
 - [ ] 13.4 Merged with the notifications screen (Phase 3 of the branch plan): same table, same
   surfaces, one unread badge. The bell answers "did my SMS import, and where?".
 
+## Phase 13 — SMS-import accountability + notifications
+
+> From the third device test. Three faults, one root cause: the import destination was a
+> hardcoded guess (`accounts.first()`) and nothing announced the result, so money appeared in a
+> wallet the user was not looking at and no signal said which message, amount, or wallet. A prior
+> session started the fix and left it uncommitted; this phase finishes and hardens it to release
+> quality, and folds in the notifications inbox screen (originally scoped separately) because the
+> two are the same system.
+
+### Diagnosis (recorded so the reasoning is not lost)
+
+- **Automatic capture works.** The manifest receiver is registered for `SMS_RECEIVED` with
+  `RECEIVE_SMS`, priority 999 — and `SMS_RECEIVED` is exempt from the Android 8+ implicit-broadcast
+  restriction, so a manifest receiver still fires. The old importer resolved the destination as
+  `observeAccounts().first().firstOrNull()`, i.e. the first wallet ever created. That matches the
+  report exactly: captured, but to the wrong wallet, and silently.
+
+### 13.1 Destination is the user's choice, never a guess
+
+- [ ] Per-provider destination wallet, stored as `AppSettings.smsImportAccounts` (`provider ->
+  walletId`). Per-provider rather than one global, because an Orange Money balance and an MTN MoMo
+  balance are genuinely different accounts of money; with one provider today it is one row.
+- [ ] `ImportMoneyMessageUseCase` takes an `accountFor: (provider) -> String?` resolver instead of
+  a fixed id, and a new `NoDestination` outcome: a parsed message with no configured wallet is
+  held (not misfiled) and surfaces a "choose a wallet" notification, so a later backfill imports
+  it once a wallet is set. The paste path falls back to the active wallet — correct there because
+  the user is present and the row appears in front of them.
+- [ ] When SMS import is enabled, default the destination to the currently active wallet and show
+  it prominently, so the common path never hits `NoDestination`, while keeping that outcome as the
+  safety net.
+
+### 13.2 Every outcome announces itself
+
+- [ ] `WalletDirectory` in `:core` — a read-only id+name wallet projection so Settings and the
+  importer can name a wallet without importing `:feature:accounts` (the architecture forbids
+  feature→feature). Id+name only; balances/archival stay in the feature.
+- [ ] `ImportSystemNotifier` (Android) posts a system notification, because the app is closed when
+  an SMS arrives — an in-app row alone is invisible in the moment. Amount kept off the lock screen
+  (`VISIBILITY_PRIVATE`), same reasoning as `FLAG_SECURE`.
+- [ ] Every outcome writes an in-app inbox row too (imported / needs-review / no-destination);
+  dedup and not-recognised outcomes stay silent. Live captures post the system notification;
+  backfill writes inbox rows only — 500 system notifications from one backfill is an attack.
+- [ ] Notification text resolved at write time in the language of that moment: a notification is a
+  historical record, so one written in French stays French after a language switch.
+- [ ] `POST_NOTIFICATIONS` (Android 13+) requested when the user enables import — without it the
+  system notification silently no-ops.
+
+### 13.3 Settings
+
+- [ ] Destination-wallet picker per configured provider, fed by `WalletDirectory`.
+- [ ] Owner numbers: keep the single comma/semicolon-separated field (a flat set is correct — an
+  owner number identifies "me" for transfer direction regardless of provider), but make multiple
+  numbers obviously supported and validate them. Keeps the Phase 11.3 cursor fix.
+- [ ] Surface which wallet a backfill imported into, answering "I could not know where it went".
+
+### 13.4 Notifications inbox screen
+
+- [ ] `AuthRoute.Notifications` + a screen over the existing `NotificationRepository`: unread
+  emphasis, tap-to-read, swipe-delete, empty state, unread badge on the bell. **Points the bell at
+  it — closes bug 11.7** (the bell currently navigates to Settings with a mismatched icon).
+- [ ] Localize `NotifyBudgetThresholdsUseCase`, which builds English sentences in the domain
+  layer (carried over from Phase 11.6). Store type + params, resolve strings at render/write time.
+
+### 13.5 Verification
+
+- [ ] Unit tests: configured provider → its wallet; unconfigured → `NoDestination`; paste →
+  active-wallet fallback; backfill writes inbox rows but no system notification.
+- [ ] On-device: the final confirmation of automatic capture is a live SMS, which host tests
+  cannot exercise. The notifications make it self-evident — an arriving message now visibly
+  announces itself and its wallet, so "is it working?" is answerable at a glance.
+
 ### Phase 9 — Insight & polish
 
 > Two gaps found by using the app rather than reading it.

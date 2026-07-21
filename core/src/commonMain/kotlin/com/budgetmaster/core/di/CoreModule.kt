@@ -3,6 +3,7 @@ package com.budgetmaster.core.di
 import com.budgetmaster.core.db.AppDataSeeder
 import com.budgetmaster.core.db.DatabaseDriverFactory
 import com.budgetmaster.core.db.UserDataEraser
+import com.budgetmaster.core.db.WalletDirectory
 import com.budgetmaster.core.db.DatabaseProvider
 import com.budgetmaster.core.ai.GenAiClient
 import com.budgetmaster.core.ai.createGenAiClient
@@ -32,6 +33,7 @@ val coreModule = module {
     single { GuidancePreferences(get()) }
     single { SessionStore() }
     single { UserDataEraser(get()) }
+    single { WalletDirectory(get(), get()) }
     single { ActiveAccountStore(get()) }
     single { ExchangeRateRepository(get()) }
     single { ExchangeRateFetcher() }

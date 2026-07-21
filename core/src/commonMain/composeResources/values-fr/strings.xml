@@ -479,6 +479,7 @@
     <string name="transactions_paste_label">Coller un message de transaction</string>
     <string name="transactions_paste_placeholder">Collez ici un SMS Orange Money ou MoMo</string>
     <string name="transactions_paste_action">Importer</string>
+    <string name="transactions_paste_no_wallet">Créez d'abord un portefeuille : cette opération n'a nulle part où aller.</string>
     <string name="transactions_paste_needs_review">Envoyé en examen - cela ressemble à une opération déjà saisie. À vous de choisir juste en dessous.</string>
     <!-- File d'examen : messages capturés que l'import n'a pas pu distinguer d'une saisie manuelle. -->
     <string name="transactions_review_title">À vous de décider</string>
@@ -490,4 +491,13 @@
     <string name="transactions_paste_imported">Importé.</string>
     <string name="transactions_paste_duplicate">Déjà enregistré.</string>
     <string name="transactions_paste_unreadable">Cela ne ressemble pas à un message de transaction.</string>
+    <!-- Traçabilité des imports : chaque import SMS s'annonce. %1$s opérateur, %2$s montant, %3$s description, %4$s portefeuille. -->
+    <string name="import_notif_imported_title">Opération importée</string>
+    <string name="import_notif_imported_body">%1$s : %2$s — %3$s → %4$s</string>
+    <string name="import_notif_review_title">Opération à valider</string>
+    <string name="import_notif_review_body">%1$s : %2$s — %3$s ressemble à une opération déjà saisie. Décidez dans Opérations.</string>
+    <string name="import_notif_no_wallet_title">Choisissez un portefeuille pour les imports</string>
+    <string name="import_notif_no_wallet_body">Un message %1$s a été capturé mais aucun portefeuille de destination n'est défini. Choisissez-en un dans Réglages, puis lancez « Importer les anciens messages ».</string>
+    <string name="provider_orange_money">Orange Money</string>
+    <string name="provider_mtn_momo">MTN MoMo</string>
 </resources>

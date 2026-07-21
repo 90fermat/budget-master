@@ -2,11 +2,24 @@ package com.budgetmaster.shared
 
 import android.content.Context
 import android.net.Uri
+import budgetmaster.core.generated.resources.Res
+import budgetmaster.core.generated.resources.import_notif_imported_body
+import budgetmaster.core.generated.resources.import_notif_imported_title
+import budgetmaster.core.generated.resources.import_notif_no_wallet_body
+import budgetmaster.core.generated.resources.import_notif_no_wallet_title
+import budgetmaster.core.generated.resources.import_notif_review_body
+import budgetmaster.core.generated.resources.import_notif_review_title
+import budgetmaster.core.generated.resources.provider_mtn_momo
+import budgetmaster.core.generated.resources.provider_orange_money
+import com.budgetmaster.core.db.WalletDirectory
+import com.budgetmaster.core.notifications.NotificationRepository
 import com.budgetmaster.core.prefs.AppSettingsRepository
+import com.budgetmaster.core.util.MoneyFormatter
+import com.budgetmaster.core.util.formatSigned
 import com.budgetmaster.transactions.domain.usecase.ImportMoneyMessageUseCase
 import com.budgetmaster.transactions.domain.usecase.ImportOutcome
-import com.budgetmaster.transactions.domain.usecase.ObserveTransactionAccountsUseCase
 import kotlinx.coroutines.flow.first
+import org.jetbrains.compose.resources.getString
 
 /**
  * Shared entry point for both capture paths — the live SMS broadcast and the one-off inbox
@@ -16,26 +29,113 @@ import kotlinx.coroutines.flow.first
  * Every import is a no-op unless the user has switched it on *and* supplied their own number:
  * without the number the direction of a transfer is unknowable, so importing would be guessing at
  * the sign of someone's money.
+ *
+ * Two properties were added after the second device test, and both are about accountability:
+ *
+ * **The destination is the user's explicit choice, never a guess.** Imports used to land in the
+ * first wallet ever created, which put money in an account the user was not looking at. Now the
+ * per-provider destination from Settings is the only thing consulted; a parsed message with no
+ * destination configured becomes a "choose a wallet" notification instead of a misplaced entry.
+ *
+ * **Every outcome announces itself.** Imported, needs-review, and unconfigured outcomes each
+ * write an inbox notification; live captures additionally post a system notification, because
+ * the app is closed when an SMS arrives. Silence was previously indistinguishable from failure,
+ * which made "is automatic capture working at all?" unanswerable even for its author.
+ *
+ * Notification text is resolved at write time, in the app language of that moment. Notifications
+ * are historical records: one written in French stays French after a language switch, the same
+ * way an email does.
  */
 class MoneyMessageImporter(
     private val settingsRepository: AppSettingsRepository,
-    private val observeAccounts: ObserveTransactionAccountsUseCase,
+    private val walletDirectory: WalletDirectory,
+    private val notifications: NotificationRepository,
+    private val systemNotifier: ImportSystemNotifier,
     private val importMessage: ImportMoneyMessageUseCase,
 ) {
-    /** @return the outcome, or null when import is switched off or unconfigured. */
-    suspend fun import(sender: String, body: String, receivedAt: Long): ImportOutcome? {
+    /**
+     * @param live true for a just-arrived SMS (posts a system notification too), false for
+     *   backfill (in-app inbox rows only — five hundred system notifications is an attack).
+     * @return the outcome, or null when import is switched off or unconfigured.
+     */
+    suspend fun import(
+        sender: String,
+        body: String,
+        receivedAt: Long,
+        live: Boolean = true,
+    ): ImportOutcome? {
         val settings = settingsRepository.settings.first()
         if (!settings.smsImportEnabled) return null
 
         val owners = settings.smsOwnerMsisdns.parseMsisdns()
         if (owners.isEmpty()) return null
 
-        // Imports land in the user's first wallet. A per-provider wallet mapping is the obvious
-        // refinement, but guessing wrong here is recoverable — the entry can be moved — whereas
-        // blocking on configuration would mean capturing nothing.
-        val accountId = observeAccounts().first().firstOrNull()?.id ?: return null
+        val outcome = importMessage(
+            sender = sender,
+            body = body,
+            receivedAt = receivedAt,
+            accountFor = { provider -> settings.smsImportAccounts[provider] },
+            ownerMsisdns = owners,
+        )
+        announce(outcome, settings.currency, live)
+        return outcome
+    }
 
-        return importMessage(sender, body, receivedAt, accountId, owners)
+    /** Writes the inbox row (and, for live captures, the system notification) for [outcome]. */
+    private suspend fun announce(outcome: ImportOutcome, currencyCode: String, live: Boolean) {
+        when (outcome) {
+            is ImportOutcome.Imported -> {
+                val wallet = walletDirectory.observeWallets().first()
+                    .firstOrNull { it.id == outcome.accountId }?.name ?: outcome.accountId
+                val title = getString(Res.string.import_notif_imported_title)
+                val bodyText = getString(
+                    Res.string.import_notif_imported_body,
+                    providerLabel(outcome.provider),
+                    MoneyFormatter.formatSigned(outcome.amount, currencyCode),
+                    outcome.description,
+                    wallet,
+                )
+                notifications.notify(title, bodyText)
+                if (live) systemNotifier.notify(title, bodyText)
+            }
+
+            is ImportOutcome.NeedsReview -> {
+                val title = getString(Res.string.import_notif_review_title)
+                val bodyText = getString(
+                    Res.string.import_notif_review_body,
+                    providerLabel(outcome.provider),
+                    MoneyFormatter.formatSigned(outcome.amount, currencyCode),
+                    outcome.description,
+                )
+                notifications.notify(title, bodyText)
+                if (live) systemNotifier.notify(title, bodyText)
+            }
+
+            is ImportOutcome.NoDestination -> {
+                val title = getString(Res.string.import_notif_no_wallet_title)
+                val bodyText = getString(
+                    Res.string.import_notif_no_wallet_body,
+                    providerLabel(outcome.provider),
+                )
+                // Idempotent id: a burst of messages with no wallet configured is one problem,
+                // not one notification per message.
+                notifications.notify(title, bodyText, id = "import_no_wallet_${outcome.provider}")
+                if (live) systemNotifier.notify(title, bodyText)
+            }
+
+            // Dedup outcomes are working-as-intended and would only be noise; NotRecognised is
+            // an advert or OTP from a money sender, which is not the user's business to triage.
+            ImportOutcome.AlreadySeen,
+            is ImportOutcome.AlreadyRecorded,
+            ImportOutcome.NotRecognised,
+            -> Unit
+        }
+    }
+
+    private suspend fun providerLabel(provider: String): String = when (provider) {
+        "orange_money" -> getString(Res.string.provider_orange_money)
+        "mtn_momo" -> getString(Res.string.provider_mtn_momo)
+        else -> provider
     }
 
     /** Tolerates "659228030, 690440480" and stray spaces; digits are all that matter. */
@@ -83,6 +183,8 @@ suspend fun backfillInbox(
                 sender = sender,
                 body = cursor.getString(bodyIndex).orEmpty(),
                 receivedAt = cursor.getLong(dateIndex),
+                // Inbox rows only: a 500-message backfill must not post 500 system notifications.
+                live = false,
             )
             if (outcome is ImportOutcome.Imported) imported++
         }

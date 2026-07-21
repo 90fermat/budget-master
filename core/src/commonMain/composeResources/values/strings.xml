@@ -481,6 +481,7 @@
     <string name="transactions_paste_label">Paste a transaction message</string>
     <string name="transactions_paste_placeholder">Paste an Orange Money or MoMo SMS here</string>
     <string name="transactions_paste_action">Import</string>
+    <string name="transactions_paste_no_wallet">Create a wallet first - there is nowhere to put this transaction.</string>
     <string name="transactions_paste_needs_review">Sent to review - it looks like one you already entered. Decide just below.</string>
     <!-- Review queue: captured messages the importer could not tell apart from a manual entry. -->
     <string name="transactions_review_title">Needs your decision</string>
@@ -492,4 +493,13 @@
     <string name="transactions_paste_imported">Imported.</string>
     <string name="transactions_paste_duplicate">Already recorded.</string>
     <string name="transactions_paste_unreadable">That does not look like a transaction message.</string>
+    <!-- Import accountability: every SMS import announces itself. %1$s provider, %2$s amount, %3$s description, %4$s wallet name. -->
+    <string name="import_notif_imported_title">Transaction imported</string>
+    <string name="import_notif_imported_body">%1$s: %2$s — %3$s → %4$s</string>
+    <string name="import_notif_review_title">Transaction needs your decision</string>
+    <string name="import_notif_review_body">%1$s: %2$s — %3$s looks like one you already entered. Decide in Transactions.</string>
+    <string name="import_notif_no_wallet_title">Choose a wallet for imported transactions</string>
+    <string name="import_notif_no_wallet_body">A %1$s message was captured but no destination wallet is set. Pick one in Settings, then run "Import old messages".</string>
+    <string name="provider_orange_money">Orange Money</string>
+    <string name="provider_mtn_momo">MTN MoMo</string>
 </resources>
