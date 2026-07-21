@@ -89,6 +89,9 @@ import budgetmaster.core.generated.resources.settings_delete_account_body
 import budgetmaster.core.generated.resources.settings_delete_account_confirm
 import budgetmaster.core.generated.resources.settings_delete_account_failed
 import budgetmaster.core.generated.resources.settings_sms_title
+import budgetmaster.core.generated.resources.settings_sms_no_wallets
+import budgetmaster.core.generated.resources.settings_sms_destination_help
+import budgetmaster.core.generated.resources.settings_sms_destination_label
 import budgetmaster.core.generated.resources.settings_sms_enable
 import budgetmaster.core.generated.resources.settings_sms_enable_desc
 import budgetmaster.core.generated.resources.settings_sms_number_label
@@ -116,6 +119,13 @@ import com.budgetmaster.core.designsystem.Spacing
 import com.budgetmaster.core.designsystem.colorScheme
 import com.budgetmaster.core.localization.AppLanguage
 import com.budgetmaster.core.sms.rememberSmsPermissionRequester
+import com.budgetmaster.core.sms.moneyProviderLabelRes
+import com.budgetmaster.core.db.WalletRef
+import androidx.compose.material3.MenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import com.budgetmaster.core.currency.SUPPORTED_CURRENCY_CODES
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -274,8 +284,14 @@ fun SettingsScreen(
         SmsImportSection(
             enabled = state.smsImportEnabled,
             msisdns = state.smsOwnerMsisdns,
+            providers = state.smsProviders,
+            importAccounts = state.smsImportAccounts,
+            wallets = state.wallets,
             onEnabledChange = { viewModel.onIntent(SettingsIntent.SmsImportEnabledChanged(it)) },
             onMsisdnsChange = { viewModel.onIntent(SettingsIntent.SmsOwnerMsisdnsChanged(it)) },
+            onDestinationChange = { provider, accountId ->
+                viewModel.onIntent(SettingsIntent.SmsImportAccountChanged(provider, accountId))
+            },
             onBackfill = onBackfillMessages,
         )
 
@@ -486,12 +502,67 @@ private fun SettingsCard(content: @Composable () -> Unit) {
  * that could never work. Turning it on requests the permission first — flipping the preference
  * without the grant would leave a setting that says "on" while nothing is captured.
  */
+/**
+ * A dropdown that chooses which wallet a provider's imported transactions land in.
+ *
+ * One per configured provider. The selection is persisted immediately; there is no "save" step,
+ * consistent with every other setting on this screen.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ImportDestinationPicker(
+    provider: String,
+    wallets: List<WalletRef>,
+    selectedId: String?,
+    onSelect: (String) -> Unit,
+) {
+    val providerName = moneyProviderLabelRes(provider)?.let { stringResource(it) } ?: provider
+    val selected = wallets.firstOrNull { it.id == selectedId }
+    var expanded by remember { mutableStateOf(false) }
+
+    Column(Modifier.fillMaxWidth().padding(vertical = Spacing.small)) {
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = it },
+        ) {
+            OutlinedTextField(
+                value = selected?.name ?: "",
+                onValueChange = {},
+                readOnly = true,
+                label = { Text(stringResource(Res.string.settings_sms_destination_label, providerName)) },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable),
+            )
+            ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                wallets.forEach { wallet ->
+                    DropdownMenuItem(
+                        text = { Text(wallet.name) },
+                        onClick = {
+                            onSelect(wallet.id)
+                            expanded = false
+                        },
+                    )
+                }
+            }
+        }
+        Text(
+            text = stringResource(Res.string.settings_sms_destination_help, providerName),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
 @Composable
 private fun SmsImportSection(
     enabled: Boolean,
     msisdns: String,
+    providers: List<String>,
+    importAccounts: Map<String, String>,
+    wallets: List<WalletRef>,
     onEnabledChange: (Boolean) -> Unit,
     onMsisdnsChange: (String) -> Unit,
+    onDestinationChange: (provider: String, accountId: String?) -> Unit,
     onBackfill: suspend () -> Int,
 ) {
     val scope = rememberCoroutineScope()
@@ -565,6 +636,27 @@ private fun SmsImportSection(
     }
 
     if (enabled) {
+        // Where each provider's captured transactions land. This is the fix for imports silently
+        // going to the first wallet ever created: the destination is now the user's choice, shown
+        // and changeable, defaulted to the active wallet when import was switched on.
+        if (wallets.isEmpty()) {
+            Text(
+                text = stringResource(Res.string.settings_sms_no_wallets),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(vertical = Spacing.small),
+            )
+        } else {
+            providers.forEach { provider ->
+                ImportDestinationPicker(
+                    provider = provider,
+                    wallets = wallets,
+                    selectedId = importAccounts[provider],
+                    onSelect = { accountId -> onDestinationChange(provider, accountId) },
+                )
+            }
+        }
+
         // The field owns its own text once the user starts typing.
         //
         // It used to render `msisdns` straight from the ViewModel, which meant every keystroke

@@ -500,6 +500,9 @@
     <string name="import_notif_review_body">%1$s: %2$s — %3$s looks like one you already entered. Decide in Transactions.</string>
     <string name="import_notif_no_wallet_title">Choose a wallet for imported transactions</string>
     <string name="import_notif_no_wallet_body">A %1$s message was captured but no destination wallet is set. Pick one in Settings, then run "Import old messages".</string>
+    <string name="settings_sms_destination_label">Import %1$s into</string>
+    <string name="settings_sms_destination_help">Transactions captured from %1$s are added to this wallet. You can move any entry later.</string>
+    <string name="settings_sms_no_wallets">Create a wallet first, then choose where imports go.</string>
     <string name="provider_orange_money">Orange Money</string>
     <string name="provider_mtn_momo">MTN MoMo</string>
 </resources>

@@ -27,6 +27,9 @@ sealed class SettingsIntent {
     /** The user turned automatic mobile-money message import on or off. */
     data class SmsImportEnabledChanged(val enabled: Boolean) : SettingsIntent()
 
+    /** The user chose which wallet a provider's imports land in. Null clears it. */
+    data class SmsImportAccountChanged(val provider: String, val accountId: String?) : SettingsIntent()
+
     /** The user edited their own mobile-money number(s). */
     data class SmsOwnerMsisdnsChanged(val msisdns: String) : SettingsIntent()
 

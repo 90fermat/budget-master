@@ -498,6 +498,9 @@
     <string name="import_notif_review_body">%1$s : %2$s — %3$s ressemble à une opération déjà saisie. Décidez dans Opérations.</string>
     <string name="import_notif_no_wallet_title">Choisissez un portefeuille pour les imports</string>
     <string name="import_notif_no_wallet_body">Un message %1$s a été capturé mais aucun portefeuille de destination n'est défini. Choisissez-en un dans Réglages, puis lancez « Importer les anciens messages ».</string>
+    <string name="settings_sms_destination_label">Importer %1$s dans</string>
+    <string name="settings_sms_destination_help">Les transactions captées depuis %1$s sont ajoutées à ce portefeuille. Vous pourrez déplacer toute écriture plus tard.</string>
+    <string name="settings_sms_no_wallets">Créez d'abord un portefeuille, puis choisissez la destination des imports.</string>
     <string name="provider_orange_money">Orange Money</string>
     <string name="provider_mtn_momo">MTN MoMo</string>
 </resources>

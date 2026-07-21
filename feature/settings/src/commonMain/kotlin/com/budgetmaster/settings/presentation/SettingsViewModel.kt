@@ -15,6 +15,10 @@ import com.budgetmaster.settings.domain.usecase.SetPaletteUseCase
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
+import com.budgetmaster.settings.domain.usecase.SetSmsImportAccountUseCase
+import com.budgetmaster.core.session.ActiveAccountStore
+import com.budgetmaster.core.db.WalletDirectory
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -39,25 +43,36 @@ class SettingsViewModel(
     private val setAiEnabled: SetAiEnabledUseCase,
     private val setSecureScreen: SetSecureScreenUseCase,
     private val setSmsImportEnabled: SetSmsImportEnabledUseCase,
+    private val setSmsImportAccount: SetSmsImportAccountUseCase,
     private val setSmsOwnerMsisdns: SetSmsOwnerMsisdnsUseCase,
     private val resetOnboarding: ResetOnboardingUseCase,
+    private val walletDirectory: WalletDirectory,
+    activeAccountStore: ActiveAccountStore,
+    /** Provider ids that have a parser, so only usable destinations are offered. */
+    private val smsProviders: List<String>,
 ) : ViewModel() {
 
     /** Observable UI state, collected by the Settings Composable. */
-    val state: StateFlow<SettingsState> = observeAppSettings()
-        .map {
-            SettingsState(
-                palette = it.palette,
-                darkMode = it.darkMode,
-                language = it.language,
-                currency = it.currency,
-                aiEnabled = it.aiEnabled,
-                secureScreen = it.secureScreen,
-                smsImportEnabled = it.smsImportEnabled,
-                smsOwnerMsisdns = it.smsOwnerMsisdns,
-            )
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsState())
+    val state: StateFlow<SettingsState> = combine(
+        observeAppSettings(),
+        walletDirectory.observeWallets(),
+        activeAccountStore.activeAccountId,
+    ) { settings, wallets, activeAccountId ->
+        SettingsState(
+            palette = settings.palette,
+            darkMode = settings.darkMode,
+            language = settings.language,
+            currency = settings.currency,
+            aiEnabled = settings.aiEnabled,
+            secureScreen = settings.secureScreen,
+            smsImportEnabled = settings.smsImportEnabled,
+            smsOwnerMsisdns = settings.smsOwnerMsisdns,
+            smsProviders = smsProviders,
+            smsImportAccounts = settings.smsImportAccounts,
+            wallets = wallets,
+            activeAccountId = activeAccountId,
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsState())
 
     /** Latest text typed into the mobile-money number field, debounced before it is persisted. */
     private val msisdnsInput = MutableSharedFlow<String>(
@@ -83,13 +98,35 @@ class SettingsViewModel(
             is SettingsIntent.CurrencySelected -> viewModelScope.launch { setCurrency(intent.currencyCode) }
             is SettingsIntent.AiEnabledChanged -> viewModelScope.launch { setAiEnabled(intent.enabled) }
             is SettingsIntent.SecureScreenChanged -> viewModelScope.launch { setSecureScreen(intent.enabled) }
-            is SettingsIntent.SmsImportEnabledChanged -> viewModelScope.launch { setSmsImportEnabled(intent.enabled) }
+            is SettingsIntent.SmsImportEnabledChanged -> viewModelScope.launch {
+                setSmsImportEnabled(intent.enabled)
+                if (intent.enabled) defaultImportDestinations()
+            }
+            is SettingsIntent.SmsImportAccountChanged -> viewModelScope.launch {
+                setSmsImportAccount(intent.provider, intent.accountId)
+            }
             // Not a bare launch: one coroutine per keystroke gives no ordering guarantee, so
             // fast typing could land writes out of order and persist an older string. Funnelling
             // through a conflated flow keeps only the latest and writes it once the user pauses.
             is SettingsIntent.SmsOwnerMsisdnsChanged -> msisdnsInput.tryEmit(intent.msisdns)
             is SettingsIntent.ReplayOnboarding -> viewModelScope.launch { resetOnboarding() }
         }
+    }
+
+    /**
+     * Gives every parser-backed provider a destination wallet when none is set.
+     *
+     * Run when import is switched on, so a captured message has somewhere to go without the user
+     * having to choose first. Defaults to the active wallet - the one they were just looking at -
+     * or the first wallet if none is active. Existing choices are left untouched, and if there are
+     * no wallets yet nothing is set, which correctly leaves the NoDestination safety net in place.
+     */
+    private suspend fun defaultImportDestinations() {
+        val current = state.value
+        val fallback = current.activeAccountId ?: current.wallets.firstOrNull()?.id ?: return
+        current.smsProviders
+            .filter { it !in current.smsImportAccounts }
+            .forEach { provider -> setSmsImportAccount(provider, fallback) }
     }
 
     private companion object {

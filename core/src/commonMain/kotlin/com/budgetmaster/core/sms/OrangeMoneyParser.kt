@@ -126,7 +126,7 @@ class OrangeMoneyParser : MoneyMessageParser {
         }
 
     private companion object {
-        const val PROVIDER = "orange_money"
+        const val PROVIDER = MoneyProviders.ORANGE_MONEY
         const val CURRENCY = "XAF"
 
         /** A number followed by the currency, e.g. `10000 FCFA`, `100000FCFA`, `44.48 FCFA`. */

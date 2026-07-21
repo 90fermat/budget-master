@@ -9,11 +9,10 @@ import budgetmaster.core.generated.resources.import_notif_no_wallet_body
 import budgetmaster.core.generated.resources.import_notif_no_wallet_title
 import budgetmaster.core.generated.resources.import_notif_review_body
 import budgetmaster.core.generated.resources.import_notif_review_title
-import budgetmaster.core.generated.resources.provider_mtn_momo
-import budgetmaster.core.generated.resources.provider_orange_money
 import com.budgetmaster.core.db.WalletDirectory
 import com.budgetmaster.core.notifications.NotificationRepository
 import com.budgetmaster.core.prefs.AppSettingsRepository
+import com.budgetmaster.core.sms.moneyProviderLabelRes
 import com.budgetmaster.core.util.MoneyFormatter
 import com.budgetmaster.core.util.formatSigned
 import com.budgetmaster.transactions.domain.usecase.ImportMoneyMessageUseCase
@@ -132,11 +131,8 @@ class MoneyMessageImporter(
         }
     }
 
-    private suspend fun providerLabel(provider: String): String = when (provider) {
-        "orange_money" -> getString(Res.string.provider_orange_money)
-        "mtn_momo" -> getString(Res.string.provider_mtn_momo)
-        else -> provider
-    }
+    private suspend fun providerLabel(provider: String): String =
+        moneyProviderLabelRes(provider)?.let { getString(it) } ?: provider
 
     /** Tolerates "659228030, 690440480" and stray spaces; digits are all that matter. */
     private fun String.parseMsisdns(): Set<String> =
