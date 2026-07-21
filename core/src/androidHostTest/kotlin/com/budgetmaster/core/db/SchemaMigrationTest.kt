@@ -329,10 +329,35 @@ class SchemaMigrationTest {
     }
 
     @Test
+    fun migratingV6MarksExistingTombstonesAsAlreadyPushed() {
+        val driver = v1Database().apply {
+            BudgetMasterDatabase.Schema.synchronous().migrate(this, 1, 5)
+            otherSyncedTablesAsOfV5().forEach { exec(it) }
+            BudgetMasterDatabase.Schema.synchronous().migrate(this, 5, 6)
+        }
+        driver.exec(
+            "INSERT INTO SyncTombstone (tableName, rowId, deletedAt) VALUES ('AccountEntity', 'a_gone', 123)",
+        )
+
+        BudgetMasterDatabase.Schema.synchronous().migrate(driver, 6, 7)
+
+        // v6 tracked this with a cursor over deletedAt, so anything already synced was, by that
+        // cursor's reckoning, sent. Carrying it over as pushed keeps that meaning; being wrong
+        // costs one redundant push, and pushes are idempotent per row.
+        val pushed = driver.executeQuery(
+            null,
+            "SELECT pushed FROM SyncTombstone WHERE rowId = 'a_gone'",
+            { c -> c.next(); app.cash.sqldelight.db.QueryResult.Value(c.getLong(0)) },
+            0,
+        ).value
+        assertEquals(1L, pushed, "tombstones predating the flag must not all be re-pushed")
+    }
+
+    @Test
     fun freshDatabaseIsCreatedAtTheCurrentVersion() {
         // Guards the mistake that caused this: bumping the .sq without a matching migration
         // leaves fresh installs on a schema that upgraded installs can never reach.
-        // v6 added the sync columns and SyncTombstone (5.sqm).
-        assertEquals(6L, BudgetMasterDatabase.Schema.version)
+        // v7 added SyncTombstone.pushed (6.sqm).
+        assertEquals(7L, BudgetMasterDatabase.Schema.version)
     }
 }

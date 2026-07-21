@@ -1468,6 +1468,140 @@ Config kill-switches if quotas tighten.
   the reported need, and this is genuine extra flexibility rather than a missing piece — worth
   doing deliberately, not as a rider.
 
+## Phase 17 — Sync bookkeeping (schema v6)
+
+> Groundwork for sync. No user-visible change; the point is that every later phase can rely on
+> knowing what changed and what was removed.
+
+### 17.1 The design was changed, deliberately
+
+- [x] The plan called for a `deletedAt` column on every synced table, with soft deletes. **Rejected
+  after examining the blast radius**: it would have forced `AND deletedAt IS NULL` onto ~60
+  existing SELECTs — where one forgotten clause silently resurrects deleted rows — broken
+  `ON DELETE CASCADE`, and fought the two paths that must genuinely erase: account deletion (a
+  Play/GDPR obligation fixed in Phase 12) and backup restore's replace-all.
+- [x] **Instead: deletes stay hard, and a row's disappearance is recorded beside it** in a
+  `SyncTombstone` table. Result: **zero changes to any existing SELECT or DELETE**, cascades keep
+  working, and erasure still erases.
+- [x] `updatedAt` / `dirty` are stamped by **triggers**, so no write path has to remember them —
+  which also meant zero changes to every insert call site.
+- [x] The guard `WHEN NEW.updatedAt = OLD.updatedAt` is what separates a local edit from an applied
+  remote change: an ordinary edit leaves the timestamp alone and gets queued, while a sync-applied
+  write sets it and is left in peace. Without that, applying a pull would immediately re-queue
+  every row for push.
+
+### 17.2 Verified, not assumed
+
+- [x] **A trigger on a child table fires even when the row goes via `ON DELETE CASCADE`** — checked
+  against SQLite directly before committing to the design, since the whole approach depends on it.
+  Also confirmed `recursive_triggers` defaults off, so a trigger updating its own table cannot loop.
+- [x] Triggers are installed as raw DDL from Kotlin, because SQLDelight's analyser cannot resolve
+  the `NEW`/`OLD` pseudo-tables and the file will not compile with them present. Idempotent, so it
+  runs on every open and covers fresh and migrated databases alike.
+- [x] Seven tests: insert stamps and queues; an edit re-stamps and re-queues; **a write that sets
+  `updatedAt` itself is left alone** (the pull path); delete leaves a tombstone; **a cascaded
+  delete tombstones its children**; the cursor round-trips and upserts; purging drops only what is
+  older than the cutoff.
+
+### 17.3 The migration trap
+
+- [x] `updatedAt` defaults to 0, and **0 loses every last-write-wins comparison** — so on first
+  sync the cloud would have silently overwritten every pre-existing local row. `5.sqm` backfills
+  it to migration time, which is the truth: that data is the newest this device knows.
+  Deliberately *not* taken from `TransactionEntity.timestamp`, which is the transaction's date,
+  not its edit time — a backdated entry would present as stale and lose. Pinned by a test.
+
+## Phase 18 — The sync engine, proven on the host (schema v7)
+
+> The whole algorithm — ordering, conflict resolution, convergence — running in `commonMain`
+> against a `RemoteSyncDataSource` interface, with no Firebase, no network and no device. Firestore
+> arrives next phase as a thin adapter that cannot change any of the behaviour below.
+
+### 18.1 What was built
+
+- [x] `RemoteSyncDataSource` + `RemoteRecord` / `RemoteTombstone` / `RemoteChange` — the remote
+  reduced to pull / pullTombstones / push. Two obligations are written into the contract because
+  the tests proved they are load-bearing: pushes are idempotent per row, and a tombstone removes
+  the row's record **only when it is not older than that record** — a delete that arrives late must
+  not evict a row someone has since re-created.
+- [x] `SyncTableAdapter` × 7, one per synced table. The wire shape is the existing `Backup*` model,
+  so a row is serialised the same way whether it goes into a backup file or to the cloud.
+- [x] `SyncEngine`: `push()` → `pull()` → `recomputeDerived()`. Last-write-wins per row, deletes
+  beat concurrent edits, and `BudgetEntity.spent` is recomputed from transactions after every pull
+  rather than trusted from the wire — a derived sum resolved by last-write-wins drifts permanently
+  and matches neither device's actual data.
+- [x] Twelve host tests, including a seeded randomised two-device run over thirty seeds. The seed
+  count is not padding: the last defect surfaced only on the second seed, after the first had gone
+  green, and each earlier one was reachable from only some interleavings.
+
+### 18.2 Seven defects the tests found before any of it shipped
+
+Each was a silent, permanent divergence — two devices holding different data with nothing anywhere
+to indicate it. None would have been visible on a single device, and none would have survived
+contact with real use.
+
+- [x] **The pull cursor used the wrong clock.** It advanced on each record's *edit* time, so a row
+  edited earlier but arriving later — an ordinary device that was offline for a while — fell below
+  the cursor and was never pulled again. Fixed by having the remote assign its own arrival
+  sequence: edit time decides *which version wins*, the remote's sequence decides *what has been
+  seen*. Conflating the two is the bug. (Firestore supplies this as a server timestamp.)
+- [x] **`INSERT OR REPLACE` on a parent row emptied the ledger.** OR REPLACE is a delete plus an
+  insert, and these tables are joined by `ON DELETE CASCADE` — so applying a remote *rename* of a
+  wallet deleted every transaction under it, and the delete triggers then tombstoned the lot and
+  published the destruction to every other device. Now an ignored insert followed by an update.
+  `ON CONFLICT DO UPDATE` would have been tidier but needs SQLite 3.24, which Android does not ship
+  until API 29 — above this app's minSdk of 26.
+- [x] **A deleted row could be resurrected.** A record with no local row was inserted
+  unconditionally, ignoring this device's own tombstone. Fixed on both sides: the engine consults
+  the tombstone before inserting, *and* the remote contract now requires a tombstone to remove the
+  row's record, so a lagging cursor cannot pull a deleted row back as a live one.
+- [x] **The record path and the tombstone path broke ties differently**, so the two devices reached
+  opposite conclusions about the same pair and stayed there. Collapsed into one comparison used for
+  all three cases (edit vs edit, edit vs delete, delete vs edit).
+- [x] **Every pulled row was restamped with the receiving device's clock.** Applying a remote row
+  ran an insert *and* an update, so whenever the insert was the one that landed, the update
+  rewrote identical values — exactly the shape the triggers read as "an ordinary edit that touched
+  neither sync column". Each arriving row was therefore marked dirty and republished under a
+  timestamp it never had, corrupting the ordering the whole scheme rests on. The engine already
+  knows whether the row exists, so it now picks the statement instead of firing both.
+- [x] **A relayed delete drifted later every hop.** Applying a remote tombstone left the local
+  delete trigger to stamp it with *this* device's clock, losing when the removal actually happened
+  — so a delete could end up outranking an edit that genuinely came after it. The original time is
+  now preserved, for the same reason an applied record keeps its own `updatedAt`.
+- [x] **A row and its own tombstone could coexist.** Re-creating a deleted row left the old
+  tombstone in place, and the next sync pushed the row and its own obituary together — the remote
+  applied the obituary and the row vanished again. The insert trigger now clears any tombstone for
+  the id, making the invariant structural rather than something every call site must remember.
+
+### 18.3 Two things that made ties far more common than they should have been
+
+- [x] **The trigger clock threw away three digits.** `strftime('%s') * 1000` is whole seconds
+  dressed as milliseconds, so everything done in one burst carried an identical timestamp and
+  last-write-wins fell through to its tiebreak constantly — a coin toss standing in for an ordering
+  that genuinely existed. Now millisecond resolution.
+- [x] **`CREATE TRIGGER IF NOT EXISTS` cannot ship a fix.** Any device that had already run an
+  earlier build would have kept the old trigger bodies for good, and no test on a fresh database
+  can see that. `install()` now drops before creating.
+- [x] Because ties are now rare, the tiebreak has its own test rather than relying on the
+  randomised run to stumble across one.
+- [x] The randomised test itself was wrong twice, in ways that hid failures rather than causing
+  them: it stamped edits from a logical clock while leaving deletes on the wall clock — comparing
+  two clocks, so the result depended on how fast the machine ran and no delete could ever win —
+  and it stamped a tombstone even when the delete had removed nothing, inventing an ordering the
+  run never had. A test that fabricates its own history proves nothing.
+
+### 18.4 Schema v7 — `SyncTombstone.pushed`
+
+- [x] v6 decided what still needed pushing with a `deletedAt > lastPushed` cursor. At second
+  resolution that silently dropped tombstones: deleting an account cascades to its transactions and
+  every one lands in the same tick, so the first was pushed and its siblings were stranded — the
+  row deleted here and alive everywhere else. A per-row flag has no resolution to run out of.
+
+### 18.5 Deliberately not done here
+
+- [ ] Koin binding and a real remote — Phase 19. The engine is bound to nothing yet, which is the
+  point: it was proven first.
+
 ### Phase 9 — Insight & polish
 
 > Two gaps found by using the app rather than reading it.

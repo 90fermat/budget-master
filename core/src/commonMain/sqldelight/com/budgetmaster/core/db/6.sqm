@@ -1,0 +1,18 @@
+-- Migrates schema v7 <- v6: track which removals the remote already has.
+--
+-- v6 decided "which tombstones still need pushing" with a cursor: push everything with
+-- `deletedAt > lastPushed`, then move the cursor to the newest deletedAt sent. That is wrong at
+-- this table's resolution. `deletedAt` is stamped to the second, and a single delete routinely
+-- produces several tombstones in the same second - deleting an account cascades to its
+-- transactions, and every one of them is recorded within the same tick. Push those, move the
+-- cursor to that second, and any further delete landing in the same second is `> lastPushed` false
+-- forever. The row stays deleted here and alive on every other device, with nothing to show that
+-- anything was lost.
+--
+-- A per-row flag has no resolution to run out of. Existing tombstones are marked pushed, matching
+-- the cursor's intent for anything already synced; the cost of being wrong is one redundant push,
+-- and pushes are idempotent per (tableName, rowId).
+
+ALTER TABLE SyncTombstone ADD COLUMN pushed INTEGER NOT NULL DEFAULT 0;
+
+UPDATE SyncTombstone SET pushed = 1;

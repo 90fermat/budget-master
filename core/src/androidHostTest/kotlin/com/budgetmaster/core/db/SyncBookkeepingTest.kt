@@ -81,13 +81,27 @@ class SyncBookkeepingTest {
     }
 
     @Test
+    fun `marking a row pushed actually clears the flag`(): Unit = runBlocking {
+        val (db, driver) = database()
+        seedUserAndAccount(db)
+        assertEquals(1L, db.accountRow("acc1").awaitAsList().single().dirty)
+
+        // Clearing dirty leaves updatedAt untouched. Without the guard covering `dirty` too, the
+        // update trigger would fire and set it straight back to 1 - and sync would push the same
+        // rows on every pass, forever.
+        driver.execute(null, "UPDATE AccountEntity SET dirty = 0 WHERE id = 'acc1'", 0)
+
+        assertEquals(0L, db.accountRow("acc1").awaitAsList().single().dirty, "the flag must stay clear")
+    }
+
+    @Test
     fun `deleting a row leaves a tombstone`(): Unit = runBlocking {
         val (db, _) = database()
         seedUserAndAccount(db)
 
         db.budgetMasterDatabaseQueries.deleteAccount("acc1")
 
-        val tombstones = db.budgetMasterDatabaseQueries.selectTombstonesSince(0).awaitAsList()
+        val tombstones = db.budgetMasterDatabaseQueries.selectUnpushedTombstones().awaitAsList()
         assertTrue(
             tombstones.any { it.tableName == "AccountEntity" && it.rowId == "acc1" },
             "without this, another device would helpfully restore the deleted row",
@@ -105,7 +119,7 @@ class SyncBookkeepingTest {
         // trigger firing for rows removed by the cascade rather than by an explicit DELETE.
         q.deleteAccount("acc1")
 
-        val tombstones = q.selectTombstonesSince(0).awaitAsList()
+        val tombstones = q.selectUnpushedTombstones().awaitAsList()
         assertTrue(
             tombstones.any { it.tableName == "TransactionEntity" && it.rowId == "t1" },
             "a cascaded transaction must tombstone itself, or it resurrects on the next pull",
@@ -135,7 +149,7 @@ class SyncBookkeepingTest {
 
         q.purgeTombstonesBefore(1_000L)
 
-        val left = q.selectTombstonesSince(0).awaitAsList()
+        val left = q.selectUnpushedTombstones().awaitAsList()
         assertEquals(1, left.size)
         assertEquals("recent", left.single().rowId)
     }
