@@ -1311,6 +1311,67 @@ Config kill-switches if quotas tighten.
   cannot exercise. The notifications make it self-evident — an arriving message now visibly
   announces itself and its wallet, so "is it working?" is answerable at a glance.
 
+## Phase 14 — Real app lock
+
+> The biometric toggle shipped protecting nothing. `BiometricAuthenticator` could only report
+> availability, never prompt — and even that could not work, because the context it needed was
+> passed through a `setContext` method nothing ever called. The login screen's "biometric" button
+> navigated home on a preference that was hardcoded `false`. All of it is gone, replaced by a
+> lock that actually locks.
+
+### 14.1 PIN foundation — done
+
+- [x] Pure-Kotlin PBKDF2-HMAC-SHA256 in `commonMain`, chosen over a per-platform `javax.crypto` /
+  CryptoKit split **for provability**: it is pinned to the canonical FIPS 180-4, RFC 4231 and
+  RFC 7914 vectors, so correctness is checked on the host and holds everywhere because it is one
+  body of code. A platform split could not be verified for targets that only cross-compile here.
+- [x] `PinHasher` stores `v1:iterations:salt:hash`, compares in constant time, and returns false
+  on a malformed record rather than throwing, so a corrupted preference cannot crash the unlock
+  screen.
+- [x] Stated plainly in the code: a numeric PIN's keyspace is small enough that no iteration count
+  saves it once the hash leaks. The real defences are keeping it out of backups (Phase 12) and
+  bounding online guesses (below).
+
+### 14.2 Lock state and rules — done
+
+- [x] `AppLockController`, one instance per process so lock state survives activity recreation.
+  Settings are cached from a collected flow so the lifecycle callbacks stay non-suspending.
+- [x] **Rate limiting lives in the controller, not the screen** — it has to survive the screen, or
+  closing and reopening the unlock UI would reset the count and the limit would be no limit. Five
+  wrong PINs start a widening lockout (30s → 60s → 120s, capped at five minutes); a correct PIN
+  resets it, and even the correct PIN is refused while locked out.
+- [x] Cold start locks when enabled. A later settings change never locks a running, already
+  unlocked app, but disabling unlocks immediately so nobody is stranded at a lock screen.
+- [x] Seven tests: cold start both ways, disabling while running, the grace period on both sides
+  of the boundary, right/wrong PIN, and the lockout including its expiry.
+
+### 14.3 Biometrics, gate and UI — done
+
+- [x] `BiometricPrompter` in `:core` — a real `BiometricPrompt` that suspends until resolved.
+  Distinguishes cancelled (the user chose the PIN fallback) from failed and unavailable, because
+  treating a deliberate choice as a failure would be wrong at the one moment the user is watching.
+  A single unrecognised finger deliberately does **not** end the prompt.
+- [x] `AppLockGate` renders the lock screen **instead of** the app, never over it: composing the
+  app underneath would leave balances rendered and readable in the recents preview, which is most
+  of what the lock is for.
+- [x] Foreground/background tracked by counting started activities, so rotating the screen is not
+  mistaken for leaving the app. No extra dependency needed.
+- [x] Own keypad rather than the system IME: a PIN typed into a text field is exposed to platform
+  prediction and clipboard. Fixed six digits so entry submits itself on the last one.
+- [x] Settings section, hidden where the platform cannot support app lock. Enabling asks for a PIN
+  first — biometrics can be un-enrolled at any time, so a lock with no PIN behind it can strand
+  its owner outside their own ledger. Screenshot-tested in both themes, with and without the
+  biometric key.
+
+### 14.4 Theatre removed — done
+
+- [x] Deleted `BiometricAuthenticator` (all four platform files), `ActivityProvider`,
+  `CheckBiometricSupportUseCase`, `ToggleBiometricUseCase`, the whole unreachable biometric
+  onboarding screen, and `AuthRoute.Biometric`.
+- [x] Removed the login screen's biometric button. It read a repository method hardcoded to
+  `false`, so it could only ever fail — and had that preference ever been true it would have
+  navigated straight home with no authentication at all.
+
 ### Phase 9 — Insight & polish
 
 > Two gaps found by using the app rather than reading it.

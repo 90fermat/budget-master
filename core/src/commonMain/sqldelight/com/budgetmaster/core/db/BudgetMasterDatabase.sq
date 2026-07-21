@@ -494,3 +494,58 @@ WHERE AccountEntity.userId = ?
 -- Additional Transactions Queries
 selectTransactionsSince:
 SELECT * FROM TransactionEntity WHERE timestamp >= ? ORDER BY timestamp DESC;
+
+-- ==========================================
+-- BACKUP / RESTORE
+-- ==========================================
+-- Whole-table reads and wipes, used only by BackupService. Deliberately unscoped by user: a
+-- backup is of the device, and a restore replaces everything, so filtering by the *current*
+-- session would silently drop a second profile's data from the file.
+
+selectAllUsersForBackup:
+SELECT * FROM UserEntity;
+
+selectAllAccountsForBackup:
+SELECT * FROM AccountEntity;
+
+selectAllCategoriesForBackup:
+SELECT * FROM CategoryEntity;
+
+selectAllBudgetsForBackup:
+SELECT * FROM BudgetEntity;
+
+selectAllGoalsForBackup:
+SELECT * FROM SavingsGoalEntity;
+
+selectAllNotificationsForBackup:
+SELECT * FROM NotificationEntity;
+
+selectAllImportedMessagesForBackup:
+SELECT * FROM ImportedMessageEntity;
+
+deleteAllUsers:
+DELETE FROM UserEntity;
+
+deleteAllAccounts:
+DELETE FROM AccountEntity;
+
+deleteAllCategories:
+DELETE FROM CategoryEntity;
+
+deleteAllTransactions:
+DELETE FROM TransactionEntity;
+
+deleteAllBudgets:
+DELETE FROM BudgetEntity;
+
+deleteAllGoals:
+DELETE FROM SavingsGoalEntity;
+
+deleteAllRecurring:
+DELETE FROM RecurringTransactionEntity;
+
+deleteAllNotifications:
+DELETE FROM NotificationEntity;
+
+deleteAllImportedMessages:
+DELETE FROM ImportedMessageEntity;
