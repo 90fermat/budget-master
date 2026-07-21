@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.catch
 import androidx.compose.ui.text.intl.Locale
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -59,6 +60,9 @@ class DashboardViewModel(
     private val getAiInsights: GetAiInsightsUseCase,
     private val settingsRepository: AppSettingsRepository,
     private val sessionStore: SessionStore,
+    /** Unread notification count, injected as a flow so the ViewModel need not depend on the
+     *  concrete store - which keeps it trivial to drive in tests. */
+    private val unreadNotifications: Flow<Int>,
 ) : ViewModel() {
 
     /** The last swiped-away row, held only until undo is taken or the snackbar lapses. */
@@ -90,6 +94,10 @@ class DashboardViewModel(
             .map { user -> user?.displayName?.takeIf { it.isNotBlank() } ?: user?.email?.substringBefore('@') }
             .onEach { name -> _state.update { it.copy(userName = name) } }
             .launchIn(viewModelScope)
+
+        unreadNotifications
+            .onEach { count -> _state.update { it.copy(unreadNotifications = count) } }
+            .launchIn(viewModelScope)
     }
 
     /**
@@ -108,7 +116,7 @@ class DashboardViewModel(
             is DashboardIntent.QuickActionClicked -> emitEffect(
                 DashboardEffect.NavigateToAddTransaction(intent.type)
             )
-            is DashboardIntent.NotificationsClicked -> emitEffect(DashboardEffect.NavigateToSettings)
+            is DashboardIntent.NotificationsClicked -> emitEffect(DashboardEffect.NavigateToNotifications)
         }
     }
 

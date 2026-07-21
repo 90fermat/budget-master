@@ -503,6 +503,14 @@
     <string name="settings_sms_destination_label">Import %1$s into</string>
     <string name="settings_sms_destination_help">Transactions captured from %1$s are added to this wallet. You can move any entry later.</string>
     <string name="settings_sms_no_wallets">Create a wallet first, then choose where imports go.</string>
+    <string name="notif_budget_exceeded_body">You've gone over your %1$s budget (%2$s).</string>
+    <string name="notif_budget_warning_body">You're at %2$s of your %1$s budget.</string>
+    <string name="notifications_title">Notifications</string>
+    <string name="notifications_empty_title">You're all caught up</string>
+    <string name="notifications_empty_subtitle">Budget alerts and imported transactions will show up here.</string>
+    <string name="notifications_mark_all_read">Mark all as read</string>
+    <string name="notifications_delete">Delete notification</string>
+    <string name="notifications_back">Back</string>
     <string name="provider_orange_money">Orange Money</string>
     <string name="provider_mtn_momo">MTN MoMo</string>
 </resources>

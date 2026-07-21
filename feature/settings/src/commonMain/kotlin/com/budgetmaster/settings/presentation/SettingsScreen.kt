@@ -118,6 +118,7 @@ import com.budgetmaster.core.designsystem.DynamicSwatchColors
 import com.budgetmaster.core.designsystem.Spacing
 import com.budgetmaster.core.designsystem.colorScheme
 import com.budgetmaster.core.localization.AppLanguage
+import com.budgetmaster.core.notifications.rememberNotificationPermissionRequester
 import com.budgetmaster.core.sms.rememberSmsPermissionRequester
 import com.budgetmaster.core.sms.moneyProviderLabelRes
 import com.budgetmaster.core.db.WalletRef
@@ -570,10 +571,18 @@ private fun SmsImportSection(
     var backfilled by remember { mutableStateOf<Int?>(null) }
     var permissionDenied by remember { mutableStateOf(false) }
 
+    // Fire-and-forget: a denied notification permission is not fatal, because every import is also
+    // written to the in-app inbox. Requested here because enabling capture is when live captures
+    // start needing to announce themselves.
+    val notificationPermission = rememberNotificationPermissionRequester {}
+
     val permission = rememberSmsPermissionRequester { granted ->
         permissionDenied = !granted
         if (granted) {
             onEnabledChange(true)
+            if (notificationPermission.isSupported && !notificationPermission.isGranted) {
+                notificationPermission.request()
+            }
             // Backfill immediately: a ledger that starts with the user's history is useful today,
             // one that starts empty is useful in a month.
             backfilling = true

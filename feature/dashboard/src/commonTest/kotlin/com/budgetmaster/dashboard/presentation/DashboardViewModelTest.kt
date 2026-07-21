@@ -223,7 +223,8 @@ class DashboardViewModelTest {
             getTopTransactions = getTopTransactionsUseCase,
             getAiInsights = getAiInsightsUseCase,
             settingsRepository = settingsRepository,
-            sessionStore = sessionStore
+            sessionStore = sessionStore,
+            unreadNotifications = flowOf(0),
         )
     }
 

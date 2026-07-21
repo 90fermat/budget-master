@@ -27,11 +27,12 @@ sealed interface DashboardEffect {
     data class NavigateToAddTransaction(val type: TransactionType) : DashboardEffect
 
     /**
-     * Navigate to Settings (also where notifications currently live).
+     * Open the notifications inbox.
      *
-     * Replaced a stringly-typed `onQuickAction("Settings")` callback.
+     * The bell used to route here to Settings, because there was no inbox and the contentDescription
+     * lied to screen readers about the destination. Now it opens the real thing.
      */
-    data object NavigateToSettings : DashboardEffect
+    data object NavigateToNotifications : DashboardEffect
 
     /**
      * Show a Snackbar offering to undo a recently deleted transaction.

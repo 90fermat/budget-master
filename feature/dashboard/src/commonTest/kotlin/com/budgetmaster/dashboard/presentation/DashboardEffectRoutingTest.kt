@@ -28,7 +28,7 @@ class DashboardEffectRoutingTest {
      * the screen's `when` and this diverge, the screen is what to fix.
      */
     private fun route(effect: DashboardEffect): String = when (effect) {
-        DashboardEffect.NavigateToSettings -> "settings"
+        DashboardEffect.NavigateToNotifications -> "notifications"
         DashboardEffect.NavigateToTransactions -> "transactions"
         is DashboardEffect.NavigateToAddTransaction -> when (effect.type) {
             TransactionType.EXPENSE -> "editor:${TransactionKind.EXPENSE}"
@@ -71,7 +71,7 @@ class DashboardEffectRoutingTest {
         // effect is added and left unrouted, `route` stops compiling. This asserts the weaker but
         // still useful property that nothing maps to a blank destination.
         val all = listOf(
-            DashboardEffect.NavigateToSettings,
+            DashboardEffect.NavigateToNotifications,
             DashboardEffect.NavigateToTransactions,
             DashboardEffect.NavigateToAddTransaction(TransactionType.EXPENSE),
             DashboardEffect.NavigateToAddTransaction(TransactionType.INCOME),

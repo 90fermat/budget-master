@@ -46,6 +46,26 @@ object DateUtils {
     }
 
     /**
+     * [relativeDay] straight from an epoch millisecond, for callers in modules that do not depend
+     * on kotlinx-datetime (the shared shell). Keeps the LocalDate off their classpath.
+     */
+    fun relativeDay(
+        timestamp: Long,
+        timeZone: TimeZone = TimeZone.currentSystemDefault(),
+    ): RelativeDay = relativeDay(toLocalDate(timestamp, timeZone), timeZone)
+
+    /**
+     * The ISO calendar date (`YYYY-MM-DD`) for an epoch millisecond, as a plain String.
+     *
+     * For callers with no kotlinx-datetime on their classpath that just need a stable, locale-safe
+     * date label — the same string the transactions list shows for older days.
+     */
+    fun isoDate(
+        timestamp: Long,
+        timeZone: TimeZone = TimeZone.currentSystemDefault(),
+    ): String = toLocalDate(timestamp, timeZone).toString()
+
+    /**
      * The epoch-millisecond `[start, end]` bounds of the current calendar month,
      * where `start` is the first instant of the 1st and `end` is the last millisecond
      * before the next month begins.

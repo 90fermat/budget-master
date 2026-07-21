@@ -37,5 +37,7 @@ data class DashboardState(
      * The signed-in user's name for the greeting, or `null` when unknown — email/password
      * sign-up sets no display name, so the UI falls back rather than inventing one.
      */
-    val userName: String? = null
+    val userName: String? = null,
+    /** Unread notifications, for the bell badge. */
+    val unreadNotifications: Int = 0,
 )

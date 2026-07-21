@@ -9,6 +9,10 @@
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
     <uses-permission android:name="android.permission.READ_SMS" />
 
+    <!-- Android 13+ gates notifications at runtime. Requested when the user enables SMS import,
+         which is when captures need to announce themselves; denial degrades to the in-app inbox. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <application
         android:name=".BudgetMasterApplication"
         android:allowBackup="false"

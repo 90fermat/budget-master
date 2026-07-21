@@ -1245,17 +1245,18 @@ Config kill-switches if quotas tighten.
 
 ### 13.1 Destination is the user's choice, never a guess
 
-- [ ] Per-provider destination wallet, stored as `AppSettings.smsImportAccounts` (`provider ->
+- [x] Per-provider destination wallet, stored as `AppSettings.smsImportAccounts` (`provider ->
   walletId`). Per-provider rather than one global, because an Orange Money balance and an MTN MoMo
   balance are genuinely different accounts of money; with one provider today it is one row.
-- [ ] `ImportMoneyMessageUseCase` takes an `accountFor: (provider) -> String?` resolver instead of
+- [x] `ImportMoneyMessageUseCase` takes an `accountFor: (provider) -> String?` resolver instead of
   a fixed id, and a new `NoDestination` outcome: a parsed message with no configured wallet is
-  held (not misfiled) and surfaces a "choose a wallet" notification, so a later backfill imports
-  it once a wallet is set. The paste path falls back to the active wallet — correct there because
-  the user is present and the row appears in front of them.
-- [ ] When SMS import is enabled, default the destination to the currently active wallet and show
-  it prominently, so the common path never hits `NoDestination`, while keeping that outcome as the
-  safety net.
+  held (not misfiled, and **not** recorded as seen, so it survives) and surfaces a "choose a
+  wallet" notification, so a later backfill imports it once a wallet is set. The paste path falls
+  back to the active wallet — correct there because the user is present and the row appears in
+  front of them. Unit-tested including the hold-then-import path.
+- [x] When SMS import is enabled, default each provider's destination to the currently active
+  wallet, so the common path never hits `NoDestination`, while keeping that outcome as the safety
+  net. Existing choices are left untouched. Unit-tested.
 
 ### 13.2 Every outcome announces itself
 
@@ -1275,11 +1276,14 @@ Config kill-switches if quotas tighten.
 
 ### 13.3 Settings
 
-- [ ] Destination-wallet picker per configured provider, fed by `WalletDirectory`.
-- [ ] Owner numbers: keep the single comma/semicolon-separated field (a flat set is correct — an
-  owner number identifies "me" for transfer direction regardless of provider), but make multiple
-  numbers obviously supported and validate them. Keeps the Phase 11.3 cursor fix.
-- [ ] Surface which wallet a backfill imported into, answering "I could not know where it went".
+- [x] Destination-wallet picker per configured provider, fed by `WalletDirectory`. Only providers
+  that have a parser are offered (self-updating: the MTN parser appearing adds its row), so the
+  UI never asks for a destination for messages that can never be read.
+- [ ] Owner numbers: the comma/semicolon field already supports multiple numbers and keeps the
+  Phase 11.3 cursor fix. Making it *obviously* multi-value (chips) and validating is still open.
+- [x] The destination each provider imports into is now visible and chosen in Settings — which,
+  with the notifications, answers "I could not know where it went". A per-backfill wallet summary
+  line is still worth adding.
 
 ### 13.4 Notifications inbox screen
 

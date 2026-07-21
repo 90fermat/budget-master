@@ -501,6 +501,14 @@
     <string name="settings_sms_destination_label">Importer %1$s dans</string>
     <string name="settings_sms_destination_help">Les transactions captées depuis %1$s sont ajoutées à ce portefeuille. Vous pourrez déplacer toute écriture plus tard.</string>
     <string name="settings_sms_no_wallets">Créez d'abord un portefeuille, puis choisissez la destination des imports.</string>
+    <string name="notif_budget_exceeded_body">Vous avez dépassé votre budget %1$s (%2$s).</string>
+    <string name="notif_budget_warning_body">Vous êtes à %2$s de votre budget %1$s.</string>
+    <string name="notifications_title">Notifications</string>
+    <string name="notifications_empty_title">Tout est à jour</string>
+    <string name="notifications_empty_subtitle">Les alertes de budget et les transactions importées apparaîtront ici.</string>
+    <string name="notifications_mark_all_read">Tout marquer comme lu</string>
+    <string name="notifications_delete">Supprimer la notification</string>
+    <string name="notifications_back">Retour</string>
     <string name="provider_orange_money">Orange Money</string>
     <string name="provider_mtn_momo">MTN MoMo</string>
 </resources>

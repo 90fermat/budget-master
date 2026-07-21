@@ -40,6 +40,8 @@ import com.budgetmaster.core.designsystem.components.HelpIconButton
 import com.budgetmaster.core.designsystem.components.rememberGuidance
 import com.budgetmaster.core.guidance.GuidanceKey
 import com.budgetmaster.core.navigation.TransactionKind
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.Badge
 import com.budgetmaster.core.util.initialsOf
 import com.budgetmaster.core.util.monthYearLabel
 import com.budgetmaster.dashboard.presentation.components.PreviewLightDark
@@ -53,13 +55,13 @@ import org.koin.compose.viewmodel.koinViewModel
  * Collects state from [DashboardViewModel] and delegates rendering to specialised
  * sub-composables, keeping business logic out of the UI layer.
  *
- * @param onNavigateToSettings Called when the ViewModel emits [DashboardEffect.NavigateToSettings].
+ * @param onNavigateToNotifications Called when the ViewModel emits [DashboardEffect.NavigateToNotifications].
  * @param onViewAllTransactions Callback to navigate to the full Transactions list screen.
  * @param onInsightNavigate Callback for navigating to an insight action route.
  */
 @Composable
 fun DashboardScreen(
-    onNavigateToSettings: () -> Unit = {},
+    onNavigateToNotifications: () -> Unit = {},
     onViewAllTransactions: () -> Unit = {},
     onInsightNavigate: (String) -> Unit = {},
     onAddTransaction: (TransactionKind) -> Unit = {},
@@ -84,7 +86,7 @@ fun DashboardScreen(
     LaunchedEffect(Unit) {
         viewModel.effects.collect { effect ->
             when (effect) {
-                DashboardEffect.NavigateToSettings -> onNavigateToSettings()
+                DashboardEffect.NavigateToNotifications -> onNavigateToNotifications()
                 DashboardEffect.NavigateToTransactions -> onViewAllTransactions()
                 is DashboardEffect.NavigateToAddTransaction -> when (effect.type) {
                     TransactionType.EXPENSE -> onAddTransaction(TransactionKind.EXPENSE)
@@ -247,12 +249,24 @@ private fun DashboardScrollableBody(
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
             HelpIconButton(onClick = onHelp)
-            IconButton(onClick = { onIntent(DashboardIntent.NotificationsClicked) }) {
-                Icon(
-                    imageVector = Icons.Default.Notifications,
-                    contentDescription = stringResource(Res.string.dashboard_notifications),
-                    tint = MaterialTheme.colorScheme.onBackground
-                )
+            BadgedBox(
+                badge = {
+                    // Only when there is something unread, and capped so a backlog reads "9+"
+                    // rather than overflowing the badge.
+                    if (state.unreadNotifications > 0) {
+                        Badge {
+                            Text(if (state.unreadNotifications > 9) "9+" else state.unreadNotifications.toString())
+                        }
+                    }
+                },
+            ) {
+                IconButton(onClick = { onIntent(DashboardIntent.NotificationsClicked) }) {
+                    Icon(
+                        imageVector = Icons.Default.Notifications,
+                        contentDescription = stringResource(Res.string.dashboard_notifications),
+                        tint = MaterialTheme.colorScheme.onBackground
+                    )
+                }
             }
             }
         }

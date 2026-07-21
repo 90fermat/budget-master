@@ -62,6 +62,7 @@ import budgetmaster.core.generated.resources.nav_history
 import budgetmaster.core.generated.resources.nav_home
 import budgetmaster.core.generated.resources.nav_reports
 import budgetmaster.core.generated.resources.nav_settings
+import com.budgetmaster.shared.notifications.presentation.NotificationsScreen
 import com.budgetmaster.auth.presentation.biometric.BiometricScreen
 import com.budgetmaster.auth.presentation.biometric.BiometricViewModel
 import com.budgetmaster.auth.presentation.forgotpassword.ForgotPasswordScreen
@@ -507,7 +508,7 @@ private fun MainNavGraph(navController: androidx.navigation.NavHostController) {
 
         composable<AuthRoute.Dashboard> {
             DashboardScreen(
-                onNavigateToSettings = { navController.navigate(AuthRoute.Settings) },
+                onNavigateToNotifications = { navController.navigate(AuthRoute.Notifications) },
                 onViewAllTransactions = { navController.navigate(AuthRoute.Transactions()) },
                 onAddTransaction = { kind -> navController.navigate(AuthRoute.Transactions(kind)) },
                 onTransfer = { navController.navigate(AuthRoute.Accounts(openTransfer = true)) },
@@ -552,6 +553,10 @@ private fun MainNavGraph(navController: androidx.navigation.NavHostController) {
 
         composable<AuthRoute.Recurring> {
             RecurringScreen()
+        }
+
+        composable<AuthRoute.Notifications> {
+            NotificationsScreen(onBack = { navController.popBackStack() })
         }
 
         composable<AuthRoute.Settings> {

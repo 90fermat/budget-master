@@ -99,4 +99,10 @@ sealed interface AuthRoute {
      */
     @Serializable
     data object Recurring : AuthRoute
+
+    /**
+     * Route representing the notifications inbox, reached from the dashboard bell.
+     */
+    @Serializable
+    data object Notifications : AuthRoute
 }
