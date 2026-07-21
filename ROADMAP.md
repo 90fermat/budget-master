@@ -1423,6 +1423,51 @@ Config kill-switches if quotas tighten.
   a path list scoped to the export cache directory only, which fixes CSV export and enables
   backup sharing.
 
+## Phase 16 — Wallets kept out of the combined view
+
+> Requested directly: an "Epargne" wallet whose money should not be mixed with everyday spending
+> in the "All accounts" view.
+
+### 16.1 The flag — done
+
+- [x] `AccountEntity.includeInTotals`, schema **v5** (`4.sqm`), defaulting to 1 so no existing
+  user's totals change under them on upgrade. Opting a wallet out is always deliberate.
+- [x] Distinct from `isArchived` on purpose, and both are enforced: archived means "no longer in
+  use", excluded-from-totals means "in use, but kept apart".
+- [x] **Filtered at the query, not per screen.** `selectTransactionsByUser` and its paged variant
+  both carry `AND includeInTotals = 1`, so every consolidated surface — dashboard, transactions
+  list, reports, CSV export — inherits the rule and no future caller can forget it.
+- [x] The excluded wallet is **excluded from the combined transaction list too**, not just the
+  balance. A total and a list that disagree would be worse than either alone.
+- [x] Still fully usable: it stays in the accounts list, and switching to it explicitly shows its
+  balance and transactions as normal.
+- [x] Carried through backup with a serialization default, so a file written before this column
+  existed still restores.
+
+### 16.2 Pre-existing inconsistency fixed — done
+
+- [x] The dashboard's opening-balance sum ignored `isArchived` entirely while the Accounts screen
+  excluded archived wallets from net worth — so for anyone who had archived a wallet, the
+  dashboard balance and the net worth **disagreed**. Both now scope the same way, and the
+  opening balance is scoped identically to the transactions it is added to, or the total would
+  reconcile with neither.
+
+### 16.3 Verification — done
+
+- [x] Four query-level tests: the consolidated list omits the excluded wallet, the paged variant
+  omits it too (if only one were filtered, balance and rows would disagree), the wallet is still
+  listed and readable on its own, and re-including it brings it back.
+- [x] Migration test: an account created before the column exists gets `includeInTotals = 1`.
+
+### 16.4 Scope decision — recorded, not silently dropped
+
+- [ ] A **transient multi-select scope** (tick several wallets for one session) was discussed
+  alongside the persistent flag. Not built: it would change `ActiveAccountStore` from a nullable
+  id to a scope type, which ripples into every repository's `if (id != null) byAccount else
+  byUser` branch and needs `IN (?)` query variants throughout. The persistent flag fully answers
+  the reported need, and this is genuine extra flexibility rather than a missing piece — worth
+  doing deliberately, not as a rider.
+
 ### Phase 9 — Insight & polish
 
 > Two gaps found by using the app rather than reading it.

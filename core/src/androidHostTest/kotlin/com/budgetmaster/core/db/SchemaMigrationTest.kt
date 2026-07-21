@@ -280,11 +280,59 @@ class SchemaMigrationTest {
         assertEquals(1L, included)
     }
 
+
+    /** The synced tables the v1 helper omits, in a shape valid just before the v6 migration. */
+    private fun otherSyncedTablesAsOfV5(): List<String> = listOf(
+        "CREATE TABLE UserEntity (id TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, " +
+            "email TEXT NOT NULL UNIQUE, currency TEXT NOT NULL, createdAt INTEGER NOT NULL)",
+        "CREATE TABLE CategoryEntity (id TEXT NOT NULL PRIMARY KEY, userId TEXT NOT NULL, " +
+            "name TEXT NOT NULL, icon TEXT NOT NULL, color TEXT NOT NULL, isDefault INTEGER NOT NULL DEFAULT 0)",
+        "CREATE TABLE BudgetEntity (id TEXT NOT NULL PRIMARY KEY, userId TEXT NOT NULL, " +
+            "categoryId TEXT NOT NULL, amount REAL NOT NULL, spent REAL NOT NULL DEFAULT 0.0, " +
+            "startDate INTEGER NOT NULL, endDate INTEGER NOT NULL)",
+        "CREATE TABLE SavingsGoalEntity (id TEXT NOT NULL PRIMARY KEY, userId TEXT NOT NULL, " +
+            "name TEXT NOT NULL, targetAmount REAL NOT NULL, currentAmount REAL NOT NULL DEFAULT 0.0, " +
+            "targetDate INTEGER NOT NULL, createdAt INTEGER NOT NULL)",
+        "CREATE TABLE RecurringTransactionEntity (id TEXT NOT NULL PRIMARY KEY, accountId TEXT NOT NULL, " +
+            "categoryId TEXT, amount REAL NOT NULL, description TEXT NOT NULL, frequency TEXT NOT NULL, " +
+            "startDate INTEGER NOT NULL, nextRunDate INTEGER NOT NULL, isActive INTEGER NOT NULL DEFAULT 1)",
+    )
+
+    @Test
+    fun migratingV5BackfillsUpdatedAtRatherThanLeavingItZero() {
+        val driver = v1Database().apply {
+            BudgetMasterDatabase.Schema.synchronous().migrate(this, 1, 5)
+            // The v1 helper reconstructs only the two tables the earlier migrations touch. The v6
+            // migration backfills every synced table, so the rest have to exist for it to run —
+            // a real upgrade has had them since v1.
+            otherSyncedTablesAsOfV5().forEach { exec(it) }
+        }
+        driver.exec(
+            """
+            INSERT INTO AccountEntity (id, userId, name, type, balance, currency, createdAt, isArchived, includeInTotals)
+            VALUES ('a_old', 'u1', 'Everyday', 'CASH', 10.0, 'XAF', 0, 0, 1)
+            """.trimIndent(),
+        )
+
+        BudgetMasterDatabase.Schema.synchronous().migrate(driver, 5, 6)
+
+        // The trap this guards: the column defaults to 0, and 0 loses every last-write-wins
+        // comparison — so on first sync the cloud would silently overwrite every pre-existing
+        // local row. The backfill has to make existing data current, not ancient.
+        val updatedAt = driver.executeQuery(
+            null,
+            "SELECT updatedAt FROM AccountEntity WHERE id = 'a_old'",
+            { c -> c.next(); app.cash.sqldelight.db.QueryResult.Value(c.getLong(0)) },
+            0,
+        ).value
+        assertTrue((updatedAt ?: 0L) > 0L, "pre-existing rows must not be left at epoch zero")
+    }
+
     @Test
     fun freshDatabaseIsCreatedAtTheCurrentVersion() {
         // Guards the mistake that caused this: bumping the .sq without a matching migration
         // leaves fresh installs on a schema that upgraded installs can never reach.
-        // v5 added AccountEntity.includeInTotals (4.sqm).
-        assertEquals(5L, BudgetMasterDatabase.Schema.version)
+        // v6 added the sync columns and SyncTombstone (5.sqm).
+        assertEquals(6L, BudgetMasterDatabase.Schema.version)
     }
 }

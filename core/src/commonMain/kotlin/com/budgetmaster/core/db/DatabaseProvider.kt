@@ -24,6 +24,11 @@ class DatabaseProvider(private val driverFactory: DatabaseDriverFactory) {
         return database ?: mutex.withLock {
             database ?: run {
                 val driver = driverFactory.createDriver()
+                // Installed here rather than in the schema, because SQLDelight cannot compile a
+                // trigger body referencing NEW/OLD. Idempotent (`IF NOT EXISTS`) and cheap, so
+                // running it on every open covers fresh databases and migrated ones alike without
+                // needing to know which just happened.
+                SyncTriggers.install(driver)
                 BudgetMasterDatabase(driver).also { database = it }
             }
         }
