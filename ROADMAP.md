@@ -1281,11 +1281,13 @@ Config kill-switches if quotas tighten.
 - [x] Destination-wallet picker per configured provider, fed by `WalletDirectory`. Only providers
   that have a parser are offered (self-updating: the MTN parser appearing adds its row), so the
   UI never asks for a destination for messages that can never be read.
-- [ ] Owner numbers: the comma/semicolon field already supports multiple numbers and keeps the
-  Phase 11.3 cursor fix. Making it *obviously* multi-value (chips) and validating is still open.
-- [x] The destination each provider imports into is now visible and chosen in Settings — which,
-  with the notifications, answers "I could not know where it went". A per-backfill wallet summary
-  line is still worth adding.
+- [x] Owner numbers: the field parses multiple numbers, and the parsed set is now echoed back as
+  chips under it, so it is obvious that several are registered and exactly how the text was split
+  (the same split the importer uses to identify "me"). The help text calls out the Orange+MTN
+  case explicitly. Keeps the Phase 11.3 cursor fix.
+- [x] The destination each provider imports into is visible and chosen in Settings, and the
+  backfill-done message now points at Notifications for the per-import detail — which, with the
+  system and inbox notifications, closes "I could not know where it went" end to end.
 
 ### 13.4 Notifications inbox screen
 
