@@ -13,7 +13,13 @@ kotlin {
         compileSdk = 37
         minSdk = 26
         compilerOptions {
-            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+            // 17 rather than 11 across every module, because the Firebase KMP SDK's Firestore
+            // artifact ships JVM 17 bytecode and its API is largely `inline` — inlining it into an
+            // 11-target compilation is a hard error. Raising only this module would move the
+            // problem rather than solve it: anything inlining from :core would hit the same wall,
+            // and it would surface later and further from the cause. D8 desugars to DEX, so
+            // minSdk 26 is unaffected.
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
         }
         androidResources {
             enable = true
@@ -38,8 +44,31 @@ kotlin {
     }
     
     applyDefaultHierarchyTemplate()
-    
+
     sourceSets {
+        // A `mobile` source set shared by Android and iOS, holding sync's Firestore binding: it is
+        // genuinely one implementation for both, since the Firebase KMP SDK exposes the same API on
+        // each, and keeping it in androidMain would make iOS support a rewrite rather than a Koin
+        // binding. Wasm is excluded deliberately — its database is recreated on every page load, so
+        // there is no local state for sync to reconcile.
+        //
+        // Wired by hand rather than through the hierarchy template's `group("mobile")`, because
+        // `withAndroidTarget()` matches the old `androidTarget()` and not the target this module
+        // declares via the Android KMP library plugin. The template silently left Android out, and
+        // the source set compiled under metadata while never reaching the Android artifact — code
+        // that appears to build and simply is not there. Verified with a deliberate type error.
+        val mobileMain by creating {
+            dependsOn(commonMain.get())
+            dependencies {
+                // The Firebase KMP SDK, the same one :feature:auth already uses, so sync speaks to
+                // Firestore through one API on both platforms.
+                implementation(libs.firebase.common)
+                implementation(libs.firebase.firestore)
+            }
+        }
+        androidMain.get().dependsOn(mobileMain)
+        iosMain.get().dependsOn(mobileMain)
+
         commonMain.dependencies {
             implementation(libs.koin.core)
             // koinInject in the shared guidance composables
@@ -85,6 +114,7 @@ kotlin {
             implementation(libs.ktor.client.darwin)
             implementation(libs.androidx.datastore.preferences)
         }
+
         
         val androidHostTest by getting {
             dependencies {
