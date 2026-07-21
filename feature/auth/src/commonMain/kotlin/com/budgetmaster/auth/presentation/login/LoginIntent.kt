@@ -38,7 +38,6 @@ sealed interface LoginIntent {
     data class GoogleSignInFailed(val error: com.budgetmaster.auth.domain.model.AuthError) : LoginIntent
 
     /** Triggered when the user clicks the biometric login option. */
-    data object BiometricLoginClicked : LoginIntent
 
     /** Triggered when the user requests navigation to the register screen. */
     data object NavigateToRegister : LoginIntent

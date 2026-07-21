@@ -2,6 +2,7 @@ package com.budgetmaster.settings.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.budgetmaster.settings.domain.usecase.AppLockSettingsUseCase
 import com.budgetmaster.settings.domain.usecase.ObserveAppSettingsUseCase
 import com.budgetmaster.settings.domain.usecase.ResetOnboardingUseCase
 import com.budgetmaster.settings.domain.usecase.SetAiEnabledUseCase
@@ -44,6 +45,7 @@ class SettingsViewModel(
     private val setSecureScreen: SetSecureScreenUseCase,
     private val setSmsImportEnabled: SetSmsImportEnabledUseCase,
     private val setSmsImportAccount: SetSmsImportAccountUseCase,
+    private val setAppLock: AppLockSettingsUseCase,
     private val setSmsOwnerMsisdns: SetSmsOwnerMsisdnsUseCase,
     private val resetOnboarding: ResetOnboardingUseCase,
     private val walletDirectory: WalletDirectory,
@@ -71,6 +73,10 @@ class SettingsViewModel(
             smsImportAccounts = settings.smsImportAccounts,
             wallets = wallets,
             activeAccountId = activeAccountId,
+            appLockEnabled = settings.appLockEnabled,
+            appLockPinSet = settings.appLockPinHash != null,
+            appLockBiometricEnabled = settings.appLockBiometricEnabled,
+            appLockTimeoutSeconds = settings.appLockTimeoutSeconds,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsState())
 
@@ -101,6 +107,20 @@ class SettingsViewModel(
             is SettingsIntent.SmsImportEnabledChanged -> viewModelScope.launch {
                 setSmsImportEnabled(intent.enabled)
                 if (intent.enabled) defaultImportDestinations()
+            }
+            is SettingsIntent.AppLockEnabledChanged -> viewModelScope.launch {
+                setAppLock.setEnabled(intent.enabled)
+            }
+            is SettingsIntent.AppLockPinChosen -> viewModelScope.launch {
+                // Hashing happens here, not in the UI: the PIN should exist as plain text for as
+                // short a time and in as few places as possible.
+                setAppLock.setPin(intent.pin)
+            }
+            is SettingsIntent.AppLockBiometricChanged -> viewModelScope.launch {
+                setAppLock.setBiometricEnabled(intent.enabled)
+            }
+            is SettingsIntent.AppLockTimeoutChanged -> viewModelScope.launch {
+                setAppLock.setTimeoutSeconds(intent.seconds)
             }
             is SettingsIntent.SmsImportAccountChanged -> viewModelScope.launch {
                 setSmsImportAccount(intent.provider, intent.accountId)

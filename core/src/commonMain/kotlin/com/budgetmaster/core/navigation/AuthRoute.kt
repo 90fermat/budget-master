@@ -31,11 +31,6 @@ sealed interface AuthRoute {
     @Serializable
     data object ForgotPassword : AuthRoute
 
-    /**
-     * Route representing the Biometric setup screen.
-     */
-    @Serializable
-    data object Biometric : AuthRoute
 
     /**
      * Route representing the Dashboard screen.

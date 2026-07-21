@@ -34,4 +34,10 @@ data class SettingsState(
     val wallets: List<WalletRef> = emptyList(),
     /** The active wallet, used as the default destination when import is switched on. */
     val activeAccountId: String? = null,
+    /** App lock: requires biometrics or a PIN to open the app. */
+    val appLockEnabled: Boolean = false,
+    /** True once a PIN exists; enabling the lock requires one. */
+    val appLockPinSet: Boolean = false,
+    val appLockBiometricEnabled: Boolean = true,
+    val appLockTimeoutSeconds: Int = 0,
 )

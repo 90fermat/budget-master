@@ -306,6 +306,18 @@ fun SettingsScreen(
         )
 
         Spacer(modifier = Modifier.height(Spacing.medium))
+        AppLockSection(
+            enabled = state.appLockEnabled,
+            pinSet = state.appLockPinSet,
+            biometricEnabled = state.appLockBiometricEnabled,
+            timeoutSeconds = state.appLockTimeoutSeconds,
+            onEnabledChange = { viewModel.onIntent(SettingsIntent.AppLockEnabledChanged(it)) },
+            onPinChosen = { viewModel.onIntent(SettingsIntent.AppLockPinChosen(it)) },
+            onBiometricChange = { viewModel.onIntent(SettingsIntent.AppLockBiometricChanged(it)) },
+            onTimeoutChange = { viewModel.onIntent(SettingsIntent.AppLockTimeoutChanged(it)) },
+        )
+
+        Spacer(modifier = Modifier.height(Spacing.medium))
         AiSection(
             enabled = state.aiEnabled,
             onEnabledChange = { viewModel.onIntent(SettingsIntent.AiEnabledChanged(it)) },

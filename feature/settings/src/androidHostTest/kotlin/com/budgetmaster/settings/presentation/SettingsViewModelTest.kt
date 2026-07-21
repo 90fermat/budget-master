@@ -39,6 +39,7 @@ import com.budgetmaster.core.db.WalletDirectory
 import com.budgetmaster.core.session.ActiveAccountStore
 import com.budgetmaster.core.session.SessionStore
 import com.budgetmaster.core.sms.MoneyProviders
+import com.budgetmaster.settings.domain.usecase.AppLockSettingsUseCase
 import com.budgetmaster.settings.domain.usecase.SetSmsImportAccountUseCase
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -83,6 +84,7 @@ class SettingsViewModelTest {
             setSecureScreen = SetSecureScreenUseCase(repository),
             setSmsImportEnabled = SetSmsImportEnabledUseCase(repository),
             setSmsImportAccount = SetSmsImportAccountUseCase(repository),
+            setAppLock = AppLockSettingsUseCase(repository),
             setSmsOwnerMsisdns = SetSmsOwnerMsisdnsUseCase(repository),
             resetOnboarding = ResetOnboardingUseCase(OnboardingPreferences(FakeStore())),
             walletDirectory = WalletDirectory(DatabaseProvider(database), sessionStore, dispatcher),

@@ -74,6 +74,9 @@ kotlin {
             implementation(libs.mlkit.text.recognition)
             // rememberLauncherForActivityResult, for the photo picker and SMS permission.
             implementation(libs.androidx.activity.compose)
+            // BiometricPrompt for the app lock. Lives here rather than in :feature:auth because
+            // app lock is a core security concern, and :core cannot depend on a feature.
+            implementation(libs.androidx.biometric)
             implementation("androidx.core:core-ktx:1.15.0")
         }
         

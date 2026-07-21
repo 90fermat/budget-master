@@ -12,7 +12,7 @@ import androidx.lifecycle.Lifecycle
 import com.budgetmaster.shared.App
 import com.budgetmaster.core.prefs.AppSettingsRepository
 import com.budgetmaster.shared.MoneyMessageImporter
-import com.budgetmaster.auth.util.ActivityProvider
+import com.budgetmaster.core.security.CurrentActivityHolder
 import com.budgetmaster.transactions.domain.usecase.ImportOutcome
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.map
@@ -29,7 +29,7 @@ class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        ActivityProvider.setActivity(this)
+        CurrentActivityHolder.activity = this
         applySecureScreenSetting()
         setContent {
             App()
@@ -103,8 +103,8 @@ class MainActivity : FragmentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        if (ActivityProvider.getActivity() == this) {
-            ActivityProvider.setActivity(null)
+        if (CurrentActivityHolder.activity == this) {
+            CurrentActivityHolder.activity = null
         }
     }
 }

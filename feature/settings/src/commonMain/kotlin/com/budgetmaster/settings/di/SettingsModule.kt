@@ -4,6 +4,7 @@ import com.budgetmaster.settings.domain.usecase.ObserveAppSettingsUseCase
 import com.budgetmaster.settings.domain.usecase.ResetOnboardingUseCase
 import com.budgetmaster.settings.domain.usecase.SetAiEnabledUseCase
 import com.budgetmaster.settings.domain.usecase.SetSecureScreenUseCase
+import com.budgetmaster.settings.domain.usecase.AppLockSettingsUseCase
 import com.budgetmaster.settings.domain.usecase.SetSmsImportAccountUseCase
 import com.budgetmaster.settings.domain.usecase.SetSmsImportEnabledUseCase
 import com.budgetmaster.settings.domain.usecase.SetSmsOwnerMsisdnsUseCase
@@ -30,6 +31,7 @@ val settingsModule = module {
     factory { SetSecureScreenUseCase(get()) }
     factory { SetSmsImportEnabledUseCase(get()) }
     factory { SetSmsImportAccountUseCase(get()) }
+    factory { AppLockSettingsUseCase(get()) }
     factory { SetSmsOwnerMsisdnsUseCase(get()) }
     factory { ResetOnboardingUseCase(get()) }
 
@@ -45,6 +47,7 @@ val settingsModule = module {
             setSecureScreen = get(),
             setSmsImportEnabled = get(),
             setSmsImportAccount = get(),
+            setAppLock = get(),
             setSmsOwnerMsisdns = get(),
             resetOnboarding = get(),
             walletDirectory = get(),

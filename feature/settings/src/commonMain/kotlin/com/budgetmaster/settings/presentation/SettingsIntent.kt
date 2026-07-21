@@ -27,6 +27,16 @@ sealed class SettingsIntent {
     /** The user turned automatic mobile-money message import on or off. */
     data class SmsImportEnabledChanged(val enabled: Boolean) : SettingsIntent()
 
+    /** Turns the app lock on or off. Turning it on requires a PIN to already exist. */
+    data class AppLockEnabledChanged(val enabled: Boolean) : SettingsIntent()
+
+    /** Stores a freshly chosen PIN (already confirmed by the UI). */
+    data class AppLockPinChosen(val pin: String) : SettingsIntent()
+
+    data class AppLockBiometricChanged(val enabled: Boolean) : SettingsIntent()
+
+    data class AppLockTimeoutChanged(val seconds: Int) : SettingsIntent()
+
     /** The user chose which wallet a provider's imports land in. Null clears it. */
     data class SmsImportAccountChanged(val provider: String, val accountId: String?) : SettingsIntent()
 

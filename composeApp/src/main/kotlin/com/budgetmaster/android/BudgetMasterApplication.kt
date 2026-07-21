@@ -1,5 +1,8 @@
 package com.budgetmaster.android
 
+import android.app.Activity
+import android.os.Bundle
+import com.budgetmaster.core.security.AppLockController
 import android.app.Application
 import com.budgetmaster.core.config.RemoteFeatureFlags
 import com.budgetmaster.core.db.AppContextHolder
@@ -44,6 +47,43 @@ class BudgetMasterApplication : Application(), KoinComponent {
         // holds up start.
         val remoteFlags: RemoteFeatureFlags by inject()
         CoroutineScope(Dispatchers.Default).launch { remoteFlags.refresh() }
+
+        observeForegroundForAppLock()
+    }
+
+    /**
+     * Tells the app lock when the app leaves and returns to the foreground.
+     *
+     * Counted across activities rather than hooked to a single one, so rotating the screen or
+     * opening a second activity is not mistaken for leaving the app - the count only reaches zero
+     * when nothing of ours is on screen.
+     *
+     * Activity callbacks rather than ProcessLifecycleOwner: the behaviour needed here is exactly
+     * this counter, and it needs no extra dependency to get it.
+     */
+    private fun observeForegroundForAppLock() {
+        val appLock: AppLockController by inject()
+        registerActivityLifecycleCallbacks(
+            object : Application.ActivityLifecycleCallbacks {
+                private var startedActivities = 0
+
+                override fun onActivityStarted(activity: Activity) {
+                    if (startedActivities == 0) appLock.onMovedToForeground()
+                    startedActivities++
+                }
+
+                override fun onActivityStopped(activity: Activity) {
+                    startedActivities--
+                    if (startedActivities == 0) appLock.onMovedToBackground()
+                }
+
+                override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
+                override fun onActivityResumed(activity: Activity) = Unit
+                override fun onActivityPaused(activity: Activity) = Unit
+                override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
+                override fun onActivityDestroyed(activity: Activity) = Unit
+            },
+        )
     }
 
     /**

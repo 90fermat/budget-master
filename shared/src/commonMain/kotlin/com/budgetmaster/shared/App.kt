@@ -42,6 +42,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -62,9 +63,10 @@ import budgetmaster.core.generated.resources.nav_history
 import budgetmaster.core.generated.resources.nav_home
 import budgetmaster.core.generated.resources.nav_reports
 import budgetmaster.core.generated.resources.nav_settings
+import com.budgetmaster.core.security.AppLockController
+import com.budgetmaster.core.security.BiometricPrompter
+import com.budgetmaster.shared.lock.presentation.LockScreen
 import com.budgetmaster.shared.notifications.presentation.NotificationsScreen
-import com.budgetmaster.auth.presentation.biometric.BiometricScreen
-import com.budgetmaster.auth.presentation.biometric.BiometricViewModel
 import com.budgetmaster.auth.presentation.forgotpassword.ForgotPasswordScreen
 import com.budgetmaster.auth.presentation.forgotpassword.ForgotPasswordViewModel
 import com.budgetmaster.auth.presentation.login.LoginScreen
@@ -181,11 +183,43 @@ fun App() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,
                 ) {
-                    AppShell()
+                    AppLockGate(settings) { AppShell() }
                 }
             }
         }
     }
+}
+
+/**
+ * Shows the unlock screen instead of the app while the app lock is engaged.
+ *
+ * Deliberately *instead of*, not on top of: composing the app underneath a lock would keep the
+ * user's balances rendered and readable in the recents preview, which is most of what the lock is
+ * for. When unlocked this adds nothing but a pass-through.
+ */
+@Composable
+private fun AppLockGate(settings: AppSettings, content: @Composable () -> Unit) {
+    val appLock = koinInject<AppLockController>()
+    val prompter = koinInject<BiometricPrompter>()
+    val locked by appLock.isLocked.collectAsState()
+
+    if (!locked) {
+        content()
+        return
+    }
+
+    // Biometrics are offered only when the user allowed them and the hardware actually has an
+    // enrolment; otherwise the PIN stands alone, which it always can.
+    val biometricOffered = remember(settings.appLockBiometricEnabled) {
+        settings.appLockBiometricEnabled && prompter.isAvailable()
+    }
+
+    LockScreen(
+        biometricOffered = biometricOffered,
+        onSubmitPin = { pin -> appLock.submitPin(pin) },
+        onBiometric = { title, subtitle, cancel -> prompter.authenticate(title, subtitle, cancel) },
+        onBiometricSuccess = appLock::unlockWithBiometric,
+    )
 }
 
 /**
@@ -490,21 +524,6 @@ private fun MainNavGraph(navController: androidx.navigation.NavHostController) {
             )
         }
 
-        // Currently unreachable by design: onboarding no longer routes here, because biometric
-        // setup protects an account and there is no account until the user signs in. Kept rather
-        // than deleted because the app-lock work re-enters it from *after* sign-in, where it makes
-        // sense - and where, unlike today, it will actually gate something.
-        composable<AuthRoute.Biometric> {
-            val biometricViewModel: BiometricViewModel = koinViewModel()
-            BiometricScreen(
-                viewModel = biometricViewModel,
-                onNavigateToHome = {
-                    navController.navigate(AuthRoute.Dashboard) {
-                        popUpTo(AuthRoute.Biometric) { inclusive = true }
-                    }
-                }
-            )
-        }
 
         composable<AuthRoute.Dashboard> {
             DashboardScreen(

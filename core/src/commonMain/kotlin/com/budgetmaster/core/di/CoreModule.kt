@@ -17,7 +17,12 @@ import com.budgetmaster.core.prefs.AppSettingsRepository
 import com.budgetmaster.core.guidance.GuidancePreferences
 import com.budgetmaster.core.prefs.OnboardingPreferences
 import com.budgetmaster.core.session.ActiveAccountStore
+import com.budgetmaster.core.security.AppLockController
+import com.budgetmaster.core.security.BiometricPrompter
 import com.budgetmaster.core.session.SessionStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import org.koin.core.module.Module
 import org.koin.dsl.module
 
@@ -48,6 +53,10 @@ val coreModule = module {
     // isAvailable) respects it with no per-feature wiring.
     single<GenAiClient> { createGenAiClient(get()) }
     single { NotificationRepository(get(), get()) }
+    single { BiometricPrompter() }
+    // One controller for the process: the lock state must outlive any screen that shows it, and
+    // the failed-attempt count must survive the unlock UI being closed and reopened.
+    single { AppLockController(get(), CoroutineScope(SupervisorJob() + Dispatchers.Default)) }
 }
 
 /**

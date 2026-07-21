@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
@@ -46,7 +45,6 @@ import androidx.compose.ui.unit.dp
 import budgetmaster.core.generated.resources.Res
 import budgetmaster.core.generated.resources.auth_hide_password
 import budgetmaster.core.generated.resources.auth_show_password
-import budgetmaster.core.generated.resources.login_biometric_btn_text
 import budgetmaster.core.generated.resources.login_btn_text
 import budgetmaster.core.generated.resources.login_email_label
 import budgetmaster.core.generated.resources.login_forgot_password_link
@@ -209,15 +207,6 @@ fun LoginScreen(
                 ) {
                     Text(text = stringResource(Res.string.login_google_btn_text))
                 }
-            }
-
-            OutlinedButton(
-                onClick = { viewModel.onIntent(LoginIntent.BiometricLoginClicked) },
-                modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp),
-            ) {
-                Icon(imageVector = Icons.Default.Fingerprint, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text(text = stringResource(Res.string.login_biometric_btn_text))
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
