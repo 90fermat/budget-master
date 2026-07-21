@@ -1602,6 +1602,75 @@ contact with real use.
 - [ ] Koin binding and a real remote — Phase 19. The engine is bound to nothing yet, which is the
   point: it was proven first.
 
+## Phase 19 — Firestore, security rules, and joining an account (schema v8)
+
+> The engine from Phase 18 gets a real remote, rules that are tested rather than eyeballed, and an
+> answer to the question signing in raises: what happens to everything written while signed out.
+
+### 19.1 The Firestore binding
+
+- [x] One subtree per user — `users/{uid}/records/...` and `users/{uid}/tombstones/...` — so
+  ownership is a single check on the path and one user's data cannot be addressed by another.
+- [x] The binding is thin by design; every ordering and conflict rule stays in the engine. The one
+  judgement it makes is the one the interface demands of any remote — a tombstone removes the row's
+  record only when it is not older than that record — and it makes it in a transaction, because
+  between reading and deleting another device can write.
+- [x] Cursors keep **epoch nanoseconds**. Rounding to milliseconds would mean two documents written
+  in the same millisecond share a cursor value and the second never again satisfies `seq > cursor`.
+  Invisible, permanent, and indistinguishable from the row never having been created.
+- [x] `SyncController`: one pass at a time, failures reported rather than thrown. A phone without
+  signal is the normal condition, not an incident, and a failed pass leaves rows dirty and
+  tombstones unpushed so the next one resumes exactly where it stopped.
+
+### 19.2 Rules, tested against the emulator
+
+- [x] 18 cases in `firebase/test/rules.test.js`, each asserted from both sides — the owner can,
+  everyone else cannot. Run with `npm --prefix firebase test`.
+- [x] `seq` is pinned to `request.time`, so a device cannot choose its own sequence. Without that,
+  one wrong clock or one bad build could write a sequence years ahead and every other device would
+  skip everything behind it for good.
+- [x] Shape validation (known tables, field sets, types, payload ceiling) and a default-deny
+  catch-all, so a collection added later without rules fails closed rather than inheriting
+  something permissive.
+
+### 19.3 Joining an account
+
+- [x] Four cases; only one asks. A seeded starter wallet is not the user's data — treating it as
+  such would interrogate every first sign-in — but a single transaction is.
+- [x] **Ids written while signed out are not unique to a device.** The seeded wallet is
+  `default_user_cash` on every phone that was ever signed out. Discarding local data leaves delete
+  triggers behind, and publishing those tombstones would delete *another* device's wallet during
+  the operation the user chose to keep the cloud's data intact. Adoption now clears the tombstones
+  it creates, identified against a snapshot rather than by naming ids.
+- [x] Merging re-keys local wallets for the same reason, by copy-repoint-remove: a row id cannot be
+  changed while other rows reference it, and under enforced foreign keys either order of two
+  updates fails.
+
+### 19.4 The foreign keys were never on
+
+- [x] Found while working out whether the merge ordering was safe. Every table has declared
+  `ON DELETE CASCADE` since v1 and **none of it has ever run** — SQLite defaults foreign keys off,
+  Android's framework leaves them off, and neither driver enables them. Deleting a wallet left its
+  transactions on disk.
+- [x] Invisible until now, because every query that reads transactions joins accounts. Sync reads
+  rows directly, so the first push would have uploaded transactions belonging to wallets deleted
+  long ago, to every other device.
+- [x] Enforcement enabled on all three platforms, and migration v8 clears what is already orphaned.
+  Safe because those rows are unreachable; a transaction whose *category* is gone is merely
+  uncategorised instead, which is what `ON DELETE SET NULL` would have done.
+- [ ] **Needs a device check.** This changes what a delete does at runtime, and no host test can
+  prove the app never relied on the lax behaviour.
+
+### 19.5 Still to do in this phase
+
+- [ ] Wire sync into the UI: trigger on sign-in and on foreground, a "Sync now" control and last-
+  synced status in Settings, and the three-way prompt for the case adoption cannot decide alone.
+  The machinery and its decisions are built and tested; none of it is reachable from the app yet.
+- [ ] Enable **App Check enforcement for Firestore** in the console once sync ships — zero code,
+  real protection, and the reason App Check was set up in the first place.
+- [ ] Deploy the rules (`firebase deploy --only firestore:rules`) before any build with sync
+  reaches a real user.
+
 ### Phase 9 — Insight & polish
 
 > Two gaps found by using the app rather than reading it.
