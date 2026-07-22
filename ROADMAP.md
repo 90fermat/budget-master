@@ -1661,15 +1661,53 @@ contact with real use.
 - [ ] **Needs a device check.** This changes what a delete does at runtime, and no host test can
   prove the app never relied on the lax behaviour.
 
-### 19.5 Still to do in this phase
+### 19.5 Reaching it from the app
 
-- [ ] Wire sync into the UI: trigger on sign-in and on foreground, a "Sync now" control and last-
-  synced status in Settings, and the three-way prompt for the case adoption cannot decide alone.
-  The machinery and its decisions are built and tested; none of it is reachable from the app yet.
+- [x] Sync runs on sign-in and on returning to the foreground — the moment another device's changes
+  are most likely to be waiting and the only one the user is present for.
+- [x] A "Sync now" control and a status line in Settings. The status line is the point: sync that
+  silently succeeds is indistinguishable from sync that silently does nothing. A failure is worded
+  as ordinary, because for a phone it is, and the data is safe locally either way.
+- [x] The three-way prompt, shown only for the case adoption cannot decide alone. Not dismissible:
+  every other way out is a silent decision about which of the user's records to discard, and a tap
+  on the scrim is not consent. "Keep both" is first and described as losing nothing.
+- [x] **Sign-in now runs in three steps, and the order is load-bearing.** The user row must exist
+  before adoption can re-parent onto it; adoption must run before the starter wallet is seeded, or
+  someone bringing real data across is left with an empty "Cash" beside it they never made; and
+  sync must not start until the question is settled, or it publishes an answer the user never gave.
+  `AppDataSeeder.ensureUserRow` exists to make that middle step possible.
+- [x] An unreachable remote decides nothing rather than guessing, and retries next launch.
+
+### 19.6 Operational — still yours to do
+
+- [ ] **Deploy the rules** before any build with sync reaches a real user. Without this, the
+  project's default rules apply and the tested ones are just a file in the repo.
 - [ ] Enable **App Check enforcement for Firestore** in the console once sync ships — zero code,
   real protection, and the reason App Check was set up in the first place.
-- [ ] Deploy the rules (`firebase deploy --only firestore:rules`) before any build with sync
-  reaches a real user.
+- [ ] Register the App Check **debug token** (needed again after every clear-data).
+
+## Phase 20 — Screen previews
+
+- [x] Splash pinned light, dark and mid-reveal. It needed a split first: the visuals were welded to
+  a ViewModel, a coroutine and a clock, so `SplashContent` now takes the reveal as plain numbers
+  and the screen keeps the timing and navigation. It is the first thing anyone sees and the one
+  screen with no state left to inspect afterwards, which makes a regression there both the most
+  visible and the easiest to miss.
+- [x] The adoption dialog, light and dark. Pinned for its wording rather than its layout: if the
+  three options stop making clear which side is discarded, a user cannot recover from choosing
+  wrong.
+- [x] Already covered: dashboard (loaded, loading, error, and four locale/RTL variants), the
+  balance card, the AI insights widget, notifications, and the lock screen.
+- [ ] **The remaining screens need a stateless split before they can be captured.** Login,
+  onboarding, transactions, accounts, budgets, goals and reports all take a ViewModel, so a
+  screenshot test cannot render them without standing up Koin. Dashboard and notifications were
+  already split; the rest are the same one-file change each, and worth doing as its own pass rather
+  than smuggled into a sync phase.
+- [ ] **Web previews could not be captured here.** The dev server serves and the Wasm binary and
+  fonts load, but the Compose canvas never attaches in this environment and screenshots time out.
+  That is equally consistent with a missing WebGL context in the headless browser and with a real
+  regression, so it needs one look in an ordinary browser to tell the two apart before anything is
+  concluded.
 
 ### Phase 9 — Insight & polish
 

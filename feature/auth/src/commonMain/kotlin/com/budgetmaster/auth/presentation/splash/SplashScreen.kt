@@ -113,6 +113,32 @@ fun SplashScreen(
         }
     }
 
+    SplashContent(
+        markScale = markScale.value,
+        contentAlpha = contentAlpha.value,
+        wordmarkAlpha = wordmarkAlpha.value,
+        accentScale = accentScale.value,
+        creditAlpha = creditAlpha.value,
+        glow = glow,
+    )
+}
+
+/**
+ * The splash picture, with the reveal expressed as plain numbers.
+ *
+ * Separated from [SplashScreen] so it can be rendered without a ViewModel, a coroutine or a clock —
+ * which is what lets a screenshot test pin it. Nothing here decides anything; the defaults are the
+ * fully revealed end state, which is the frame worth pinning.
+ */
+@Composable
+fun SplashContent(
+    markScale: Float = 1f,
+    contentAlpha: Float = 1f,
+    wordmarkAlpha: Float = 1f,
+    accentScale: Float = 1f,
+    creditAlpha: Float = 1f,
+    glow: Float = 1f,
+) {
     val primary = MaterialTheme.colorScheme.primary
     val background = MaterialTheme.colorScheme.background
 
@@ -136,14 +162,14 @@ fun SplashScreen(
                 modifier = Modifier
                     .size(104.dp)
                     .graphicsLayer {
-                        scaleX = markScale.value
-                        scaleY = markScale.value
-                        alpha = contentAlpha.value
+                        scaleX = markScale
+                        scaleY = markScale
+                        alpha = contentAlpha
                     }
             )
             Spacer(Modifier.height(24.dp))
             AppWordmark(
-                modifier = Modifier.alpha(wordmarkAlpha.value),
+                modifier = Modifier.alpha(wordmarkAlpha),
                 fontSize = 34.sp,
             )
             Spacer(Modifier.height(14.dp))
@@ -152,7 +178,7 @@ fun SplashScreen(
                 modifier = Modifier
                     .width(120.dp)
                     .height(4.dp)
-                    .graphicsLayer { scaleX = accentScale.value }
+                    .graphicsLayer { scaleX = accentScale }
                     .clip(RoundedCornerShape(2.dp))
                     .background(
                         Brush.horizontalGradient(
@@ -167,7 +193,7 @@ fun SplashScreen(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 40.dp)
-                .alpha(creditAlpha.value),
+                .alpha(creditAlpha),
         ) {
             Text(
                 text = stringResource(Res.string.splash_credit_from),

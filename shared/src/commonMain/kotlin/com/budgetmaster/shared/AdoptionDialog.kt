@@ -32,7 +32,7 @@ import org.jetbrains.compose.resources.stringResource
  * wrong — the other two are offered for people who know they want a clean slate on one side.
  */
 @Composable
-internal fun AdoptionDialog(onChoice: (AdoptionChoice) -> Unit) {
+fun AdoptionDialog(onChoice: (AdoptionChoice) -> Unit) {
     AlertDialog(
         onDismissRequest = { },
         title = { Text(stringResource(Res.string.adoption_title)) },
