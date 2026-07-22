@@ -46,6 +46,10 @@ import com.budgetmaster.accounts.domain.model.AccountType
 import com.budgetmaster.core.util.MoneyFormatter
 import org.jetbrains.compose.resources.stringResource
 import androidx.compose.material3.Checkbox
+import androidx.compose.material.icons.filled.Archive
+import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.Functions
+import androidx.compose.material.icons.filled.Unarchive
 
 /**
  * A single wallet row: type icon, name/type, current balance, and an overflow menu
@@ -142,6 +146,12 @@ fun AccountCard(
                                 ),
                             )
                         },
+                        leadingIcon = {
+                            Icon(
+                                if (account.isArchived) Icons.Filled.Unarchive else Icons.Filled.Archive,
+                                contentDescription = null,
+                            )
+                        },
                         onClick = { menuOpen = false; onArchiveToggle() },
                     )
                     DropdownMenuItem(
@@ -156,6 +166,7 @@ fun AccountCard(
                                 ),
                             )
                         },
+                        leadingIcon = { Icon(Icons.Filled.Functions, contentDescription = null) },
                         // A checkbox rather than a bare label, so the row reads as a setting with
                         // a current state instead of an action whose effect you find out by trying
                         // it. Not interactive itself — the row's own click toggles it.
@@ -169,6 +180,13 @@ fun AccountCard(
                             Text(
                                 stringResource(Res.string.action_delete),
                                 color = MaterialTheme.colorScheme.error,
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Filled.DeleteOutline,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
                             )
                         },
                         onClick = { menuOpen = false; onDelete() },

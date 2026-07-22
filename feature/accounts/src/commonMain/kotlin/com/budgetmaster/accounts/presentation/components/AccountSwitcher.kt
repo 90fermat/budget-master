@@ -28,6 +28,7 @@ import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.Alignment
 import androidx.compose.material3.Checkbox
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material.icons.filled.SelectAll
 
 /**
  * Compact global account selector: shows the active wallet (or "All accounts") and opens a
@@ -62,6 +63,9 @@ fun AccountSwitcher(
         ) {
             DropdownMenuItem(
                 text = { Text(stringResource(Res.string.accounts_all)) },
+                // Every other row in this menu carries an icon; without one here the first item
+                // sits out of line with the rest and reads as unfinished rather than as a choice.
+                leadingIcon = { Icon(Icons.Filled.SelectAll, contentDescription = null) },
                 onClick = { open = false; onSelect(null) },
             )
             // Every wallet still in use, including those left out of the combined total. They are
