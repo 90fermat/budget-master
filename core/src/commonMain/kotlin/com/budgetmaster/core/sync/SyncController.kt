@@ -4,13 +4,16 @@ package com.budgetmaster.core.sync
 
 import com.budgetmaster.core.db.DatabaseProvider
 import com.budgetmaster.core.session.SessionStore
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
@@ -55,6 +58,10 @@ class SyncController(
     private val deviceIdProvider: DeviceIdProvider,
     private val scope: CoroutineScope,
     private val remoteFactory: (String) -> RemoteSyncDataSource? = ::createRemoteSyncDataSource,
+    // Passed through to the engine rather than left to its default, so a test measuring the
+    // timeout and the work it is timing share one clock. With the engine on a real dispatcher and
+    // the timeout on a virtual one, the timeout always wins instantly and proves nothing.
+    private val dispatcher: CoroutineDispatcher = Dispatchers.Default,
     private val now: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) {
     private val mutex = Mutex()
@@ -87,7 +94,20 @@ class SyncController(
 
         _status.value = SyncStatus.Syncing
         return@withLock try {
-            SyncEngine(databaseProvider, remote, deviceIdProvider.deviceId()).sync()
+            // A hard ceiling, because the failure mode here is not an exception but silence.
+            // Firestore resolves a write only when the server acknowledges it, so a request that
+            // is rejected upstream, or a device that cannot reach the backend, leaves the call
+            // suspended rather than throwing. Without this the pass never ends, the mutex is never
+            // released, and every later attempt - including the user pressing "Sync now" - waits
+            // behind it forever on a spinner that cannot resolve.
+            val finished = withTimeoutOrNull(TIMEOUT_MILLIS) {
+                SyncEngine(databaseProvider, remote, deviceIdProvider.deviceId(), dispatcher).sync()
+                true
+            } ?: false
+            if (!finished) {
+                _status.value = SyncStatus.Failed("timed out after ${TIMEOUT_MILLIS / 1000}s")
+                return@withLock false
+            }
             _status.value = SyncStatus.Synced(now())
             true
         } catch (failure: Exception) {
@@ -95,8 +115,16 @@ class SyncController(
             // honest local response to all of it is identical: keep the local database, say so,
             // and try again next time. Rows stay dirty and tombstones unpushed, so nothing is lost
             // by failing — the next pass picks up exactly where this one stopped.
-            _status.value = SyncStatus.Failed(failure.message)
+            _status.value = SyncStatus.Failed(failure.message ?: failure::class.simpleName)
             false
         }
+    }
+
+    private companion object {
+        /**
+         * Long enough for a slow connection and a large first push, short enough that a user
+         * watching the spinner gets an answer rather than a permanent "syncing".
+         */
+        const val TIMEOUT_MILLIS = 90_000L
     }
 }

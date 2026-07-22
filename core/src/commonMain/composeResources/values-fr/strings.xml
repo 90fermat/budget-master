@@ -576,4 +576,5 @@
     <string name="adoption_cloud_desc">Supprime uniquement ce qui se trouve sur cet appareil.</string>
     <string name="adoption_device">Garder les données de cet appareil</string>
     <string name="adoption_device_desc">Votre compte conserve aussi ses données ; celles de cet appareil s'y ajoutent.</string>
+    <string name="settings_sync_status_failed_reason">Synchronisation impossible : %1$s. Vos données restent sur cet appareil et partiront à la prochaine tentative.</string>
 </resources>

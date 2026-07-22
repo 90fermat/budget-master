@@ -10,6 +10,7 @@ import com.budgetmaster.core.session.SessionStore
 import com.budgetmaster.core.session.SessionUser
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -64,6 +65,7 @@ class SyncControllerTest {
         deviceIdProvider = DeviceIdProvider(StubStore()),
         scope = TestScope(UnconfinedTestDispatcher()),
         remoteFactory = remote,
+        dispatcher = UnconfinedTestDispatcher(),
         now = { 1_000L },
     )
 
@@ -99,6 +101,7 @@ class SyncControllerTest {
             deviceIdProvider = DeviceIdProvider(StubStore()),
             scope = TestScope(UnconfinedTestDispatcher()),
             remoteFactory = { remote },
+            dispatcher = UnconfinedTestDispatcher(),
             now = { 1_000L },
         )
         // Something to send, or the engine short-circuits and the pass proves nothing.
@@ -123,6 +126,43 @@ class SyncControllerTest {
     }
 
     @Test
+    fun `a remote that never answers ends as a failure, not a permanent spinner`() = runTest {
+        // The real failure mode. Firestore resolves a write only when the server acknowledges it,
+        // so a rejected or undeliverable request leaves the call suspended rather than throwing.
+        // Without a ceiling the pass never ends, the lock is never released, and every later
+        // attempt — including the user pressing "Sync now" — queues behind it on a spinner that
+        // can never resolve. That is what a device reported.
+        val silent = object : RemoteSyncDataSource {
+            override suspend fun pull(sinceSeq: Long): List<RemoteChange<RemoteRecord>> {
+                awaitCancellation()
+            }
+            override suspend fun pullTombstones(sinceSeq: Long): List<RemoteChange<RemoteTombstone>> = emptyList()
+            override suspend fun hasAnyRecords() = false
+            override suspend fun push(records: List<RemoteRecord>, tombstones: List<RemoteTombstone>) {
+                awaitCancellation()
+            }
+        }
+        val database = database()
+        val controller = SyncController(
+            databaseProvider = database,
+            sessionStore = signedIn(),
+            deviceIdProvider = DeviceIdProvider(StubStore()),
+            scope = TestScope(UnconfinedTestDispatcher()),
+            remoteFactory = { silent },
+            dispatcher = UnconfinedTestDispatcher(),
+            now = { 1_000L },
+        )
+        database.getDatabase().budgetMasterDatabaseQueries
+            .insertUser("uid-1", "Cyrille", "c@example.com", "XAF", 0L)
+
+        assertFalse(controller.sync())
+
+        assertIs<SyncStatus.Failed>(controller.status.value)
+        // And the lock is free, so the next attempt is not stuck behind the abandoned one.
+        assertFalse(controller.sync())
+    }
+
+    @Test
     fun `a failed pass leaves the work queued for the next one`() = runTest {
         val database = database()
         val session = signedIn()
@@ -137,6 +177,7 @@ class SyncControllerTest {
             deviceIdProvider = DeviceIdProvider(StubStore()),
             scope = TestScope(UnconfinedTestDispatcher()),
             remoteFactory = flaky,
+            dispatcher = UnconfinedTestDispatcher(),
             now = { 1_000L },
         )
         val q = database.getDatabase().budgetMasterDatabaseQueries

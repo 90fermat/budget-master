@@ -24,6 +24,7 @@ import budgetmaster.core.generated.resources.settings_sync_status_idle
 import budgetmaster.core.generated.resources.settings_sync_status_syncing
 import budgetmaster.core.generated.resources.settings_sync_status_synced
 import budgetmaster.core.generated.resources.settings_sync_status_failed
+import budgetmaster.core.generated.resources.settings_sync_status_failed_reason
 import budgetmaster.core.generated.resources.settings_sync_status_signed_out
 import budgetmaster.core.generated.resources.settings_sync_status_unsupported
 import org.jetbrains.compose.resources.stringResource
@@ -80,7 +81,12 @@ private fun SyncStatus.describe(): String = when (this) {
     // Deliberately not phrased as an error. A phone without signal is the normal case, the data is
     // safe locally, and the next pass resumes where this one stopped — so the message says so
     // rather than inviting the user to worry or to retry pointlessly.
-    is SyncStatus.Failed -> stringResource(Res.string.settings_sync_status_failed)
+    // The reason is shown when there is one. Without it the message was the same sentence for a
+    // missing network, a rejected write and a timeout — which is exactly the information needed to
+    // tell those apart, discarded at the point it mattered.
+    is SyncStatus.Failed -> reason
+        ?.let { stringResource(Res.string.settings_sync_status_failed_reason, it) }
+        ?: stringResource(Res.string.settings_sync_status_failed)
     SyncStatus.SignedOut -> stringResource(Res.string.settings_sync_status_signed_out)
     SyncStatus.Unsupported -> stringResource(Res.string.settings_sync_status_unsupported)
 }
