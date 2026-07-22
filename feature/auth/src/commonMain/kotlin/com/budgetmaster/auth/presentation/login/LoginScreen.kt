@@ -59,6 +59,9 @@ import com.budgetmaster.auth.domain.model.AuthException
 import com.budgetmaster.auth.presentation.localizedMessage
 import com.budgetmaster.auth.presentation.rememberGoogleSignInLauncher
 import org.jetbrains.compose.resources.stringResource
+import com.budgetmaster.core.designsystem.Spacing
+import com.budgetmaster.core.designsystem.GoogleLogo
+import androidx.compose.ui.graphics.Color
 
 /**
  * Composable login screen that collects email/password and dispatches [LoginIntent]s.
@@ -205,6 +208,15 @@ fun LoginScreen(
                     enabled = !state.isLoading,
                     modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp),
                 ) {
+                    Icon(
+                        imageVector = GoogleLogo,
+                        // Null rather than "Google": the label beside it already says so, and a
+                        // screen reader announcing both reads the button twice.
+                        contentDescription = null,
+                        tint = Color.Unspecified,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Spacer(modifier = Modifier.width(Spacing.small))
                     Text(text = stringResource(Res.string.login_google_btn_text))
                 }
             }

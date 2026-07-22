@@ -3,6 +3,7 @@ package com.budgetmaster.android
 import android.app.Activity
 import android.os.Bundle
 import com.budgetmaster.core.security.AppLockController
+import com.budgetmaster.core.sync.SyncController
 import android.app.Application
 import com.budgetmaster.core.config.RemoteFeatureFlags
 import com.budgetmaster.core.db.AppContextHolder
@@ -63,12 +64,19 @@ class BudgetMasterApplication : Application(), KoinComponent {
      */
     private fun observeForegroundForAppLock() {
         val appLock: AppLockController by inject()
+        val sync: SyncController by inject()
         registerActivityLifecycleCallbacks(
             object : Application.ActivityLifecycleCallbacks {
                 private var startedActivities = 0
 
                 override fun onActivityStarted(activity: Activity) {
-                    if (startedActivities == 0) appLock.onMovedToForeground()
+                    if (startedActivities == 0) {
+                        appLock.onMovedToForeground()
+                        // Coming back to the app is the moment another device's changes are most
+                        // likely to be waiting, and the only one the user is actually present for.
+                        // A no-op when signed out or when there is nothing to exchange.
+                        sync.requestSync()
+                    }
                     startedActivities++
                 }
 

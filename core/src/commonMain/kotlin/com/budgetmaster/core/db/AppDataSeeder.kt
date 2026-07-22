@@ -25,6 +25,36 @@ class AppDataSeeder(private val databaseProvider: DatabaseProvider) {
     private var categoriesSeeded = false
 
     /**
+     * Ensures the system user, the shared default categories and [userId]'s own row exist —
+     * **without** creating a first wallet.
+     *
+     * Split out for sign-in, which has to happen in three steps rather than two: the user row must
+     * exist before adoption can re-parent anything onto it, but the starter wallet must *not*,
+     * because adoption may be about to bring a real one across and the user would be left with an
+     * empty "Cash" beside it that they never created and cannot explain.
+     */
+    suspend fun ensureUserRow(
+        userId: String,
+        email: String = "local@budgetmaster.app",
+        name: String = "You",
+    ) {
+        if (userId in seededUsers) return
+        mutex.withLock {
+            val queries = databaseProvider.getDatabase().budgetMasterDatabaseQueries
+            seedCategoriesLocked(Clock.System.now().toEpochMilliseconds())
+            if (queries.selectUserById(userId).awaitAsOneOrNull() == null) {
+                queries.insertUser(
+                    id = userId,
+                    name = name,
+                    email = email,
+                    currency = DefaultData.DEFAULT_CURRENCY,
+                    createdAt = Clock.System.now().toEpochMilliseconds(),
+                )
+            }
+        }
+    }
+
+    /**
      * Ensures the system user + shared default categories exist, then creates [userId]'s
      * user row and first wallet if absent.
      */

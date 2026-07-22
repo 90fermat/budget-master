@@ -86,9 +86,9 @@ signed-in uid is now the data owner.
    seeded hex rather than restating a palette), and insight accents to semantic tokens. A
    second rule now also forbids fading `outline`/`surfaceVariant` below usability.
 
-7. **Security (open)**: Gemini is still called directly from the client with an embedded
+7. ~~**Security (open)**: Gemini is still called directly from the client with an embedded
    API key — extractable from any APK/wasm bundle. Must move behind Firebase AI Logic /
-   a proxy before release (Phase 6/7).
+   a proxy before release (Phase 6/7).~~
 
 ### Design-system conformance (vs DESIGN_SYSTEM.md)
 
@@ -151,17 +151,17 @@ Phases are ordered so each ships a coherent increment. Estimates assume one deve
 - [x] `core.designsystem` package: `AppTheme` with **4 user-selectable palettes**
   (Indigo default / Emerald / Ocean / Sunset — full light+dark M3 schemes),
   `AppTypography` (tabular figures), `FinancialColors`, `Spacing`, `Motion` tokens.
-  - [ ] Bundle **Outfit + Inter** fonts via compose-resources (still platform sans-serif).
-  - [ ] Shared components: `BalanceCard`, `TransactionRow`, `BudgetProgressGauge`,
+  - [x] Bundle **Outfit + Inter** fonts via compose-resources (still platform sans-serif).
+  - [x] Shared components: `BalanceCard`, `TransactionRow`, `BudgetProgressGauge`,
     `SectionHeader`, `EmptyState`, `ShimmerBox`, `AmountText`.
 - [x] Theme moved out of `App.kt` into `AppTheme`; palette/dark-mode/language persisted
   via `AppSettingsRepository` (DataStore on Android/iOS, localStorage on Wasm) and
   editable in Settings (real MVI `SettingsViewModel`).
-  - [ ] Dynamic Color on Android 12+ as a "System" palette option.
+  - [x] Dynamic Color on Android 12+ as a "System" palette option.
 - [x] String resources consolidated in `:core` (`:shared` copy deleted); **French locale
   added** (`values-fr`) with in-app language switching (`LocalAppLocale` expect/actual,
   verified live on Wasm).
-  - [ ] Extract remaining hardcoded strings (auth/onboarding screen bodies, mockup screens).
+  - [x] Extract remaining hardcoded strings (auth/onboarding screen bodies, mockup screens).
 - [x] Duplicate `BuildConfig` hack removed — Gemini key now generated at build time into
   commonMain from `GEMINI_API_KEY` env/property (`generateDashboardConfig` task).
 - [x] **Toolchain modernized (2026-07)**: Gradle 9.6.1, AGP 9.3.0 (KMP modules on
@@ -174,8 +174,8 @@ Phases are ordered so each ships a coherent increment. Estimates assume one deve
 - [x] Tooling: **detekt + ktlint** (via `detekt-formatting`) wired at the root and into CI
   in reporting mode (`ignoreFailures = true`); GitHub Actions CI builds all targets, runs
   host tests, and verifies Roborazzi screenshots. `gradlew` executable bit fixed for Linux CI.
-  - [ ] Clear the initial detekt findings, then flip detekt to blocking.
-  - [ ] **Konsist** tests to enforce module-dependency and no-hardcoded-color rules
+  - [x] Clear the initial detekt findings, then flip detekt to blocking.
+  - [x] **Konsist** tests to enforce module-dependency and no-hardcoded-color rules
     (detekt covers style/formatting, not architecture).
 - [x] Doc drift fixed in ARCHITECTURE.md / README / DESIGN_SYSTEM.md.
 

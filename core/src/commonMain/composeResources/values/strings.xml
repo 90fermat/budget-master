@@ -561,4 +561,21 @@
     <string name="accounts_excluded_badge">Kept separate</string>
     <string name="provider_orange_money">Orange Money</string>
     <string name="provider_mtn_momo">MTN MoMo</string>
+    <string name="settings_sync_title">Sync</string>
+    <string name="settings_sync_desc">Keeps your wallets, transactions, budgets and goals the same on every device you sign in to.</string>
+    <string name="settings_sync_now">Sync now</string>
+    <string name="settings_sync_status_idle">Not synced yet on this device.</string>
+    <string name="settings_sync_status_syncing">Syncing…</string>
+    <string name="settings_sync_status_synced">Last synced %1$s.</string>
+    <string name="settings_sync_status_failed">Could not sync. Your data is safe on this device and will go up next time.</string>
+    <string name="settings_sync_status_signed_out">Sign in to sync across your devices.</string>
+    <string name="settings_sync_status_unsupported">Sync is not available in the browser, because the web version keeps nothing between visits.</string>
+    <string name="adoption_title">You have data in both places</string>
+    <string name="adoption_body">This device has wallets or transactions that are not in your account, and your account already has data of its own. Choose what to keep — nothing is deleted until you do.</string>
+    <string name="adoption_merge">Keep both</string>
+    <string name="adoption_merge_desc">Everything from this device is added to your account. Nothing is lost.</string>
+    <string name="adoption_cloud">Keep my account's data</string>
+    <string name="adoption_cloud_desc">Discards what is on this device only.</string>
+    <string name="adoption_device">Keep this device's data</string>
+    <string name="adoption_device_desc">Your account keeps its data too; this device's is added alongside.</string>
 </resources>

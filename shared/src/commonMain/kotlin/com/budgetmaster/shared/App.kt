@@ -115,6 +115,12 @@ import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
+import com.budgetmaster.core.sync.createRemoteSyncDataSource
+import com.budgetmaster.core.sync.SyncController
+import com.budgetmaster.core.sync.LocalDataAdoption
+import com.budgetmaster.core.sync.AdoptionPlan
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 
 /**
  * Main application entry point for the shared Compose Multiplatform UI.
@@ -139,6 +145,11 @@ fun App() {
     val checkAuthStatus = koinInject<CheckAuthStatusUseCase>()
     val materializeDueRecurring = koinInject<MaterializeDueRecurringUseCase>()
     val refreshExchangeRates = koinInject<RefreshExchangeRatesUseCase>()
+    val adoption = koinInject<LocalDataAdoption>()
+    val syncController = koinInject<SyncController>()
+    // Holds the uid whose sign-in is waiting on the user to say what to keep. Nothing is applied,
+    // and nothing is synced, until they answer.
+    var adoptionPrompt by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(Unit) {
         checkAuthStatus().collect { status ->
             if (status is AuthStatus.Authenticated) {
@@ -149,7 +160,22 @@ fun App() {
                         email = status.user.email,
                     ),
                 )
+                // Three steps, in this order and for a reason. The user row must exist before
+                // adoption can re-parent onto it; adoption must run before the starter wallet is
+                // seeded, or a user bringing real data across is left with an empty "Cash" beside
+                // it; and sync must not run until the question of what to keep is settled, or it
+                // would publish an answer the user never gave.
+                seeder.ensureUserRow(status.user.id, status.user.email)
+                val plan = runCatching {
+                    adoption.plan(status.user.id, createRemoteSyncDataSource(status.user.id))
+                }.getOrNull()
+                when (plan) {
+                    null -> Unit // Remote unreachable: decide nothing rather than guess. Retries next launch.
+                    AdoptionPlan.AskUser -> adoptionPrompt = status.user.id
+                    else -> adoption.apply(status.user.id, plan)
+                }
                 seeder.seedForUser(status.user.id, status.user.email)
+                if (plan != null && plan != AdoptionPlan.AskUser) syncController.requestSync()
             } else {
                 // Not signed in: fall back to the local default user so the app stays usable.
                 sessionStore.setCurrentUser(null)
@@ -186,6 +212,19 @@ fun App() {
                     color = MaterialTheme.colorScheme.background,
                 ) {
                     AppLockGate(settings) { AppShell() }
+
+                    // Above the shell, because the answer decides what the shell will show. Sync
+                    // is only started once a choice has been applied.
+                    adoptionPrompt?.let { uid ->
+                        val scope = rememberCoroutineScope()
+                        AdoptionDialog { choice ->
+                            adoptionPrompt = null
+                            scope.launch {
+                                adoption.apply(uid, AdoptionPlan.AskUser, choice)
+                                syncController.requestSync()
+                            }
+                        }
+                    }
                 }
             }
         }

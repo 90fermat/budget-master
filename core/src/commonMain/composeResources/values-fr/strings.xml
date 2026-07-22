@@ -559,4 +559,21 @@
     <string name="accounts_excluded_badge">Gardé à part</string>
     <string name="provider_orange_money">Orange Money</string>
     <string name="provider_mtn_momo">MTN MoMo</string>
+    <string name="settings_sync_title">Synchronisation</string>
+    <string name="settings_sync_desc">Garde vos portefeuilles, transactions, budgets et objectifs identiques sur chaque appareil où vous vous connectez.</string>
+    <string name="settings_sync_now">Synchroniser maintenant</string>
+    <string name="settings_sync_status_idle">Pas encore synchronisé sur cet appareil.</string>
+    <string name="settings_sync_status_syncing">Synchronisation…</string>
+    <string name="settings_sync_status_synced">Dernière synchronisation : %1$s.</string>
+    <string name="settings_sync_status_failed">Synchronisation impossible. Vos données restent sur cet appareil et partiront à la prochaine tentative.</string>
+    <string name="settings_sync_status_signed_out">Connectez-vous pour synchroniser vos appareils.</string>
+    <string name="settings_sync_status_unsupported">La synchronisation n'est pas disponible dans le navigateur, car la version web ne conserve rien entre les visites.</string>
+    <string name="adoption_title">Vous avez des données des deux côtés</string>
+    <string name="adoption_body">Cet appareil contient des portefeuilles ou des transactions absents de votre compte, et votre compte a déjà ses propres données. Choisissez ce qu'il faut garder — rien n'est supprimé avant votre choix.</string>
+    <string name="adoption_merge">Garder les deux</string>
+    <string name="adoption_merge_desc">Tout ce qui est sur cet appareil est ajouté à votre compte. Rien n'est perdu.</string>
+    <string name="adoption_cloud">Garder les données de mon compte</string>
+    <string name="adoption_cloud_desc">Supprime uniquement ce qui se trouve sur cet appareil.</string>
+    <string name="adoption_device">Garder les données de cet appareil</string>
+    <string name="adoption_device_desc">Votre compte conserve aussi ses données ; celles de cet appareil s'y ajoutent.</string>
 </resources>

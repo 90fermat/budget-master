@@ -326,6 +326,9 @@ fun SettingsScreen(
         )
 
         Spacer(modifier = Modifier.height(Spacing.medium))
+        SyncSection(controller = koinInject())
+
+        Spacer(modifier = Modifier.height(Spacing.medium))
         BackupSection(onExport = onExportBackup, onRestore = onRestoreBackup)
 
         Spacer(modifier = Modifier.height(Spacing.medium))
