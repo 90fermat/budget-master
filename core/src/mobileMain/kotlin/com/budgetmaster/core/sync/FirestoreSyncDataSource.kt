@@ -25,11 +25,40 @@ internal data class FirestoreRecord(
     val updatedAt: Long = 0,
     val deviceId: String = "",
     val payload: String = "",
+    // Non-null on the way out, and that is load-bearing. A nullable field serialises through a
+    // different path, and the server-timestamp sentinel has to reach Firestore intact or the write
+    // carries an ordinary value — which the security rules reject, because they require `seq` to
+    // equal request.time precisely so a client cannot choose its own sequence.
+    val seq: BaseTimestamp = Timestamp.ServerTimestamp,
+)
+
+/**
+ * The same document on the way back, where `seq` may legitimately be absent.
+ *
+ * Between a local write and the server acknowledging it, the field has no value yet. Reading is
+ * therefore the one direction that must tolerate null — and writing is the one that must not.
+ */
+@Serializable
+internal data class FirestoreRecordSnapshot(
+    val tableName: String = "",
+    val rowId: String = "",
+    val updatedAt: Long = 0,
+    val deviceId: String = "",
+    val payload: String = "",
     val seq: BaseTimestamp? = null,
 )
 
 @Serializable
 internal data class FirestoreTombstone(
+    val tableName: String = "",
+    val rowId: String = "",
+    val deletedAt: Long = 0,
+    val deviceId: String = "",
+    val seq: BaseTimestamp = Timestamp.ServerTimestamp,
+)
+
+@Serializable
+internal data class FirestoreTombstoneSnapshot(
     val tableName: String = "",
     val rowId: String = "",
     val deletedAt: Long = 0,
@@ -68,7 +97,7 @@ class FirestoreSyncDataSource(
             .get()
             .documents
             .mapNotNull { snapshot ->
-                val record = snapshot.data(FirestoreRecord.serializer())
+                val record = snapshot.data(FirestoreRecordSnapshot.serializer())
                 // A write this client made moments ago is visible locally before the server has
                 // assigned its timestamp, so `seq` is briefly null. Skipping it is correct rather
                 // than merely safe: it has no position in the order yet, and it will arrive with
@@ -87,7 +116,7 @@ class FirestoreSyncDataSource(
             .get()
             .documents
             .mapNotNull { snapshot ->
-                val tombstone = snapshot.data(FirestoreTombstone.serializer())
+                val tombstone = snapshot.data(FirestoreTombstoneSnapshot.serializer())
                 tombstone.seq.epochNanos()?.let { seq ->
                     RemoteChange(
                         RemoteTombstone(tombstone.tableName, tombstone.rowId, tombstone.deletedAt, tombstone.deviceId),
@@ -120,7 +149,7 @@ class FirestoreSyncDataSource(
             firestore.runTransaction {
                 val held = get(recordRef)
                 val heldUpdatedAt = if (held.exists) {
-                    held.data(FirestoreRecord.serializer()).updatedAt
+                    held.data(FirestoreRecordSnapshot.serializer()).updatedAt
                 } else {
                     null
                 }
