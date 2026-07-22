@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Android 12 and later draw their own splash and ignore windowBackground for it. Left alone,
+        the system centres the *launcher icon's foreground* on this background — and that artwork
+        was drawn against charcoal, so its white hub and pale track would all but vanish on a light
+        screen. Pointing it at the splash mark instead gives it a shape drawn for this background.
+    -->
+    <style name="Theme.BudgetMaster" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@drawable/splash_window</item>
+        <item name="android:windowSplashScreenBackground">@color/splash_background</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_splash_mark</item>
+    </style>
+</resources>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        The app's own theme, replacing @android:style/Theme.Material.NoActionBar.
+
+        That default is the *dark* Material theme — Theme.Material is dark, Theme.Material.Light is
+        light — so the window behind the app was black on every device regardless of the user's
+        setting, and the first frame of every launch was a dark flash before Compose drew anything.
+    -->
+    <style name="Theme.BudgetMaster" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@drawable/splash_window</item>
+    </style>
+</resources>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        The exact value of the Compose colour scheme's light background, not an approximation.
+        These two frames sit one after the other, and a near-match is more noticeable than an
+        obvious difference: it reads as a flicker rather than as a transition.
+    -->
+    <color name="splash_background">#FFF6F8FC</color>
+</resources>

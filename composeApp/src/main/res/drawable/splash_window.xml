@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    What the window shows before Compose has drawn anything.
+
+    It matters more than it sounds: this is the very first frame of the app, and if it does not
+    match the Compose splash that replaces it, the launch reads as a flash followed by the real
+    app rather than as one continuous screen.
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/splash_background" />
+    <item
+        android:drawable="@drawable/ic_splash_mark"
+        android:width="108dp"
+        android:height="108dp"
+        android:gravity="center" />
+</layer-list>
