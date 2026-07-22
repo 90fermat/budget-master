@@ -96,6 +96,9 @@ class FirestoreSyncDataSource(
                 }
             }
 
+    override suspend fun hasAnyRecords(): Boolean =
+        records.limit(1).get().documents.isNotEmpty()
+
     override suspend fun push(records: List<RemoteRecord>, tombstones: List<RemoteTombstone>) {
         records.forEach { record ->
             this.records.document(docId(record.tableName, record.rowId)).set(

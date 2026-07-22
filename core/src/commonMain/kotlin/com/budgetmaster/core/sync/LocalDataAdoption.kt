@@ -76,7 +76,7 @@ class LocalDataAdoption(
     /** Decides what signing in as [uid] should do, given what is here and what the remote holds. */
     suspend fun plan(uid: String, remote: RemoteSyncDataSource?): AdoptionPlan {
         val hasLocal = hasUserData(DefaultData.DEFAULT_USER_ID)
-        val hasRemote = remote != null && remote.pull(0).isNotEmpty()
+        val hasRemote = remote != null && remote.hasAnyRecords()
 
         return when {
             hasLocal && hasRemote -> AdoptionPlan.AskUser

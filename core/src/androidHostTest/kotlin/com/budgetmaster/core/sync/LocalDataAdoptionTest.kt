@@ -18,12 +18,14 @@ private val ANON = DefaultData.DEFAULT_USER_ID
 private val SEED_ACCOUNT = DefaultData.firstAccountId(ANON)
 
 private class EmptyRemote : RemoteSyncDataSource {
+    override suspend fun hasAnyRecords() = false
     override suspend fun pull(sinceSeq: Long): List<RemoteChange<RemoteRecord>> = emptyList()
     override suspend fun pullTombstones(sinceSeq: Long): List<RemoteChange<RemoteTombstone>> = emptyList()
     override suspend fun push(records: List<RemoteRecord>, tombstones: List<RemoteTombstone>) = Unit
 }
 
 private class PopulatedRemote : RemoteSyncDataSource {
+    override suspend fun hasAnyRecords() = true
     override suspend fun pull(sinceSeq: Long) = listOf(
         RemoteChange(RemoteRecord("AccountEntity", "cloud-acc", 1L, "other-device", "{}"), 1L),
     )

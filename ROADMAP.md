@@ -1678,10 +1678,22 @@ contact with real use.
   `AppDataSeeder.ensureUserRow` exists to make that middle step possible.
 - [x] An unreachable remote decides nothing rather than guessing, and retries next launch.
 
-### 19.6 Operational — still yours to do
+### 19.6 Free tier
+
+- [x] Nothing in the design needs a paid plan: document reads and writes, transactions, server
+  timestamps and security rules are all Spark. No Cloud Functions, no Cloud Storage, no scheduled
+  jobs. `firebase.json` configures Firestore and the local emulator, nothing else.
+- [x] **The sign-in check read the whole account to answer one boolean.** `plan()` called
+  `pull(0).isNotEmpty()`, so every sign-in read every document — billed per read, against a 50k/day
+  free quota, for a yes/no. `hasAnyRecords()` asks for one row and stops.
+
+### 19.7 Operational — still yours to do
 
 - [ ] **Deploy the rules** before any build with sync reaches a real user. Without this, the
-  project's default rules apply and the tested ones are just a file in the repo.
+  project's default rules apply and the tested ones are just a file in the repo. If the CLI returns
+  a 403 asking for billing, that is the deploy path trying to enable the Firestore API rather than
+  anything the app does: create the database from the console first, or paste the rules into the
+  console's Rules tab, which needs no CLI and no billing.
 - [ ] Enable **App Check enforcement for Firestore** in the console once sync ships — zero code,
   real protection, and the reason App Check was set up in the first place.
 - [ ] Register the App Check **debug token** (needed again after every clear-data).

@@ -38,6 +38,7 @@ private class RecordingRemote(private val failWith: Exception? = null) : RemoteS
         return emptyList()
     }
     override suspend fun pullTombstones(sinceSeq: Long): List<RemoteChange<RemoteTombstone>> = emptyList()
+    override suspend fun hasAnyRecords() = false
     override suspend fun push(records: List<RemoteRecord>, tombstones: List<RemoteTombstone>) {
         failWith?.let { throw it }
         pushes++

@@ -32,6 +32,8 @@ private class FakeRemote : RemoteSyncDataSource {
     override suspend fun pullTombstones(sinceSeq: Long) =
         tombstones.values.filter { it.seq > sinceSeq }.sortedBy { it.seq }
 
+    override suspend fun hasAnyRecords() = records.isNotEmpty()
+
     override suspend fun push(records: List<RemoteRecord>, tombstones: List<RemoteTombstone>) {
         records.forEach { record ->
             val key = record.tableName to record.rowId

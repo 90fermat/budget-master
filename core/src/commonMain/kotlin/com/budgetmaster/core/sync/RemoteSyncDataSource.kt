@@ -70,6 +70,15 @@ interface RemoteSyncDataSource {
     suspend fun pullTombstones(sinceSeq: Long): List<RemoteChange<RemoteTombstone>>
 
     /**
+     * Whether the account holds anything at all, for the sign-in decision.
+     *
+     * Its own method rather than `pull(0).isNotEmpty()`, because that reads every document in the
+     * account to answer one boolean — on every sign-in, and billed per document read. An
+     * implementation should ask for a single row and stop.
+     */
+    suspend fun hasAnyRecords(): Boolean
+
+    /**
      * Publishes local changes, assigning each a sequence.
      *
      * Two obligations on implementations, both load-bearing:
