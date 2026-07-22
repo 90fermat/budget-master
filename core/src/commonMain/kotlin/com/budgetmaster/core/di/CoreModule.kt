@@ -14,6 +14,7 @@ import com.budgetmaster.core.currency.ExchangeRateFetcher
 import com.budgetmaster.core.currency.ExchangeRateRepository
 import com.budgetmaster.core.currency.RefreshExchangeRatesUseCase
 import com.budgetmaster.core.notifications.NotificationRepository
+import com.budgetmaster.core.notifications.createSystemNotifier
 import com.budgetmaster.core.prefs.AppSettingsRepository
 import com.budgetmaster.core.guidance.GuidancePreferences
 import com.budgetmaster.core.prefs.OnboardingPreferences
@@ -57,6 +58,7 @@ val coreModule = module {
     // isAvailable) respects it with no per-feature wiring.
     single<GenAiClient> { createGenAiClient(get()) }
     single { NotificationRepository(get(), get()) }
+    single { createSystemNotifier() }
     single { BiometricPrompter() }
     single { BackupService(get()) }
     // One controller for the process: the lock state must outlive any screen that shows it, and

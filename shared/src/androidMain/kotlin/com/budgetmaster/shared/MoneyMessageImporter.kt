@@ -21,6 +21,8 @@ import kotlinx.coroutines.flow.first
 import org.jetbrains.compose.resources.getString
 import com.budgetmaster.core.localization.applyAppLanguageToProcess
 import budgetmaster.core.generated.resources.import_notif_channel_name
+import com.budgetmaster.core.notifications.SystemNotifier
+import com.budgetmaster.core.notifications.NotificationChannels
 
 /**
  * Shared entry point for both capture paths — the live SMS broadcast and the one-off inbox
@@ -51,7 +53,7 @@ class MoneyMessageImporter(
     private val settingsRepository: AppSettingsRepository,
     private val walletDirectory: WalletDirectory,
     private val notifications: NotificationRepository,
-    private val systemNotifier: ImportSystemNotifier,
+    private val systemNotifier: SystemNotifier,
     private val importMessage: ImportMoneyMessageUseCase,
 ) {
     /**
@@ -108,7 +110,15 @@ class MoneyMessageImporter(
                     wallet,
                 )
                 notifications.notify(title, bodyText)
-                if (live) systemNotifier.notify(title, bodyText, channelName)
+                if (live) systemNotifier.post(
+                    channelId = NotificationChannels.MONEY_IMPORT,
+                    channelName = channelName,
+                    // One tag for every import: a burst of messages leaves the latest on screen
+                    // and the full history in the inbox, rather than a stack to dismiss.
+                    tag = NotificationChannels.MONEY_IMPORT,
+                    title = title,
+                    message = bodyText,
+                )
             }
 
             is ImportOutcome.NeedsReview -> {
@@ -120,7 +130,15 @@ class MoneyMessageImporter(
                     outcome.description,
                 )
                 notifications.notify(title, bodyText)
-                if (live) systemNotifier.notify(title, bodyText, channelName)
+                if (live) systemNotifier.post(
+                    channelId = NotificationChannels.MONEY_IMPORT,
+                    channelName = channelName,
+                    // One tag for every import: a burst of messages leaves the latest on screen
+                    // and the full history in the inbox, rather than a stack to dismiss.
+                    tag = NotificationChannels.MONEY_IMPORT,
+                    title = title,
+                    message = bodyText,
+                )
             }
 
             is ImportOutcome.NoDestination -> {
@@ -132,7 +150,15 @@ class MoneyMessageImporter(
                 // Idempotent id: a burst of messages with no wallet configured is one problem,
                 // not one notification per message.
                 notifications.notify(title, bodyText, id = "import_no_wallet_${outcome.provider}")
-                if (live) systemNotifier.notify(title, bodyText, channelName)
+                if (live) systemNotifier.post(
+                    channelId = NotificationChannels.MONEY_IMPORT,
+                    channelName = channelName,
+                    // One tag for every import: a burst of messages leaves the latest on screen
+                    // and the full history in the inbox, rather than a stack to dismiss.
+                    tag = NotificationChannels.MONEY_IMPORT,
+                    title = title,
+                    message = bodyText,
+                )
             }
 
             // Dedup outcomes are working-as-intended and would only be noise; NotRecognised is

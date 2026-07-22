@@ -1698,6 +1698,29 @@ contact with real use.
   real protection, and the reason App Check was set up in the first place.
 - [ ] Register the App Check **debug token** (needed again after every clear-data).
 
+## Phase 21 — Budget alerts outside the app
+
+- [x] Budget warnings and overspends now post a system notification as well as an inbox row. A
+  spending warning is only useful while there is still time to act on it; one that waits for the
+  user to next open the app has usually stopped being a warning by the time they read it.
+- [x] The notifier moved to `:core` as a shared `SystemNotifier`. The SMS importer had the only
+  implementation and it lived in `:shared`, which no feature can import — so the alternative was a
+  second copy of the same code.
+- [x] Its own channel, so the OS settings can silence budget alerts without silencing import
+  notifications. Both channel names are translated; one was a hardcoded English constant that
+  Android showed in its own settings.
+- [x] Notification ids double as tags, so a budget that keeps crossing its limit replaces its own
+  notification rather than stacking.
+
+## Phase 10 — Encryption at rest — **deliberately not done**
+
+Skipped for this release, on the reasoning that it is second-order here: on a non-rooted,
+screen-locked phone, app-private storage is already covered by the platform's own file encryption,
+and the auto-backup hole that would have leaked the database off the device was closed in Phase 2.
+SQLCipher's real value is physical extraction, which is a different threat from the one this app
+faces. Revisit if the app ever stores credentials or ships to a market where device seizure is a
+realistic concern.
+
 ## Phase 20 — Screen previews
 
 - [x] Splash pinned light, dark and mid-reveal. It needed a split first: the visuals were welded to

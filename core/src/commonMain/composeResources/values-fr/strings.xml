@@ -578,4 +578,5 @@
     <string name="adoption_device_desc">Votre compte conserve aussi ses données ; celles de cet appareil s'y ajoutent.</string>
     <string name="settings_sync_status_failed_reason">Synchronisation impossible : %1$s. Vos données restent sur cet appareil et partiront à la prochaine tentative.</string>
     <string name="import_notif_channel_name">Transactions importées</string>
+    <string name="notif_budget_channel_name">Alertes de budget</string>
 </resources>

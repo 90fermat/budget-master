@@ -1,6 +1,5 @@
 package com.budgetmaster.android
 
-import com.budgetmaster.shared.ImportSystemNotifier
 import com.budgetmaster.shared.MoneyMessageImporter
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
@@ -10,7 +9,6 @@ import org.koin.dsl.module
  * importer (resolved by the SMS receiver) and the system notifier it posts through.
  */
 val androidAppModule = module {
-    single { ImportSystemNotifier(androidContext()) }
     // settingsRepository, walletDirectory, notifications, systemNotifier, importMessage
     single { MoneyMessageImporter(get(), get(), get(), get(), get()) }
 }

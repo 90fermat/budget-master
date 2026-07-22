@@ -39,7 +39,7 @@ val budgetsModule = module {
     factory { SaveGoalUseCase(get()) }
     factory { ContributeToGoalUseCase(get()) }
     factory { WithdrawFromGoalUseCase(get()) }
-    factory { NotifyBudgetThresholdsUseCase(get()) }
+    factory { NotifyBudgetThresholdsUseCase(get(), get()) }
     factory { DeleteGoalUseCase(get()) }
     factory { SuggestBudgetsUseCase(get(), get()) }
 

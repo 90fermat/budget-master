@@ -580,4 +580,5 @@
     <string name="adoption_device_desc">Your account keeps its data too; this device's is added alongside.</string>
     <string name="settings_sync_status_failed_reason">Could not sync: %1$s. Your data is safe on this device and will go up next time.</string>
     <string name="import_notif_channel_name">Imported transactions</string>
+    <string name="notif_budget_channel_name">Budget alerts</string>
 </resources>

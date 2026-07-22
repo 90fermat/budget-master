@@ -1,4 +1,4 @@
-package com.budgetmaster.shared
+package com.budgetmaster.core.notifications
 
 import android.Manifest
 import android.app.NotificationChannel
@@ -10,20 +10,24 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import com.budgetmaster.core.db.AppContextHolder
 
 /**
- * Posts a system notification for a mobile-money import.
+ * Posts through Android's notification manager.
  *
- * Exists because live capture happens while the app is closed: an in-app inbox row alone is
- * invisible until the user next opens the app, which leaves "did my SMS import?" unanswerable in
- * the moment — the exact doubt this work removes. The notification taps through to the app.
- *
- * Silently does nothing when POST_NOTIFICATIONS is not granted (Android 13+). The in-app inbox
- * row is still written by the caller, so the information is never lost, only less immediate.
+ * Silently does nothing when POST_NOTIFICATIONS has not been granted (Android 13+). That is not
+ * negligence: the caller has already written the in-app inbox row, so refusing the permission costs
+ * immediacy and never the information itself.
  */
-class ImportSystemNotifier(private val context: Context) {
+internal class AndroidSystemNotifier(private val context: Context) : SystemNotifier {
 
-    fun notify(title: String, message: String, channelName: String) {
+    override fun post(
+        channelId: String,
+        channelName: String,
+        tag: String,
+        title: String,
+        message: String,
+    ) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
             PackageManager.PERMISSION_GRANTED
@@ -32,7 +36,7 @@ class ImportSystemNotifier(private val context: Context) {
         }
 
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        ensureChannel(manager, channelName)
+        ensureChannel(manager, channelId, channelName)
 
         val launch = context.packageManager.getLaunchIntentForPackage(context.packageName)
             ?.apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP) }
@@ -45,25 +49,26 @@ class ImportSystemNotifier(private val context: Context) {
             )
         }
 
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+        val notification = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(android.R.drawable.stat_notify_chat)
             .setContentTitle(title)
             .setContentText(message)
-            // The amount is money; keep it off the lock screen for the same reason FLAG_SECURE
-            // keeps it out of the recents switcher.
+            // These are amounts; keep them off the lock screen for the same reason FLAG_SECURE
+            // keeps them out of the recents switcher.
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .setAutoCancel(true)
             .apply { contentIntent?.let(::setContentIntent) }
             .build()
 
-        // One id per import would pile up a stack of notifications after a burst of messages;
-        // a single id keeps the latest and the inbox keeps the history.
-        manager.notify(NOTIFICATION_ID, notification)
+        // Derived from the tag so that re-posting the same thing replaces it. A burst of imports,
+        // or a budget that keeps crossing its limit, is one notification and a full inbox history
+        // rather than a stack the user has to clear.
+        manager.notify(tag.hashCode(), notification)
     }
 
-    private fun ensureChannel(manager: NotificationManager, channelName: String) {
+    private fun ensureChannel(manager: NotificationManager, channelId: String, channelName: String) {
         val channel = NotificationChannel(
-            CHANNEL_ID,
+            channelId,
             channelName,
             NotificationManager.IMPORTANCE_DEFAULT,
         ).apply {
@@ -73,9 +78,6 @@ class ImportSystemNotifier(private val context: Context) {
         }
         manager.createNotificationChannel(channel)
     }
-
-    private companion object {
-        const val CHANNEL_ID = "money_import"
-        const val NOTIFICATION_ID = 4001
-    }
 }
+
+actual fun createSystemNotifier(): SystemNotifier = AndroidSystemNotifier(AppContextHolder.context)

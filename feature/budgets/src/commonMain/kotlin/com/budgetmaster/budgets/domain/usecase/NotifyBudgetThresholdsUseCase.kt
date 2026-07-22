@@ -8,6 +8,9 @@ import com.budgetmaster.core.designsystem.categoryNameRes
 import budgetmaster.core.generated.resources.notif_budget_warning_body
 import budgetmaster.core.generated.resources.notif_budget_exceeded_body
 import budgetmaster.core.generated.resources.Res
+import com.budgetmaster.core.notifications.SystemNotifier
+import com.budgetmaster.core.notifications.NotificationChannels
+import budgetmaster.core.generated.resources.notif_budget_channel_name
 
 /**
  * Raises an in-app notification when a budget crosses a threshold.
@@ -16,7 +19,10 @@ import budgetmaster.core.generated.resources.Res
  * alert is written at most once no matter how often budgets re-emit — `INSERT OR REPLACE`
  * makes repeat calls idempotent rather than spamming the inbox.
  */
-class NotifyBudgetThresholdsUseCase(private val notifications: NotificationRepository) {
+class NotifyBudgetThresholdsUseCase(
+    private val notifications: NotificationRepository,
+    private val systemNotifier: SystemNotifier,
+) {
 
     suspend operator fun invoke(budgets: List<BudgetItem>) {
         budgets.forEach { budget ->
@@ -40,8 +46,16 @@ class NotifyBudgetThresholdsUseCase(private val notifications: NotificationRepos
             categoryName,
             percentText,
         )
-        notifications.notify(
-            id = "budget_${budget.id}_${budget.periodStart}_$threshold",
+        val id = "budget_${budget.id}_${budget.periodStart}_$threshold"
+        notifications.notify(id = id, title = categoryName, message = message)
+        // Also outside the app. A spending warning is only useful while there is still time to act
+        // on it, and one that waits for the user to next open the app has usually stopped being a
+        // warning by the time they read it. The id doubles as the tag, so a budget that keeps
+        // crossing its limit replaces its own notification instead of stacking.
+        systemNotifier.post(
+            channelId = NotificationChannels.BUDGET_ALERTS,
+            channelName = getString(Res.string.notif_budget_channel_name),
+            tag = id,
             title = categoryName,
             message = message,
         )
