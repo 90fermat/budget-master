@@ -581,4 +581,14 @@
     <string name="settings_sync_status_failed_reason">Could not sync: %1$s. Your data is safe on this device and will go up next time.</string>
     <string name="import_notif_channel_name">Imported transactions</string>
     <string name="notif_budget_channel_name">Budget alerts</string>
+    <string name="guide_accounts_5_title">Keep a wallet apart</string>
+    <string name="guide_accounts_5_body">Untick “Count in totals” on a wallet and it stays fully usable — you can still open it, add to it, and see its balance — but it is left out of the combined figures. Useful for savings or a tontine you do not want mixed into everyday money. The tick is on the wallet card and in the switcher at the top.</string>
+    <string name="guide_settings_4_title">Sync across your devices</string>
+    <string name="guide_settings_4_body">Once you sign in, your wallets and records are kept in step on every device you use. Edits made offline are sent the next time you have a connection, so nothing waits on the network. Settings shows when the last sync happened, and lets you start one yourself.</string>
+    <string name="guide_settings_5_title">Lock the app</string>
+    <string name="guide_settings_5_body">Protect the app with your fingerprint or face, and a PIN as a fallback. Choose how long it may sit idle before locking again. Your financial screens are also kept out of the app switcher and screenshots.</string>
+    <string name="guide_settings_6_title">Back up before you need to</string>
+    <string name="guide_settings_6_body">Export everything to a single encrypted file, protected by a passphrase you choose. It is the answer to a lost phone that does not require an account. Keep the passphrase safe — it is not stored anywhere and the file cannot be opened without it.</string>
+    <string name="guide_settings_7_title">Mobile money by SMS</string>
+    <string name="guide_settings_7_body">Let the app read Orange Money messages on your phone and record them for you. Messages are read on the device and never uploaded. You choose which wallet they land in, and can list more than one of your own numbers. Anything the app is unsure about waits for you to confirm.</string>
 </resources>

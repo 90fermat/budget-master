@@ -579,4 +579,14 @@
     <string name="settings_sync_status_failed_reason">Synchronisation impossible : %1$s. Vos données restent sur cet appareil et partiront à la prochaine tentative.</string>
     <string name="import_notif_channel_name">Transactions importées</string>
     <string name="notif_budget_channel_name">Alertes de budget</string>
+    <string name="guide_accounts_5_title">Mettre un portefeuille à part</string>
+    <string name="guide_accounts_5_body">Décochez « Compter dans les totaux » et le portefeuille reste pleinement utilisable — vous pouvez l’ouvrir, l’alimenter, voir son solde — mais il n’entre plus dans les chiffres combinés. Pratique pour une épargne ou une tontine que vous ne voulez pas mélanger à l’argent du quotidien. La case est sur la carte du portefeuille et dans le sélecteur en haut.</string>
+    <string name="guide_settings_4_title">Synchroniser vos appareils</string>
+    <string name="guide_settings_4_body">Une fois connecté, vos portefeuilles et vos opérations restent identiques sur chaque appareil. Les modifications faites hors ligne partent dès que la connexion revient : rien n’attend le réseau. Les réglages indiquent la dernière synchronisation et permettent d’en lancer une.</string>
+    <string name="guide_settings_5_title">Verrouiller l’application</string>
+    <string name="guide_settings_5_body">Protégez l’application par empreinte ou visage, avec un code PIN de secours. Choisissez le délai d’inactivité avant re-verrouillage. Vos écrans financiers sont aussi masqués dans le sélecteur d’applications et sur les captures d’écran.</string>
+    <string name="guide_settings_6_title">Sauvegarder avant d’en avoir besoin</string>
+    <string name="guide_settings_6_body">Exportez tout dans un fichier chiffré, protégé par une phrase secrète de votre choix. C’est la réponse au téléphone perdu, sans compte nécessaire. Conservez bien la phrase : elle n’est stockée nulle part et le fichier ne s’ouvre pas sans elle.</string>
+    <string name="guide_settings_7_title">Mobile money par SMS</string>
+    <string name="guide_settings_7_body">Laissez l’application lire vos messages Orange Money et enregistrer les opérations. Les messages sont lus sur l’appareil et ne sont jamais envoyés ailleurs. Vous choisissez le portefeuille de destination et pouvez indiquer plusieurs de vos numéros. Ce dont l’application n’est pas sûre attend votre confirmation.</string>
 </resources>

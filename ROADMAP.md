@@ -1742,7 +1742,11 @@ contact with real use.
 - [ ] **Spare "Cash" wallets already in Firestore** need deleting once by hand. The fix stops new
   ones; it cannot clean up what already synced.
 - [ ] Deploy the rules, enable App Check enforcement, register the debug token.
-- [ ] Launcher icon — concept chosen (gauge), colourway and assets outstanding.
+- [x] Launcher icon — the gauge in gold on charcoal, with a monochrome layer so Android 13+ themed
+  icons follow the wallpaper instead of fighting it.
+- [x] Splash mark drifts through a palette rather than sitting on one brand colour, held still
+  under reduced motion.
+- [ ] Play listing icon (512px) and feature graphic still to export.
 
 ## Phase 21 — Budget alerts outside the app
 
