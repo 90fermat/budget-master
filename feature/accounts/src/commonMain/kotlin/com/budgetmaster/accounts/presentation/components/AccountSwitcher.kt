@@ -25,6 +25,9 @@ import budgetmaster.core.generated.resources.accounts_manage
 import com.budgetmaster.accounts.presentation.AccountsState
 import com.budgetmaster.core.util.MoneyFormatter
 import org.jetbrains.compose.resources.stringResource
+import androidx.compose.ui.Alignment
+import androidx.compose.material3.Checkbox
+import androidx.compose.foundation.layout.widthIn
 
 /**
  * Compact global account selector: shows the active wallet (or "All accounts") and opens a
@@ -36,6 +39,7 @@ fun AccountSwitcher(
     onSelect: (String?) -> Unit,
     onManage: () -> Unit,
     modifier: Modifier = Modifier,
+    onSetIncludedInTotals: (id: String, included: Boolean) -> Unit = { _, _ -> },
 ) {
     var open by remember { mutableStateOf(false) }
     val active = state.accounts.firstOrNull { it.id == state.activeAccountId && !it.isArchived }
@@ -49,23 +53,57 @@ fun AccountSwitcher(
             },
             trailingIcon = { Icon(Icons.Filled.ArrowDropDown, contentDescription = null) },
         )
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        // A floor on the width, so a name has room before it is truncated. Without it the menu
+        // shrinks to its shortest row and every wallet ends up abbreviated.
+        DropdownMenu(
+            expanded = open,
+            onDismissRequest = { open = false },
+            modifier = Modifier.widthIn(min = 280.dp),
+        ) {
             DropdownMenuItem(
                 text = { Text(stringResource(Res.string.accounts_all)) },
                 onClick = { open = false; onSelect(null) },
             )
-            state.activeAccounts.forEach { account ->
+            // Every wallet still in use, including those left out of the combined total. They are
+            // still wallets: you can switch to one and see its own figures. The checkbox is what
+            // decides whether it is added to the others, and it lives here as well as on the
+            // accounts screen because this is where the question naturally comes up.
+            state.visibleAccounts.forEach { account ->
                 DropdownMenuItem(
                     text = {
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Text(account.name, modifier = Modifier.weight(1f, fill = false))
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            // One line, truncated. A wallet name is a label, not prose: wrapping
+                            // "Epargne" across three lines makes the row taller than the ones
+                            // around it and pushes the balance out of alignment, which reads as
+                            // breakage rather than as a long name.
+                            Text(
+                                account.name,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f),
+                            )
+                            // The balance keeps its full width — it is the number the user came to
+                            // read, and an abbreviated amount would be worse than a shortened name.
                             Text(
                                 MoneyFormatter.format(account.currentBalance, account.currency),
+                                maxLines = 1,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     },
                     leadingIcon = { Icon(account.type.icon, contentDescription = null) },
+                    trailingIcon = {
+                        Checkbox(
+                            checked = account.includeInTotals,
+                            // Toggling does not switch wallet or close the menu: the user is
+                            // adjusting which wallets make up "All accounts", and that is usually
+                            // several decisions in a row.
+                            onCheckedChange = { onSetIncludedInTotals(account.id, it) },
+                        )
+                    },
                     onClick = { open = false; onSelect(account.id) },
                 )
             }

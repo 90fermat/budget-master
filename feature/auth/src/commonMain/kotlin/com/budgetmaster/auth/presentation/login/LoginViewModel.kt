@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.budgetmaster.auth.domain.model.AuthError
 import com.budgetmaster.auth.domain.model.AuthException
-import com.budgetmaster.auth.domain.usecase.CheckBiometricSupportUseCase
 import com.budgetmaster.auth.domain.usecase.LoginUseCase
 import com.budgetmaster.auth.domain.usecase.SignInWithGoogleUseCase
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -20,12 +19,10 @@ import kotlinx.coroutines.launch
  * ViewModel for the Login screen responsible for managing state and intents.
  *
  * @param loginUseCase Validates credentials and performs authentication.
- * @param checkBiometricSupportUseCase Verifies if biometric login is configured.
  * @param signInWithGoogleUseCase Exchanges a Google ID token for a Firebase session.
  */
 class LoginViewModel(
     private val loginUseCase: LoginUseCase,
-    private val checkBiometricSupportUseCase: CheckBiometricSupportUseCase,
     private val signInWithGoogleUseCase: SignInWithGoogleUseCase,
 ) : ViewModel() {
 
@@ -51,7 +48,8 @@ class LoginViewModel(
             is LoginIntent.TogglePasswordVisibility ->
                 _state.update { it.copy(isPasswordVisible = !it.isPasswordVisible) }
             is LoginIntent.LoginClicked -> performLogin()
-            is LoginIntent.BiometricLoginClicked -> handleBiometricLogin()
+            is LoginIntent.GoogleSignInStarted ->
+                _state.update { it.copy(isLoading = true, error = null) }
             is LoginIntent.GoogleIdTokenReceived -> performGoogleSignIn(intent.idToken)
             is LoginIntent.GoogleSignInFailed ->
                 // A cancelled sheet is not an error worth shouting about.
@@ -91,18 +89,6 @@ class LoginViewModel(
                 _state.update { it.copy(isLoading = false, error = e.error) }
             } catch (e: Exception) {
                 _state.update { it.copy(isLoading = false, error = AuthError.Unknown) }
-            }
-        }
-    }
-
-    private fun handleBiometricLogin() {
-        viewModelScope.launch {
-            checkBiometricSupportUseCase().collect { enabled ->
-                if (enabled) {
-                    emitEffect(LoginEffect.NavigateToHome)
-                } else {
-                    _state.update { it.copy(error = AuthError.Unknown) }
-                }
             }
         }
     }

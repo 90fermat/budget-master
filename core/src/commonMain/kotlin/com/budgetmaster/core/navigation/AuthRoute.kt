@@ -31,11 +31,6 @@ sealed interface AuthRoute {
     @Serializable
     data object ForgotPassword : AuthRoute
 
-    /**
-     * Route representing the Biometric setup screen.
-     */
-    @Serializable
-    data object Biometric : AuthRoute
 
     /**
      * Route representing the Dashboard screen.
@@ -51,9 +46,20 @@ sealed interface AuthRoute {
 
     /**
      * Route representing the Transactions screen.
+     *
+     * @param openEditorFor when non-null, the name of the [TransactionKind] whose editor the
+     *   screen opens on arrival. This is what makes the Dashboard's "Add expense" / "Add income"
+     *   quick actions work: before it existed the editor was only reachable from this screen's own
+     *   FAB, so the Dashboard had a button with nowhere to send the user.
+     *
+     *   A `String?` rather than the enum itself, and not by preference. Type-safe routes infer a
+     *   `NavType` for custom types by reflection, which does not exist on Kotlin/Wasm — so the web
+     *   build threw "could not find any NavType for argument openEditorFor" on startup and never
+     *   rendered a frame. Passing the name and resolving it with [TransactionKind.byNameOrNull]
+     *   keeps the type safety at both ends and needs no NavType at all.
      */
     @Serializable
-    data object Transactions : AuthRoute
+    data class Transactions(val openEditorFor: String? = null) : AuthRoute
 
     /**
      * Route representing the Budgets screen.
@@ -81,13 +87,23 @@ sealed interface AuthRoute {
 
     /**
      * Route representing the Accounts (wallets) management screen.
+     *
+     * @param openTransfer opens the transfer sheet on arrival. Transfers live here rather than in
+     *   the transaction editor because they move money between the user's own wallets and write
+     *   two linked legs, which the editor has no concept of.
      */
     @Serializable
-    data object Accounts : AuthRoute
+    data class Accounts(val openTransfer: Boolean = false) : AuthRoute
 
     /**
      * Route representing the recurring-schedules management screen.
      */
     @Serializable
     data object Recurring : AuthRoute
+
+    /**
+     * Route representing the notifications inbox, reached from the dashboard bell.
+     */
+    @Serializable
+    data object Notifications : AuthRoute
 }

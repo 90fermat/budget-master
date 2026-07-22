@@ -58,6 +58,7 @@ import com.budgetmaster.core.designsystem.Spacing
 import com.budgetmaster.core.designsystem.components.EmptyState as SharedEmptyState
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import com.budgetmaster.core.designsystem.EditorScrollContainer
 
 /**
  * Savings Goals screen on live data: progress cards, create/edit editor, delete, and
@@ -193,14 +194,14 @@ private fun AdaptiveContainer(onDismiss: () -> Unit, content: @Composable () -> 
                 onDismissRequest = onDismiss,
                 sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
                 containerColor = MaterialTheme.colorScheme.surface,
-            ) { content() }
+            ) { EditorScrollContainer { content() } }
         } else {
             Dialog(onDismissRequest = onDismiss) {
                 Surface(
                     shape = RoundedCornerShape(24.dp),
                     color = MaterialTheme.colorScheme.surface,
                     modifier = Modifier.width(480.dp),
-                ) { content() }
+                ) { EditorScrollContainer { content() } }
             }
         }
     }

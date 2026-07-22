@@ -1,0 +1,63 @@
+-- Migrates schema v6 <- v5: sync bookkeeping.
+--
+-- Adds the columns a last-write-wins sync needs, plus a table recording rows that have gone.
+--
+-- Deletes deliberately stay *hard*. A `deletedAt` column on every table was the obvious design and
+-- was rejected: it would have put `AND deletedAt IS NULL` on around sixty existing SELECTs, where
+-- one forgotten clause silently resurrects deleted rows, and it would have broken ON DELETE
+-- CASCADE. It would also have fought two paths that must genuinely erase - account deletion (a
+-- Play and GDPR obligation) and backup restore's replace-all. Recording the disappearance beside
+-- the data, rather than inside it, keeps all of that intact.
+--
+-- The triggers that maintain these columns are installed as raw DDL from Kotlin (SyncTriggers),
+-- because SQLDelight cannot compile a trigger body that references NEW/OLD.
+
+ALTER TABLE UserEntity ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE UserEntity ADD COLUMN dirty INTEGER NOT NULL DEFAULT 1;
+
+ALTER TABLE AccountEntity ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE AccountEntity ADD COLUMN dirty INTEGER NOT NULL DEFAULT 1;
+
+ALTER TABLE CategoryEntity ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE CategoryEntity ADD COLUMN dirty INTEGER NOT NULL DEFAULT 1;
+
+ALTER TABLE TransactionEntity ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE TransactionEntity ADD COLUMN dirty INTEGER NOT NULL DEFAULT 1;
+
+ALTER TABLE BudgetEntity ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE BudgetEntity ADD COLUMN dirty INTEGER NOT NULL DEFAULT 1;
+
+ALTER TABLE SavingsGoalEntity ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE SavingsGoalEntity ADD COLUMN dirty INTEGER NOT NULL DEFAULT 1;
+
+ALTER TABLE RecurringTransactionEntity ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE RecurringTransactionEntity ADD COLUMN dirty INTEGER NOT NULL DEFAULT 1;
+
+-- Backfill, and this line is the whole reason the migration is not just ALTERs.
+--
+-- The columns default to 0, and 0 loses every last-write-wins comparison - so on first sync the
+-- cloud would silently overwrite every pre-existing local row. Stamping them with the migration
+-- time makes existing data current as of now, which is the truth: it is the newest thing this
+-- device knows. Deliberately NOT taken from TransactionEntity.timestamp, which is the date of the
+-- transaction, not when the row was last edited; a backdated entry would present as stale and lose.
+UPDATE UserEntity SET updatedAt = (CAST(strftime('%s','now') AS INTEGER) * 1000);
+UPDATE AccountEntity SET updatedAt = (CAST(strftime('%s','now') AS INTEGER) * 1000);
+UPDATE CategoryEntity SET updatedAt = (CAST(strftime('%s','now') AS INTEGER) * 1000);
+UPDATE TransactionEntity SET updatedAt = (CAST(strftime('%s','now') AS INTEGER) * 1000);
+UPDATE BudgetEntity SET updatedAt = (CAST(strftime('%s','now') AS INTEGER) * 1000);
+UPDATE SavingsGoalEntity SET updatedAt = (CAST(strftime('%s','now') AS INTEGER) * 1000);
+UPDATE RecurringTransactionEntity SET updatedAt = (CAST(strftime('%s','now') AS INTEGER) * 1000);
+
+CREATE TABLE SyncTombstone (
+    tableName TEXT NOT NULL,
+    rowId TEXT NOT NULL,
+    deletedAt INTEGER NOT NULL,
+    PRIMARY KEY (tableName, rowId)
+);
+
+CREATE INDEX idx_tombstone_deleted_at ON SyncTombstone(deletedAt);
+
+CREATE TABLE SyncCursorEntity (
+    tableName TEXT NOT NULL PRIMARY KEY,
+    lastPulledAt INTEGER NOT NULL
+);

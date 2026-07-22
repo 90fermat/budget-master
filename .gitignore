@@ -53,3 +53,9 @@ secrets.properties
 
 # Local agent/tooling workspace (machine-specific paths)
 .claude/
+
+# Firestore rules tests: tooling only, installed on demand with `npm --prefix firebase install`
+firebase/node_modules/
+firebase/package-lock.json
+firebase/firebase-debug.log
+firebase/firestore-debug.log

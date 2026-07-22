@@ -20,17 +20,31 @@ data class AccountsState(
      */
     val netWorthConverted: NetWorth? = null,
 ) {
-    /** The active accounts (archived excluded) used for the overview total. */
-    val activeAccounts: List<Account> = accounts.filter { !it.isArchived }
+    /**
+     * Every wallet still in use, whether or not it is counted in the combined total.
+     *
+     * This is what lists and pickers show. Keeping it separate from [accountsInTotals] is not
+     * tidiness: the two were once the same property, so excluding a wallet from totals also removed
+     * it from the accounts screen — taking with it the only control that could put it back.
+     */
+    val visibleAccounts: List<Account> = accounts.filter { !it.isArchived }
+
+    /**
+     * The accounts the overview total is built from: not archived, and counted in totals.
+     *
+     * Both exclusions matter and they mean different things — archived is "no longer in use",
+     * excluded-from-totals is "in use, but kept apart".
+     */
+    val accountsInTotals: List<Account> = visibleAccounts.filter { it.includeInTotals }
 
     /** Currency to label the overview with (the most common among active accounts). */
     val primaryCurrency: String =
-        activeAccounts.groupingBy { it.currency }.eachCount().maxByOrNull { it.value }?.key ?: "USD"
+        accountsInTotals.groupingBy { it.currency }.eachCount().maxByOrNull { it.value }?.key ?: "USD"
 
     /** Net worth (assets − liabilities), converted when rates allow. */
-    val netWorth: Double = netWorthConverted?.total ?: activeAccounts.sumOf { it.currentBalance }
+    val netWorth: Double = netWorthConverted?.total ?: accountsInTotals.sumOf { it.currentBalance }
 
-    val isMultiCurrency: Boolean = activeAccounts.map { it.currency }.distinct().size > 1
+    val isMultiCurrency: Boolean = accountsInTotals.map { it.currency }.distinct().size > 1
 
     /** True when currencies are mixed and at least one had no rate, so the total is fuzzy. */
     val isNetWorthApproximate: Boolean =
@@ -44,6 +58,9 @@ sealed interface AccountsIntent {
     data object DismissEditor : AccountsIntent
     data class Submit(val draft: AccountDraft) : AccountsIntent
     data class SetArchived(val id: String, val archived: Boolean) : AccountsIntent
+
+    /** Includes or excludes a wallet from the consolidated "All accounts" view. */
+    data class SetIncludedInTotals(val id: String, val included: Boolean) : AccountsIntent
     data class Delete(val id: String) : AccountsIntent
     data class SelectActive(val id: String?) : AccountsIntent
 

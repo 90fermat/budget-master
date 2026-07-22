@@ -1,0 +1,84 @@
+rules_version = '2';
+
+// Sync stores one subtree per user:
+//
+//   users/{uid}/records/{tableName}__{rowId}
+//   users/{uid}/tombstones/{tableName}__{rowId}
+//
+// Ownership is therefore a single check on the path rather than a per-document policy, and one
+// user's data cannot be addressed by another at all.
+//
+// These rules are the only thing standing between a signed-in user and everyone else's finances,
+// so they are tested against the emulator rather than eyeballed in the console: see
+// firebase/test/rules.test.js.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // Only the tables the app actually syncs. A row for anything else is either a bug or someone
+    // probing, and neither should be stored.
+    function syncedTable(name) {
+      return name in [
+        'UserEntity', 'AccountEntity', 'CategoryEntity', 'TransactionEntity',
+        'BudgetEntity', 'SavingsGoalEntity', 'RecurringTransactionEntity'
+      ];
+    }
+
+    // `seq` is what every device's pull cursor advances on, so it must be the server's clock and
+    // not the client's. Without this, one device with a wrong clock — or one bad build — could
+    // write a sequence years in the future and every other device would skip everything behind it
+    // for good. Pinning it to request.time makes that unforgeable rather than merely discouraged.
+    function serverAssignedSeq() {
+      return request.resource.data.seq == request.time;
+    }
+
+    function validRecord() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['tableName', 'rowId', 'updatedAt', 'deviceId', 'payload', 'seq'])
+        && d.keys().hasAll(['tableName', 'rowId', 'updatedAt', 'deviceId', 'payload', 'seq'])
+        && d.tableName is string && syncedTable(d.tableName)
+        && d.rowId is string && d.rowId.size() > 0 && d.rowId.size() <= 200
+        && d.updatedAt is int && d.updatedAt >= 0
+        && d.deviceId is string && d.deviceId.size() <= 100
+        && d.payload is string && d.payload.size() <= 100000
+        && serverAssignedSeq();
+    }
+
+    function validTombstone() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['tableName', 'rowId', 'deletedAt', 'deviceId', 'seq'])
+        && d.keys().hasAll(['tableName', 'rowId', 'deletedAt', 'deviceId', 'seq'])
+        && d.tableName is string && syncedTable(d.tableName)
+        && d.rowId is string && d.rowId.size() > 0 && d.rowId.size() <= 200
+        && d.deletedAt is int && d.deletedAt >= 0
+        && d.deviceId is string && d.deviceId.size() <= 100
+        && serverAssignedSeq();
+    }
+
+    match /users/{userId}/records/{docId} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId) && validRecord();
+      // The engine removes a record when its row is deleted, inside the same transaction that
+      // writes the tombstone.
+      allow delete: if isOwner(userId);
+    }
+
+    match /users/{userId}/tombstones/{docId} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId) && validTombstone();
+      // Purging old tombstones is a local operation today, but account deletion has to be able to
+      // erase everything, and that is an obligation rather than a preference.
+      allow delete: if isOwner(userId);
+    }
+
+    // Anything not matched above. Default-deny is the default already; saying so out loud means a
+    // future collection added without rules fails closed and visibly, rather than inheriting
+    // something permissive by accident.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

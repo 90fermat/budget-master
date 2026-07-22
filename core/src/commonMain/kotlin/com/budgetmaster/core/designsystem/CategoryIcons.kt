@@ -29,6 +29,7 @@ import budgetmaster.core.generated.resources.category_shopping
 import budgetmaster.core.generated.resources.category_transport
 import budgetmaster.core.generated.resources.category_travel
 import com.budgetmaster.core.db.DefaultData
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -85,20 +86,29 @@ fun categoryAccentFor(categoryId: String?): Color {
  * @param storedName The name held in the database, used for user-created categories.
  */
 @Composable
-fun categoryNameFor(categoryId: String?, storedName: String): String {
-    val resource = when (categoryId) {
-        "cat_food" -> Res.string.category_food
-        "cat_groceries" -> Res.string.category_groceries
-        "cat_housing" -> Res.string.category_housing
-        "cat_transport" -> Res.string.category_transport
-        "cat_shopping" -> Res.string.category_shopping
-        "cat_travel" -> Res.string.category_travel
-        "cat_entertainment" -> Res.string.category_entertainment
-        "cat_health" -> Res.string.category_health
-        "cat_salary" -> Res.string.category_salary
-        "cat_fees" -> Res.string.category_fees
-        "cat_other" -> Res.string.category_other
-        else -> null
-    }
-    return resource?.let { stringResource(it) } ?: storedName
+fun categoryNameFor(categoryId: String?, storedName: String): String =
+    categoryNameRes(categoryId)?.let { stringResource(it) } ?: storedName
+
+/**
+ * The string resource for a seeded category id, or null for a user-created one.
+ *
+ * The non-composable half of [categoryNameFor], so code outside a Compose scope — a notification
+ * written in the domain layer, a report built in the data layer — can localise a category name
+ * too, by resolving this with the suspend `getString`. Default categories are stored in the
+ * database as English literals, so without this they would surface in English whatever the app
+ * language is.
+ */
+fun categoryNameRes(categoryId: String?): StringResource? = when (categoryId) {
+    "cat_food" -> Res.string.category_food
+    "cat_groceries" -> Res.string.category_groceries
+    "cat_housing" -> Res.string.category_housing
+    "cat_transport" -> Res.string.category_transport
+    "cat_shopping" -> Res.string.category_shopping
+    "cat_travel" -> Res.string.category_travel
+    "cat_entertainment" -> Res.string.category_entertainment
+    "cat_health" -> Res.string.category_health
+    "cat_salary" -> Res.string.category_salary
+    "cat_fees" -> Res.string.category_fees
+    "cat_other" -> Res.string.category_other
+    else -> null
 }

@@ -26,6 +26,8 @@ import budgetmaster.core.generated.resources.Res
 import budgetmaster.core.generated.resources.dashboard_greeting
 import budgetmaster.core.generated.resources.dashboard_greeting_fallback
 import budgetmaster.core.generated.resources.dashboard_notifications
+import budgetmaster.core.generated.resources.transactions_deleted
+import budgetmaster.core.generated.resources.transactions_undo
 import budgetmaster.core.generated.resources.dashboard_add_expense
 import budgetmaster.core.generated.resources.dashboard_add_income
 import budgetmaster.core.generated.resources.dashboard_transfer
@@ -37,6 +39,9 @@ import com.budgetmaster.core.designsystem.components.GuidanceHost
 import com.budgetmaster.core.designsystem.components.HelpIconButton
 import com.budgetmaster.core.designsystem.components.rememberGuidance
 import com.budgetmaster.core.guidance.GuidanceKey
+import com.budgetmaster.core.navigation.TransactionKind
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.Badge
 import com.budgetmaster.core.util.initialsOf
 import com.budgetmaster.core.util.monthYearLabel
 import com.budgetmaster.dashboard.presentation.components.PreviewLightDark
@@ -50,39 +55,80 @@ import org.koin.compose.viewmodel.koinViewModel
  * Collects state from [DashboardViewModel] and delegates rendering to specialised
  * sub-composables, keeping business logic out of the UI layer.
  *
- * @param onNavigateToSettings Called when the ViewModel emits [DashboardEffect.NavigateToSettings].
+ * @param onNavigateToNotifications Called when the ViewModel emits [DashboardEffect.NavigateToNotifications].
  * @param onViewAllTransactions Callback to navigate to the full Transactions list screen.
  * @param onInsightNavigate Callback for navigating to an insight action route.
  */
 @Composable
 fun DashboardScreen(
-    onNavigateToSettings: () -> Unit = {},
+    onNavigateToNotifications: () -> Unit = {},
     onViewAllTransactions: () -> Unit = {},
-    onInsightNavigate: (String) -> Unit = {}
+    onInsightNavigate: (String) -> Unit = {},
+    onAddTransaction: (TransactionKind) -> Unit = {},
+    onTransfer: () -> Unit = {},
 ) {
     val viewModel: DashboardViewModel = koinViewModel()
     val state by viewModel.state.collectAsState()
     val guidance = rememberGuidance(GuidanceKey.DASHBOARD)
     GuidanceHost(guidance)
 
+    val snackbarHostState = remember { SnackbarHostState() }
+    val deletedLabel = stringResource(Res.string.transactions_deleted)
+    val undoLabel = stringResource(Res.string.transactions_undo)
+
     // Navigation is driven by typed effects rather than stringly-typed callbacks.
+    //
+    // Deliberately exhaustive, with no `else` branch. This used to end in `else -> Unit`, and
+    // NavigateToAddTransaction fell into it - so all three quick-action buttons did nothing at all
+    // while their ViewModel test passed, because the effect was emitted correctly and then
+    // silently dropped here. An exhaustive `when` makes the next unrouted effect a compile error
+    // instead of a dead button.
     LaunchedEffect(Unit) {
         viewModel.effects.collect { effect ->
             when (effect) {
-                DashboardEffect.NavigateToSettings -> onNavigateToSettings()
+                DashboardEffect.NavigateToNotifications -> onNavigateToNotifications()
                 DashboardEffect.NavigateToTransactions -> onViewAllTransactions()
-                else -> Unit // Other effects are handled locally or not yet routed.
+                is DashboardEffect.NavigateToAddTransaction -> when (effect.type) {
+                    TransactionType.EXPENSE -> onAddTransaction(TransactionKind.EXPENSE)
+                    TransactionType.INCOME -> onAddTransaction(TransactionKind.INCOME)
+                    // A transfer is not something the transaction editor can create: it moves
+                    // money between the user's own wallets and writes two linked legs. It belongs
+                    // to Accounts, which owns that flow.
+                    TransactionType.TRANSFER -> onTransfer()
+                }
+                // Swiping a row away used to delete it silently and permanently: the effect was
+                // emitted and dropped. In a finance app an unrecoverable delete with no
+                // acknowledgement is the worst kind of dead code.
+                is DashboardEffect.ShowUndoDelete -> {
+                    val result = snackbarHostState.showSnackbar(
+                        message = deletedLabel,
+                        actionLabel = undoLabel,
+                        duration = SnackbarDuration.Short,
+                    )
+                    if (result == SnackbarResult.ActionPerformed) {
+                        viewModel.onIntent(DashboardIntent.UndoDelete)
+                    }
+                }
+                is DashboardEffect.ShowError ->
+                    snackbarHostState.showSnackbar(effect.message)
             }
         }
     }
 
-    DashboardContent(
-        state = state,
-        onIntent = viewModel::onIntent,
-        onViewAllTransactions = onViewAllTransactions,
-        onInsightNavigate = onInsightNavigate,
-        onHelp = guidance::show
-    )
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = MaterialTheme.colorScheme.background,
+    ) { padding ->
+        Box(Modifier.padding(padding)) {
+            DashboardContent(
+                state = state,
+                onIntent = viewModel::onIntent,
+                onViewAllTransactions = onViewAllTransactions,
+                onInsightNavigate = onInsightNavigate,
+                onHelp = guidance::show
+            )
+        }
+    }
 }
 
 /**
@@ -203,12 +249,24 @@ private fun DashboardScrollableBody(
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
             HelpIconButton(onClick = onHelp)
-            IconButton(onClick = { onIntent(DashboardIntent.NotificationsClicked) }) {
-                Icon(
-                    imageVector = Icons.Default.Notifications,
-                    contentDescription = stringResource(Res.string.dashboard_notifications),
-                    tint = MaterialTheme.colorScheme.onBackground
-                )
+            BadgedBox(
+                badge = {
+                    // Only when there is something unread, and capped so a backlog reads "9+"
+                    // rather than overflowing the badge.
+                    if (state.unreadNotifications > 0) {
+                        Badge {
+                            Text(if (state.unreadNotifications > 9) "9+" else state.unreadNotifications.toString())
+                        }
+                    }
+                },
+            ) {
+                IconButton(onClick = { onIntent(DashboardIntent.NotificationsClicked) }) {
+                    Icon(
+                        imageVector = Icons.Default.Notifications,
+                        contentDescription = stringResource(Res.string.dashboard_notifications),
+                        tint = MaterialTheme.colorScheme.onBackground
+                    )
+                }
             }
             }
         }

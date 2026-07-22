@@ -5,6 +5,15 @@ package com.budgetmaster.auth.presentation.login
  */
 sealed interface LoginIntent {
     /**
+     * The Google button was tapped, before the account sheet has had a chance to appear.
+     *
+     * Exists so the spinner starts at the tap rather than when a token comes back. The sheet can
+     * take a moment to open on a cold provider, and without this the button looked dead for that
+     * whole window - which is precisely when the first-attempt failure used to happen.
+     */
+    data object GoogleSignInStarted : LoginIntent
+
+    /**
      * Triggered when the user types an email.
      * @property email The updated email string.
      */
@@ -29,7 +38,6 @@ sealed interface LoginIntent {
     data class GoogleSignInFailed(val error: com.budgetmaster.auth.domain.model.AuthError) : LoginIntent
 
     /** Triggered when the user clicks the biometric login option. */
-    data object BiometricLoginClicked : LoginIntent
 
     /** Triggered when the user requests navigation to the register screen. */
     data object NavigateToRegister : LoginIntent

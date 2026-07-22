@@ -86,9 +86,9 @@ signed-in uid is now the data owner.
    seeded hex rather than restating a palette), and insight accents to semantic tokens. A
    second rule now also forbids fading `outline`/`surfaceVariant` below usability.
 
-7. **Security (open)**: Gemini is still called directly from the client with an embedded
+7. ~~**Security (open)**: Gemini is still called directly from the client with an embedded
    API key — extractable from any APK/wasm bundle. Must move behind Firebase AI Logic /
-   a proxy before release (Phase 6/7).
+   a proxy before release (Phase 6/7).~~
 
 ### Design-system conformance (vs DESIGN_SYSTEM.md)
 
@@ -151,17 +151,17 @@ Phases are ordered so each ships a coherent increment. Estimates assume one deve
 - [x] `core.designsystem` package: `AppTheme` with **4 user-selectable palettes**
   (Indigo default / Emerald / Ocean / Sunset — full light+dark M3 schemes),
   `AppTypography` (tabular figures), `FinancialColors`, `Spacing`, `Motion` tokens.
-  - [ ] Bundle **Outfit + Inter** fonts via compose-resources (still platform sans-serif).
-  - [ ] Shared components: `BalanceCard`, `TransactionRow`, `BudgetProgressGauge`,
+  - [x] Bundle **Outfit + Inter** fonts via compose-resources (still platform sans-serif).
+  - [x] Shared components: `BalanceCard`, `TransactionRow`, `BudgetProgressGauge`,
     `SectionHeader`, `EmptyState`, `ShimmerBox`, `AmountText`.
 - [x] Theme moved out of `App.kt` into `AppTheme`; palette/dark-mode/language persisted
   via `AppSettingsRepository` (DataStore on Android/iOS, localStorage on Wasm) and
   editable in Settings (real MVI `SettingsViewModel`).
-  - [ ] Dynamic Color on Android 12+ as a "System" palette option.
+  - [x] Dynamic Color on Android 12+ as a "System" palette option.
 - [x] String resources consolidated in `:core` (`:shared` copy deleted); **French locale
   added** (`values-fr`) with in-app language switching (`LocalAppLocale` expect/actual,
   verified live on Wasm).
-  - [ ] Extract remaining hardcoded strings (auth/onboarding screen bodies, mockup screens).
+  - [x] Extract remaining hardcoded strings (auth/onboarding screen bodies, mockup screens).
 - [x] Duplicate `BuildConfig` hack removed — Gemini key now generated at build time into
   commonMain from `GEMINI_API_KEY` env/property (`generateDashboardConfig` task).
 - [x] **Toolchain modernized (2026-07)**: Gradle 9.6.1, AGP 9.3.0 (KMP modules on
@@ -174,8 +174,8 @@ Phases are ordered so each ships a coherent increment. Estimates assume one deve
 - [x] Tooling: **detekt + ktlint** (via `detekt-formatting`) wired at the root and into CI
   in reporting mode (`ignoreFailures = true`); GitHub Actions CI builds all targets, runs
   host tests, and verifies Roborazzi screenshots. `gradlew` executable bit fixed for Linux CI.
-  - [ ] Clear the initial detekt findings, then flip detekt to blocking.
-  - [ ] **Konsist** tests to enforce module-dependency and no-hardcoded-color rules
+  - [x] Clear the initial detekt findings, then flip detekt to blocking.
+  - [x] **Konsist** tests to enforce module-dependency and no-hardcoded-color rules
     (detekt covers style/formatting, not architecture).
 - [x] Doc drift fixed in ARCHITECTURE.md / README / DESIGN_SYSTEM.md.
 
@@ -965,6 +965,834 @@ Config kill-switches if quotas tighten.
   - Four repository tests run against a real driver rather than a fake, because the whole claim is
     that the parsed fields survive a write and a read back — a fake handing its own objects back
     would prove nothing about the columns.
+
+### Phase 9.3 — Warning and deprecation sweep
+
+> 95 compiler warnings down to 2. The point was not the count: at 95 a real one has nowhere to
+> show, and two of these turned out to be genuine bugs.
+
+- [x] **iOS CSV export was broken.** `(content as NSString)` cannot succeed — a Kotlin String is
+  not an instance of the Objective-C NSString class, and bridging only happens implicitly at an
+  interop boundary, never for an explicit Kotlin-side cast. Every iOS CSV export would have
+  thrown. Now written through `NSData`, which also pins the UTF-8 the CSV claims to be.
+- [x] **Directional icons did not mirror in RTL.** Seven icons (`TrendingUp`, `ArrowForward`,
+  `CompareArrows`, `ReceiptLong`, `Rule`, `HelpOutline`, `TrendingDown`) used the deprecated
+  non-mirroring variants, so an RTL layout got LTR arrows. Moved to `Icons.AutoMirrored`. The two
+  RTL snapshots changed and nothing else did, which is the proof it was RTL-only.
+  - Worth a native RTL reader's eye: the trend arrow now rises leftward, which is correct for a
+    right-to-left time axis but is the kind of call worth confirming with someone who reads that
+    way daily.
+- [x] `monthNumber` → `Month.number` (kotlinx-datetime deprecation, needs its own import as it is
+  an extension property).
+- [x] `confirmValueChange` on `rememberSwipeToDismissBoxState` is deprecated in favour of leaving
+  disallowed anchors out of the set. The swipe direction was **already** restricted by
+  `enableDismissFromStartToEnd = false`, so the veto was redundant; the delete now runs off the
+  settled state instead of from inside a callback used for its side effects.
+- [x] `-Xexpect-actual-classes` set once in the root `subprojects` block. That was 24 of the 95:
+  the feature is Beta upstream (KT-61573), load-bearing here, and has no alternative spelling, so
+  the flag acknowledges it rather than pretending the warning was actionable.
+- [x] File-level opt-ins for `ExperimentalWasmJsInterop` (5 wasm files that are interop by nature)
+  and `ExperimentalCoroutinesApi` (the settings test).
+- [x] Dead `!!`, redundant casts, an unnecessary safe call, and a stray `Unit` removed.
+- [x] **`feature/accounts` was missing from detekt's source list** and had never been linted.
+- [ ] **Two warnings remain, deliberately.** `org.jetbrains.compose`'s `@Preview` is deprecated in
+  favour of the androidx one, which does not resolve on wasmJs — taking the replacement trades a
+  warning for a broken web build. Both sites are commented; revisit when the replacement covers
+  every target.
+- [ ] **Detekt still reports ~900 findings**, `ignoreFailures = true`. Overwhelmingly formatting
+  (`ArgumentListWrapping` 371, `Indentation` 156, `ImportOrdering` 57). Auto-correctable, but that
+  is a whole-repo reformat that would bury real changes in review, so it wants its own commit.
+  - Note for whoever does it: **`NoUnusedImports` cannot be trusted here.** Detekt runs without
+    type resolution, so it flags imports that are genuinely used — acting on its 33 findings broke
+    the build in three modules. Verified this the hard way; use the compiler, not detekt, for it.
+
+## Phase 11 — Real-device bug fixes
+
+> Seven defects from the first real-device test session, plus three found while investigating them.
+> All on branch `feature/device-fixes-and-sync`; nothing merges to `main` until the whole branch is
+> verified on device.
+
+### 11.1 Dashboard quick actions — done
+
+- [x] **"Add expense" / "Add income" / "Transfer" did nothing at all.** The buttons were wired
+  end to end at the MVI layer and had a *passing* ViewModel test asserting the effect was emitted.
+  They died in the UI: the screen's effect collector ended in `else -> Unit`, and
+  `NavigateToAddTransaction` fell into it. Testing the emission proved only half the wire existed.
+  - The collector is now an **exhaustive `when` with no `else`**, so an unrouted effect is a
+    compile error rather than a dead button. This is the actual fix; the rest is plumbing.
+  - There was also nowhere to navigate *to*: `AuthRoute.Transactions` and `AuthRoute.Accounts` are
+    now `data class`es carrying `openEditorFor` / `openTransfer`, and the editor pre-selects the
+    kind the button named.
+  - **Transfer routes to Accounts, not the transaction editor** — a transfer writes two linked legs
+    between the user's own wallets, which the editor has no concept of.
+  - Trap found while doing it: once a route carries arguments, `destination.route` stops equalling
+    the bare qualified name, so the four `currentRoute == …qualifiedName` comparisons in the shell
+    would have silently hidden the whole navigation bar on those tabs. Now matched with
+    `hasRoute`, which is indifferent to arguments.
+  - `onInsightNavigate` was never passed by the nav graph either, so AI insight taps were dead
+    too. Now wired, with the mapping closed over the three values the AI schema permits.
+
+### 11.2 Dashboard swipe-to-delete had no undo — done
+
+- [x] Found by making the `when` exhaustive: `ShowUndoDelete` and `ShowError` **were** being
+  emitted and silently dropped, so swiping a row on the dashboard deleted it permanently with no
+  acknowledgement, and errors were invisible. In a finance app that is the worst kind of dead code.
+  - The display model was too lossy to undo from — it carries no `accountId`, `externalId` or
+    `source`, so restoring from it would have put the money in the wrong wallet and broken
+    mobile-money dedup, letting the provider's next re-send import a second copy. The repository
+    now captures the full row as a `DeletedTransaction` snapshot before deleting and restores from
+    that, via the one insert that carries `externalId` and `source`.
+  - Two effect cases (`NavigateToAnalytics`, `NavigateToBudgetDetail`) were **deleted**: nothing
+    ever emitted them. They were speculative API that the `else ->` branch kept invisible.
+
+### 11.3 Phone-number field cursor jumped backward — done
+
+- [x] Every keystroke round-tripped through a DataStore write and a 7-way `combine` before coming
+  back to the field, and a plain `String` value carries no selection for Compose to preserve, so
+  the cursor snapped when the delayed value landed. The field now holds a local draft and never
+  reads the echo back. Null means "nothing typed yet", so the persisted value still shows on first
+  load — seeding eagerly would have blanked the field, because the state flow starts empty and
+  fills in a moment later.
+- [x] The write path was also unordered: one `viewModelScope.launch` per keystroke gave no
+  guarantee, so fast typing could persist an *older* string. Now funnelled through a conflated
+  flow and debounced, which also stops hammering the disk.
+- [ ] Same shape exists in seven other fields (search, login/register/forgot-password email and
+  password) that round-trip through an in-memory `MutableStateFlow` rather than disk, so they are
+  far less visible. Worth converting together; not urgent.
+- [ ] Separately: ten amount fields filter inside `onValueChange`, which moves the cursor when a
+  rejected character is typed mid-string. Needs `TextFieldValue`.
+
+### 11.4 First install reached the Dashboard without signing in — done
+
+- [x] Splash was correct. The break was downstream: onboarding branched on
+  `isBiometricAuthSupported`, true on Android, so a first install went **Splash → Onboarding →
+  Biometric → Dashboard** and never asked anyone to sign in. Every button on the biometric screen,
+  including "Skip", led to the Dashboard.
+  - Onboarding now always routes to Login. Biometric setup is an *enrolment* step: it protects an
+    account, so it can only sensibly run once there is an account to protect.
+  - **"Bonjour, vous" was not a separate bug** and was deliberately left alone — it is the honest
+    rendering of no session. Patching the greeting would have hidden the routing bug.
+- [x] **Added an auth guard**, because the instance was a symptom of the class: routing was
+  entirely imperative, so whoever called `navigate()` decided and nothing checked afterwards.
+  Losing the session while the app was open also left the user sitting on their finances. Now, if
+  the session is gone and the user is on a signed-in destination, they go to Login regardless of
+  how they arrived.
+- [x] Removed the dead onboarding→biometric edge. `AuthRoute.Biometric` is deliberately kept but
+  currently unreachable; the app-lock phase re-enters it from after sign-in, where it will
+  actually gate something.
+
+### 11.5 Google sign-in failed the first time, worked the second — done
+
+- [x] Two causes, both fixed.
+  - The catch chain mapped **every** remaining `GetCredentialException` to `GoogleUnavailable`,
+    so a cold-started provider told users with a perfectly good Google account that their device
+    did not support Google sign-in. There is now a separate `GoogleTransient` error, because the
+    two need opposite advice: "try again" versus "this will not work here".
+  - The request used a single, non-retried `setFilterByAuthorizedAccounts(false)`, which forces
+    the provider to cold-start and enumerate every account on the device — the call most likely to
+    fail first time. It now asks for **authorized accounts first** and only falls back to the full
+    enumeration on `NoCredentialException`, which is the documented order and the fast path for
+    returning users. `GetCredentialUnknownException` and `GetCredentialInterruptedException` get
+    one retry, so the "second tap" now happens without the user having to think of it.
+- [x] The spinner starts at the tap rather than when a token returns. The sheet can take a moment
+  to open on a cold provider, and the button looked dead for exactly that window.
+- [ ] The exception `cause` is still discarded before it reaches anywhere observable, so the next
+  failure of this kind is undiagnosable. Needs a logging abstraction `:feature:auth` can use from
+  `commonMain` — deliberately not invented here; folded into the secure-logging work.
+
+### 11.6 AI requests rejected as invalid App Check tokens — code side done
+
+> The ~97% rejection rate is **environmental, not a code fault**. Init order is correct and the
+> debug/release provider selection via variant source sets is the right pattern. What the code got
+> wrong was making the failure invisible.
+
+- [x] **`GenAiClient` had no generic catch.** Any `FirebaseAIException` subtype not named
+  explicitly escaped `generateJson` un-wrapped, past callers that only catch `GenAiException`.
+  There is now a catch-all for the SDK's hierarchy.
+- [x] **App Check refusals get their own error**, `GenAiException.NotAuthorized`, and their own
+  copy. Retrying cannot fix them and the fix is not the user's, but the old generic
+  "could not reach the AI, try again in a moment" invited exactly the retry that kept failing —
+  which is how a 97% rejection rate passed for a flaky network for so long.
+- [x] `setTokenAutoRefreshEnabled(true)`, which was unset, so refresh followed the global
+  data-collection default and an expiring token was renewed only after something already failed.
+- [x] README now spells out the trap that actually caused this: the debug token is stored in
+  SharedPreferences and is **regenerated on every fresh install or clear-data**, so a burst of
+  reinstall-driven testing invalidates it repeatedly. Also documents where to see the rejection
+  rate in the console, and that release builds must come from Play.
+- [ ] **Operational, needs doing on your side:** register the current debug token in
+  Firebase Console → App Check → Manage debug tokens. No code change will fix the rejections.
+
+### 11.7 Category names shown in English in a French UI — partly done
+
+> Root cause: default categories are seeded into the database as **English literals** at first
+> run, once, guarded — so the stored name is English whatever the app language is, and re-seeding
+> will not fix an existing install. `categoryNameFor(id, storedName)` exists to compensate by
+> mapping the eleven seeded ids to string resources. The design was right; adoption was patchy.
+
+- [x] **The reported one:** the editor's category picker localised, but the row it produced did
+  not. A category chosen in French reappeared in English the moment it was saved.
+- [x] The category icon's accessibility label was the raw English name too.
+- [ ] **Search still matches the stored name**, so searching "Alimentation" in French finds
+  nothing. Deliberately not half-fixed: the filter is a pure predicate in the domain layer, and
+  `categoryNameFor` is `@Composable`. Doing this properly means a non-composable localized lookup
+  (compose-resources' suspend `getString`) or passing a resolved id→name map into the filter.
+- [ ] **Reports and budget suggestions bake the raw name in the data layer**, so they cannot be
+  localized at render time at all — the id never reaches the UI. Needs those models to carry
+  `categoryId`, which is a wider change than the render-site fixes above.
+- [ ] `NotifyBudgetThresholdsUseCase` builds **hardcoded English sentences** in the domain layer.
+  Folded into the notifications-screen work, which has to localize that producer anyway.
+- [ ] `TopTransactionsList` calls `categoryNameFor(id, id)`, so a user-created category renders as
+  a raw UUID.
+
+## Phase 12 — Security hardening
+
+### 12.1 Data-at-rest and deletion — done
+
+- [x] **`allowBackup` was `true` with no extraction rules**, so the unencrypted SQLDelight database
+  and the DataStore preferences were eligible for Google Drive auto-backup and device-to-device
+  transfer: a complete financial ledger leaving the device in cleartext, outside anything the app
+  controls. Now `false`, with `data_extraction_rules.xml` (API 31+) and `backup_rules.xml`
+  (API 30-) as belt and braces should backup ever be re-enabled. Both files are needed — the newer
+  one is ignored on older versions, which would otherwise keep the permissive behaviour.
+  - The convenience this removes is replaced by the encrypted export in Settings, where the user
+    holds the passphrase and chooses where the file goes.
+- [x] **`UserDataEraser` never erased the imported-message ledger.** "Delete my account" left
+  behind a record of every mobile-money message the app had read — sender, arrival time, and for
+  anything awaiting review the parsed amount and description. Arguably the most invasive table in
+  the database, and the query to clear it already existed for exactly this purpose. One line.
+  - Covered by a test that was **verified to fail without the fix**, rather than assumed to.
+
+### 12.2 Screen-capture protection — done
+
+- [x] `FLAG_SECURE`, applied from a new `secureScreen` setting: no screenshots, no screen
+  recording, and no live thumbnail of the user's balances in the recents switcher. It has to be a
+  window flag rather than anything in Compose, because the recents snapshot is taken by the system
+  outside the app's own drawing.
+- [x] **On by default**, unlike the other privacy switches. Those govern what leaves the device,
+  where an unset preference must never be read as consent; this governs what a passer-by can see,
+  and defaulting it off would ship balances visible in the app switcher until someone went looking
+  for a setting. A toggle rather than fixed because it also blocks the user's own screenshots.
+- [x] Collected for the activity's lifetime, so toggling it applies immediately rather than on
+  next launch.
+
+### 12.3 Secure logging — done
+
+- [x] Audited every logging call in the app. The result was better than expected and worth
+  recording: **no `android.util.Log` anywhere, and no Crashlytics `setCustomKey`, `log` or
+  `recordException`** — so crash reports carry stack traces only, with no attached user data.
+- [x] One real leak found and removed: `GeminiInsightsService` printed the exception message on
+  failure. That path handles a failure while generating insights *from the user's spending*, so
+  the message can carry prompt or response fragments — on Android that means the user's finances
+  in logcat, readable by anything with log access on a rooted device and captured verbatim in bug
+  reports. The fallback handling below it was always the real behaviour; the `println` added
+  nothing.
+- [x] **Konsist rule so the next one fails the build**, covering the packages where a stray line
+  would be worst: SMS parsers (raw message bodies), repositories (amounts, account ids), AI
+  services (prompts built from spending), and auth. Verified by planting a `println` in the SMS
+  parser and confirming the rule fails — a rule that passes on a real violation is worse than none.
+  - Deliberately a build failure rather than a review convention: the cost of logging is invisible
+    at the call site and only shows up in someone else's log capture.
+- [ ] The Google sign-in exception `cause` is still dropped rather than reported. Now that
+  Crashlytics is confirmed clean, `recordException` is the right home for it — but it needs a
+  `commonMain`-visible abstraction, which belongs with the app-lock work rather than here.
+
+## Phase 13 — SMS import: destination, feedback, and trust (second device test)
+
+> Second real-device test. Verdict on the importer: the capture machinery is correct, but it is
+> **unaccountable** — it guesses the destination, reports nothing, and cannot be told apart from
+> "did nothing at all".
+
+- [x] **13.1 The destination account was guessed, and guessed wrong.** Imports land in
+  `observeAccounts().first().firstOrNull()` — the first wallet ever created — with a comment
+  admitting a per-wallet mapping is "the obvious refinement". The user's transactions were
+  imported into an account they weren't looking at. Fix: an explicit **import destination wallet**
+  setting in the SMS section; enabling import or running a backfill with no destination set
+  requires choosing one. Designed per-provider from day one (a map `provider → accountId`), so
+  MTN MoMo slots in as a second row rather than a schema change; with one provider the UI reads
+  as a single picker.
+- [x] **13.2 Imports are invisible.** Live capture happens (if it does) with no acknowledgement,
+  and backfill reports only a count — nothing says *what* was imported or *where it went*. Fix:
+  every import writes a `NotificationEntity` row (provider, amount, description, destination
+  wallet), including deferred-to-review outcomes; live captures additionally post an Android
+  system notification, because the app is not open when an SMS arrives. This is also what makes
+  "is automatic capture working?" *answerable* — today the receiver, manifest and permissions all
+  look correct, but silence is indistinguishable from failure, including for the case where the
+  network's actual sender ID does not match the `orange|^OM$` allowlist.
+- [x] **13.3 Multiple numbers already work but the UI says otherwise.** The parser accepts a
+  comma-separated list; the field is labelled "Your mobile money number", singular, with a
+  one-number placeholder. Fix the copy and placeholder. The *owner numbers* stay one shared list
+  across providers — any of the user's numbers can appear on either side of a transfer regardless
+  of which SIM received the SMS — while the *destination* is what becomes per-provider.
+- [x] 13.4 Merged with the notifications screen (Phase 3 of the branch plan): same table, same
+  surfaces, one unread badge. The bell answers "did my SMS import, and where?".
+
+## Phase 13 — SMS-import accountability + notifications
+
+> From the third device test. Three faults, one root cause: the import destination was a
+> hardcoded guess (`accounts.first()`) and nothing announced the result, so money appeared in a
+> wallet the user was not looking at and no signal said which message, amount, or wallet. A prior
+> session started the fix and left it uncommitted; this phase finishes and hardens it to release
+> quality, and folds in the notifications inbox screen (originally scoped separately) because the
+> two are the same system.
+
+### Diagnosis (recorded so the reasoning is not lost)
+
+- **Automatic capture works.** The manifest receiver is registered for `SMS_RECEIVED` with
+  `RECEIVE_SMS`, priority 999 — and `SMS_RECEIVED` is exempt from the Android 8+ implicit-broadcast
+  restriction, so a manifest receiver still fires. The old importer resolved the destination as
+  `observeAccounts().first().firstOrNull()`, i.e. the first wallet ever created. That matches the
+  report exactly: captured, but to the wrong wallet, and silently.
+
+### 13.1 Destination is the user's choice, never a guess
+
+- [x] Per-provider destination wallet, stored as `AppSettings.smsImportAccounts` (`provider ->
+  walletId`). Per-provider rather than one global, because an Orange Money balance and an MTN MoMo
+  balance are genuinely different accounts of money; with one provider today it is one row.
+- [x] `ImportMoneyMessageUseCase` takes an `accountFor: (provider) -> String?` resolver instead of
+  a fixed id, and a new `NoDestination` outcome: a parsed message with no configured wallet is
+  held (not misfiled, and **not** recorded as seen, so it survives) and surfaces a "choose a
+  wallet" notification, so a later backfill imports it once a wallet is set. The paste path falls
+  back to the active wallet — correct there because the user is present and the row appears in
+  front of them. Unit-tested including the hold-then-import path.
+- [x] When SMS import is enabled, default each provider's destination to the currently active
+  wallet, so the common path never hits `NoDestination`, while keeping that outcome as the safety
+  net. Existing choices are left untouched. Unit-tested.
+
+### 13.2 Every outcome announces itself
+
+- [x] `WalletDirectory` in `:core` — a read-only id+name wallet projection so Settings and the
+  importer can name a wallet without importing `:feature:accounts` (the architecture forbids
+  feature→feature). Id+name only; balances/archival stay in the feature.
+- [x] A system notifier posts outside the app. Since Phase 21 it lives in `:core` as
+  `SystemNotifier` and is shared with budget alerts, because the app is closed when
+  an SMS arrives — an in-app row alone is invisible in the moment. Amount kept off the lock screen
+  (`VISIBILITY_PRIVATE`), same reasoning as `FLAG_SECURE`.
+- [x] Every outcome writes an in-app inbox row too (imported / needs-review / no-destination);
+  dedup and not-recognised outcomes stay silent. Live captures post the system notification;
+  backfill writes inbox rows only — 500 system notifications from one backfill is an attack.
+- [x] Notification text resolved at write time in the language of that moment: a notification is a
+  historical record, so one written in French stays French after a language switch.
+- [x] `POST_NOTIFICATIONS` (Android 13+) requested when the user enables import — without it the
+  system notification silently no-ops. Expect/actual so the request is a no-op below Android 13
+  and on iOS/web, which post no OS notifications. Denial is not fatal: the in-app inbox still
+  records everything.
+
+### 13.3 Settings
+
+- [x] Destination-wallet picker per configured provider, fed by `WalletDirectory`. Only providers
+  that have a parser are offered (self-updating: the MTN parser appearing adds its row), so the
+  UI never asks for a destination for messages that can never be read.
+- [x] Owner numbers: the field parses multiple numbers, and the parsed set is now echoed back as
+  chips under it, so it is obvious that several are registered and exactly how the text was split
+  (the same split the importer uses to identify "me"). The help text calls out the Orange+MTN
+  case explicitly. Keeps the Phase 11.3 cursor fix.
+- [x] The destination each provider imports into is visible and chosen in Settings, and the
+  backfill-done message now points at Notifications for the per-import detail — which, with the
+  system and inbox notifications, closes "I could not know where it went" end to end.
+
+### 13.4 Notifications inbox screen
+
+- [x] `AuthRoute.Notifications` + a screen over the existing `NotificationRepository`: unread items
+  on Raised cards, read ones receding to Flat, tap-to-read, delete, empty state, and an unread
+  badge on the bell (capped "9+"). **Closes bug 11.7** — the bell now opens the inbox with an icon
+  and description that match. The unread count is threaded through `DashboardState` rather than
+  injected in the composable, so the screenshot tests need no Koin. Screenshot-tested (populated
+  light/dark, empty) via a stateless `NotificationsContent`, mirroring `DashboardContent`.
+- [x] Localized `NotifyBudgetThresholdsUseCase` — it built English sentences in the domain layer.
+  Now resolves strings at write time via a new non-composable `categoryNameRes` (which also chips
+  at the Phase 11.6 debt: default category names are stored as English literals), so a budget
+  alert is written in the language of the moment and stays that way, as a record should.
+
+### 13.5 Verification
+
+- [x] Unit tests: configured provider → its wallet; unconfigured → `NoDestination`; held message
+  imports on re-run once a wallet is set; the imported outcome carries the notification fields.
+  Settings: enabling defaults to the active wallet, an existing choice survives, round-trip/clear.
+- [ ] On-device: the final confirmation of automatic capture is a live SMS, which host tests
+  cannot exercise. The notifications make it self-evident — an arriving message now visibly
+  announces itself and its wallet, so "is it working?" is answerable at a glance.
+
+## Phase 14 — Real app lock
+
+> The biometric toggle shipped protecting nothing. `BiometricAuthenticator` could only report
+> availability, never prompt — and even that could not work, because the context it needed was
+> passed through a `setContext` method nothing ever called. The login screen's "biometric" button
+> navigated home on a preference that was hardcoded `false`. All of it is gone, replaced by a
+> lock that actually locks.
+
+### 14.1 PIN foundation — done
+
+- [x] Pure-Kotlin PBKDF2-HMAC-SHA256 in `commonMain`, chosen over a per-platform `javax.crypto` /
+  CryptoKit split **for provability**: it is pinned to the canonical FIPS 180-4, RFC 4231 and
+  RFC 7914 vectors, so correctness is checked on the host and holds everywhere because it is one
+  body of code. A platform split could not be verified for targets that only cross-compile here.
+- [x] `PinHasher` stores `v1:iterations:salt:hash`, compares in constant time, and returns false
+  on a malformed record rather than throwing, so a corrupted preference cannot crash the unlock
+  screen.
+- [x] Stated plainly in the code: a numeric PIN's keyspace is small enough that no iteration count
+  saves it once the hash leaks. The real defences are keeping it out of backups (Phase 12) and
+  bounding online guesses (below).
+
+### 14.2 Lock state and rules — done
+
+- [x] `AppLockController`, one instance per process so lock state survives activity recreation.
+  Settings are cached from a collected flow so the lifecycle callbacks stay non-suspending.
+- [x] **Rate limiting lives in the controller, not the screen** — it has to survive the screen, or
+  closing and reopening the unlock UI would reset the count and the limit would be no limit. Five
+  wrong PINs start a widening lockout (30s → 60s → 120s, capped at five minutes); a correct PIN
+  resets it, and even the correct PIN is refused while locked out.
+- [x] Cold start locks when enabled. A later settings change never locks a running, already
+  unlocked app, but disabling unlocks immediately so nobody is stranded at a lock screen.
+- [x] Seven tests: cold start both ways, disabling while running, the grace period on both sides
+  of the boundary, right/wrong PIN, and the lockout including its expiry.
+
+### 14.3 Biometrics, gate and UI — done
+
+- [x] `BiometricPrompter` in `:core` — a real `BiometricPrompt` that suspends until resolved.
+  Distinguishes cancelled (the user chose the PIN fallback) from failed and unavailable, because
+  treating a deliberate choice as a failure would be wrong at the one moment the user is watching.
+  A single unrecognised finger deliberately does **not** end the prompt.
+- [x] `AppLockGate` renders the lock screen **instead of** the app, never over it: composing the
+  app underneath would leave balances rendered and readable in the recents preview, which is most
+  of what the lock is for.
+- [x] Foreground/background tracked by counting started activities, so rotating the screen is not
+  mistaken for leaving the app. No extra dependency needed.
+- [x] Own keypad rather than the system IME: a PIN typed into a text field is exposed to platform
+  prediction and clipboard. Fixed six digits so entry submits itself on the last one.
+- [x] Settings section, hidden where the platform cannot support app lock. Enabling asks for a PIN
+  first — biometrics can be un-enrolled at any time, so a lock with no PIN behind it can strand
+  its owner outside their own ledger. Screenshot-tested in both themes, with and without the
+  biometric key.
+
+### 14.4 Theatre removed — done
+
+- [x] Deleted `BiometricAuthenticator` (all four platform files), `ActivityProvider`,
+  `CheckBiometricSupportUseCase`, `ToggleBiometricUseCase`, the whole unreachable biometric
+  onboarding screen, and `AuthRoute.Biometric`.
+- [x] Removed the login screen's biometric button. It read a repository method hardcoded to
+  `false`, so it could only ever fail — and had that preference ever been true it would have
+  navigated straight home with no authentication at all.
+
+## Phase 15 — Encrypted backup & restore
+
+> Phase 12 turned off Google auto-backup because it was copying the finance database to Drive in
+> cleartext. That closed a hole and opened another: until an export existed, a reinstall lost
+> everything. This is the sanctioned replacement — the user holds the passphrase and chooses where
+> the file goes.
+
+### 15.1 Format and crypto — done
+
+- [x] **Key derivation reuses our vector-checked PBKDF2; AES-GCM comes from the platform.** The
+  split is deliberate and differs from the PIN work: hand-writing a block cipher and a GHASH is a
+  far larger and more dangerous surface than a hash function. Where no AES is wired, backup
+  reports itself unsupported and the UI hides — encryption a user *believes* in but which does not
+  hold is worse than an absent feature.
+- [x] Text format `BMBAK1.salt.iv.ciphertext`, not binary, because that survives being mailed to
+  oneself or dropped in a notes app, which is realistically where backups live. The header sits
+  **outside** the ciphertext so a wrong file is reported as a wrong file, before anyone is asked
+  for a passphrase.
+- [x] Per-file salt and IV, so the same data backed up twice produces unrelated bytes and two
+  backups cannot be compared for equality.
+- [x] Versioned: a newer file is refused with an explanation rather than misparsed.
+
+### 15.2 Scope and restore semantics — done
+
+- [x] Includes the imported-message ledger, unlike sync — the artefacts differ: a backup is
+  encrypted under the user's own passphrase and goes where they choose, and restoring benefits
+  from the dedup ledger. Excludes exchange rates (refetched in a day) and AI insights (a derived
+  cache that would only go stale).
+- [x] **Restore is replace-all in one transaction, not a merge.** Without sync metadata there is no
+  way to tell an edited row from a different row sharing an id, and guessing about someone's money
+  is worse than a predictable overwrite they were warned about. Decryption and parsing happen
+  *before* the database is touched, so an unreadable file leaves existing data untouched.
+- [x] Guarded twice in the UI: the passphrase, and a typed confirmation word.
+- [x] `externalId` and `source` carried through explicitly, because losing them would silently
+  break mobile-money deduplication after a restore.
+
+### 15.3 Proven — done
+
+- [x] Seven tests against a real SQLite driver and the shipping crypto path: every table restores
+  into a **different** empty database, restore erases what was there rather than merging, a wrong
+  passphrase fails, a single flipped ciphertext character is caught by the GCM tag, a non-backup
+  file is named as such, a future version is refused, and the same data encrypted twice differs.
+
+### 15.4 Bug found on the way — done
+
+- [x] **CSV export had never worked on Android.** `CsvSharing` called
+  `FileProvider.getUriForFile`, but no `<provider>` was declared in the manifest — so it threw,
+  the `runCatching` swallowed it, and the export silently did nothing. Declared the provider with
+  a path list scoped to the export cache directory only, which fixes CSV export and enables
+  backup sharing.
+
+## Phase 16 — Wallets kept out of the combined view
+
+> Requested directly: an "Epargne" wallet whose money should not be mixed with everyday spending
+> in the "All accounts" view.
+
+### 16.1 The flag — done
+
+- [x] `AccountEntity.includeInTotals`, schema **v5** (`4.sqm`), defaulting to 1 so no existing
+  user's totals change under them on upgrade. Opting a wallet out is always deliberate.
+- [x] Distinct from `isArchived` on purpose, and both are enforced: archived means "no longer in
+  use", excluded-from-totals means "in use, but kept apart".
+- [x] **Filtered at the query, not per screen.** `selectTransactionsByUser` and its paged variant
+  both carry `AND includeInTotals = 1`, so every consolidated surface — dashboard, transactions
+  list, reports, CSV export — inherits the rule and no future caller can forget it.
+- [x] The excluded wallet is **excluded from the combined transaction list too**, not just the
+  balance. A total and a list that disagree would be worse than either alone.
+- [x] Still fully usable: it stays in the accounts list, and switching to it explicitly shows its
+  balance and transactions as normal.
+- [x] Carried through backup with a serialization default, so a file written before this column
+  existed still restores.
+
+### 16.2 Pre-existing inconsistency fixed — done
+
+- [x] The dashboard's opening-balance sum ignored `isArchived` entirely while the Accounts screen
+  excluded archived wallets from net worth — so for anyone who had archived a wallet, the
+  dashboard balance and the net worth **disagreed**. Both now scope the same way, and the
+  opening balance is scoped identically to the transactions it is added to, or the total would
+  reconcile with neither.
+
+### 16.3 Verification — done
+
+- [x] Four query-level tests: the consolidated list omits the excluded wallet, the paged variant
+  omits it too (if only one were filtered, balance and rows would disagree), the wallet is still
+  listed and readable on its own, and re-including it brings it back.
+- [x] Migration test: an account created before the column exists gets `includeInTotals = 1`.
+
+### 16.4 Scope decision — recorded, not silently dropped
+
+- [x] Superseded in Phase 22 by checkboxes in the quick switcher, which turned out to be the same
+  capability with less machinery: the user ticks the wallets that make up "All accounts", and the
+  choice persists rather than evaporating with the session. Original note kept below.
+- [ ] A **transient multi-select scope** (tick several wallets for one session) was discussed
+  alongside the persistent flag. Not built: it would change `ActiveAccountStore` from a nullable
+  id to a scope type, which ripples into every repository's `if (id != null) byAccount else
+  byUser` branch and needs `IN (?)` query variants throughout. The persistent flag fully answers
+  the reported need, and this is genuine extra flexibility rather than a missing piece — worth
+  doing deliberately, not as a rider.
+
+## Phase 17 — Sync bookkeeping (schema v6)
+
+> Groundwork for sync. No user-visible change; the point is that every later phase can rely on
+> knowing what changed and what was removed.
+
+### 17.1 The design was changed, deliberately
+
+- [x] The plan called for a `deletedAt` column on every synced table, with soft deletes. **Rejected
+  after examining the blast radius**: it would have forced `AND deletedAt IS NULL` onto ~60
+  existing SELECTs — where one forgotten clause silently resurrects deleted rows — broken
+  `ON DELETE CASCADE`, and fought the two paths that must genuinely erase: account deletion (a
+  Play/GDPR obligation fixed in Phase 12) and backup restore's replace-all.
+- [x] **Instead: deletes stay hard, and a row's disappearance is recorded beside it** in a
+  `SyncTombstone` table. Result: **zero changes to any existing SELECT or DELETE**, cascades keep
+  working, and erasure still erases.
+- [x] `updatedAt` / `dirty` are stamped by **triggers**, so no write path has to remember them —
+  which also meant zero changes to every insert call site.
+- [x] The guard `WHEN NEW.updatedAt = OLD.updatedAt` is what separates a local edit from an applied
+  remote change: an ordinary edit leaves the timestamp alone and gets queued, while a sync-applied
+  write sets it and is left in peace. Without that, applying a pull would immediately re-queue
+  every row for push.
+
+### 17.2 Verified, not assumed
+
+- [x] **A trigger on a child table fires even when the row goes via `ON DELETE CASCADE`** — checked
+  against SQLite directly before committing to the design, since the whole approach depends on it.
+  Also confirmed `recursive_triggers` defaults off, so a trigger updating its own table cannot loop.
+- [x] Triggers are installed as raw DDL from Kotlin, because SQLDelight's analyser cannot resolve
+  the `NEW`/`OLD` pseudo-tables and the file will not compile with them present. Idempotent, so it
+  runs on every open and covers fresh and migrated databases alike.
+- [x] Seven tests: insert stamps and queues; an edit re-stamps and re-queues; **a write that sets
+  `updatedAt` itself is left alone** (the pull path); delete leaves a tombstone; **a cascaded
+  delete tombstones its children**; the cursor round-trips and upserts; purging drops only what is
+  older than the cutoff.
+
+### 17.3 The migration trap
+
+- [x] `updatedAt` defaults to 0, and **0 loses every last-write-wins comparison** — so on first
+  sync the cloud would have silently overwritten every pre-existing local row. `5.sqm` backfills
+  it to migration time, which is the truth: that data is the newest this device knows.
+  Deliberately *not* taken from `TransactionEntity.timestamp`, which is the transaction's date,
+  not its edit time — a backdated entry would present as stale and lose. Pinned by a test.
+
+## Phase 18 — The sync engine, proven on the host (schema v7)
+
+> The whole algorithm — ordering, conflict resolution, convergence — running in `commonMain`
+> against a `RemoteSyncDataSource` interface, with no Firebase, no network and no device. Firestore
+> arrives next phase as a thin adapter that cannot change any of the behaviour below.
+
+### 18.1 What was built
+
+- [x] `RemoteSyncDataSource` + `RemoteRecord` / `RemoteTombstone` / `RemoteChange` — the remote
+  reduced to pull / pullTombstones / push. Two obligations are written into the contract because
+  the tests proved they are load-bearing: pushes are idempotent per row, and a tombstone removes
+  the row's record **only when it is not older than that record** — a delete that arrives late must
+  not evict a row someone has since re-created.
+- [x] `SyncTableAdapter` × 7, one per synced table. The wire shape is the existing `Backup*` model,
+  so a row is serialised the same way whether it goes into a backup file or to the cloud.
+- [x] `SyncEngine`: `push()` → `pull()` → `recomputeDerived()`. Last-write-wins per row, deletes
+  beat concurrent edits, and `BudgetEntity.spent` is recomputed from transactions after every pull
+  rather than trusted from the wire — a derived sum resolved by last-write-wins drifts permanently
+  and matches neither device's actual data.
+- [x] Twelve host tests, including a seeded randomised two-device run over thirty seeds. The seed
+  count is not padding: the last defect surfaced only on the second seed, after the first had gone
+  green, and each earlier one was reachable from only some interleavings.
+
+### 18.2 Seven defects the tests found before any of it shipped
+
+Each was a silent, permanent divergence — two devices holding different data with nothing anywhere
+to indicate it. None would have been visible on a single device, and none would have survived
+contact with real use.
+
+- [x] **The pull cursor used the wrong clock.** It advanced on each record's *edit* time, so a row
+  edited earlier but arriving later — an ordinary device that was offline for a while — fell below
+  the cursor and was never pulled again. Fixed by having the remote assign its own arrival
+  sequence: edit time decides *which version wins*, the remote's sequence decides *what has been
+  seen*. Conflating the two is the bug. (Firestore supplies this as a server timestamp.)
+- [x] **`INSERT OR REPLACE` on a parent row emptied the ledger.** OR REPLACE is a delete plus an
+  insert, and these tables are joined by `ON DELETE CASCADE` — so applying a remote *rename* of a
+  wallet deleted every transaction under it, and the delete triggers then tombstoned the lot and
+  published the destruction to every other device. Now an ignored insert followed by an update.
+  `ON CONFLICT DO UPDATE` would have been tidier but needs SQLite 3.24, which Android does not ship
+  until API 29 — above this app's minSdk of 26.
+- [x] **A deleted row could be resurrected.** A record with no local row was inserted
+  unconditionally, ignoring this device's own tombstone. Fixed on both sides: the engine consults
+  the tombstone before inserting, *and* the remote contract now requires a tombstone to remove the
+  row's record, so a lagging cursor cannot pull a deleted row back as a live one.
+- [x] **The record path and the tombstone path broke ties differently**, so the two devices reached
+  opposite conclusions about the same pair and stayed there. Collapsed into one comparison used for
+  all three cases (edit vs edit, edit vs delete, delete vs edit).
+- [x] **Every pulled row was restamped with the receiving device's clock.** Applying a remote row
+  ran an insert *and* an update, so whenever the insert was the one that landed, the update
+  rewrote identical values — exactly the shape the triggers read as "an ordinary edit that touched
+  neither sync column". Each arriving row was therefore marked dirty and republished under a
+  timestamp it never had, corrupting the ordering the whole scheme rests on. The engine already
+  knows whether the row exists, so it now picks the statement instead of firing both.
+- [x] **A relayed delete drifted later every hop.** Applying a remote tombstone left the local
+  delete trigger to stamp it with *this* device's clock, losing when the removal actually happened
+  — so a delete could end up outranking an edit that genuinely came after it. The original time is
+  now preserved, for the same reason an applied record keeps its own `updatedAt`.
+- [x] **A row and its own tombstone could coexist.** Re-creating a deleted row left the old
+  tombstone in place, and the next sync pushed the row and its own obituary together — the remote
+  applied the obituary and the row vanished again. The insert trigger now clears any tombstone for
+  the id, making the invariant structural rather than something every call site must remember.
+
+### 18.3 Two things that made ties far more common than they should have been
+
+- [x] **The trigger clock threw away three digits.** `strftime('%s') * 1000` is whole seconds
+  dressed as milliseconds, so everything done in one burst carried an identical timestamp and
+  last-write-wins fell through to its tiebreak constantly — a coin toss standing in for an ordering
+  that genuinely existed. Now millisecond resolution.
+- [x] **`CREATE TRIGGER IF NOT EXISTS` cannot ship a fix.** Any device that had already run an
+  earlier build would have kept the old trigger bodies for good, and no test on a fresh database
+  can see that. `install()` now drops before creating.
+- [x] Because ties are now rare, the tiebreak has its own test rather than relying on the
+  randomised run to stumble across one.
+- [x] The randomised test itself was wrong twice, in ways that hid failures rather than causing
+  them: it stamped edits from a logical clock while leaving deletes on the wall clock — comparing
+  two clocks, so the result depended on how fast the machine ran and no delete could ever win —
+  and it stamped a tombstone even when the delete had removed nothing, inventing an ordering the
+  run never had. A test that fabricates its own history proves nothing.
+
+### 18.4 Schema v7 — `SyncTombstone.pushed`
+
+- [x] v6 decided what still needed pushing with a `deletedAt > lastPushed` cursor. At second
+  resolution that silently dropped tombstones: deleting an account cascades to its transactions and
+  every one lands in the same tick, so the first was pushed and its siblings were stranded — the
+  row deleted here and alive everywhere else. A per-row flag has no resolution to run out of.
+
+### 18.5 Deliberately not done here
+
+- [x] Koin binding and a real remote — Phase 19. The engine is bound to nothing yet, which is the
+  point: it was proven first.
+
+## Phase 19 — Firestore, security rules, and joining an account (schema v8)
+
+> The engine from Phase 18 gets a real remote, rules that are tested rather than eyeballed, and an
+> answer to the question signing in raises: what happens to everything written while signed out.
+
+### 19.1 The Firestore binding
+
+- [x] One subtree per user — `users/{uid}/records/...` and `users/{uid}/tombstones/...` — so
+  ownership is a single check on the path and one user's data cannot be addressed by another.
+- [x] The binding is thin by design; every ordering and conflict rule stays in the engine. The one
+  judgement it makes is the one the interface demands of any remote — a tombstone removes the row's
+  record only when it is not older than that record — and it makes it in a transaction, because
+  between reading and deleting another device can write.
+- [x] Cursors keep **epoch nanoseconds**. Rounding to milliseconds would mean two documents written
+  in the same millisecond share a cursor value and the second never again satisfies `seq > cursor`.
+  Invisible, permanent, and indistinguishable from the row never having been created.
+- [x] `SyncController`: one pass at a time, failures reported rather than thrown. A phone without
+  signal is the normal condition, not an incident, and a failed pass leaves rows dirty and
+  tombstones unpushed so the next one resumes exactly where it stopped.
+
+### 19.2 Rules, tested against the emulator
+
+- [x] 18 cases in `firebase/test/rules.test.js`, each asserted from both sides — the owner can,
+  everyone else cannot. Run with `npm --prefix firebase test`.
+- [x] `seq` is pinned to `request.time`, so a device cannot choose its own sequence. Without that,
+  one wrong clock or one bad build could write a sequence years ahead and every other device would
+  skip everything behind it for good.
+- [x] Shape validation (known tables, field sets, types, payload ceiling) and a default-deny
+  catch-all, so a collection added later without rules fails closed rather than inheriting
+  something permissive.
+
+### 19.3 Joining an account
+
+- [x] Four cases; only one asks. A seeded starter wallet is not the user's data — treating it as
+  such would interrogate every first sign-in — but a single transaction is.
+- [x] **Ids written while signed out are not unique to a device.** The seeded wallet is
+  `default_user_cash` on every phone that was ever signed out. Discarding local data leaves delete
+  triggers behind, and publishing those tombstones would delete *another* device's wallet during
+  the operation the user chose to keep the cloud's data intact. Adoption now clears the tombstones
+  it creates, identified against a snapshot rather than by naming ids.
+- [x] Merging re-keys local wallets for the same reason, by copy-repoint-remove: a row id cannot be
+  changed while other rows reference it, and under enforced foreign keys either order of two
+  updates fails.
+
+### 19.4 The foreign keys were never on
+
+- [x] Found while working out whether the merge ordering was safe. Every table has declared
+  `ON DELETE CASCADE` since v1 and **none of it has ever run** — SQLite defaults foreign keys off,
+  Android's framework leaves them off, and neither driver enables them. Deleting a wallet left its
+  transactions on disk.
+- [x] Invisible until now, because every query that reads transactions joins accounts. Sync reads
+  rows directly, so the first push would have uploaded transactions belonging to wallets deleted
+  long ago, to every other device.
+- [x] Enforcement enabled on all three platforms, and migration v8 clears what is already orphaned.
+  Safe because those rows are unreachable; a transaction whose *category* is gone is merely
+  uncategorised instead, which is what `ON DELETE SET NULL` would have done.
+- [ ] **Needs a device check.** This changes what a delete does at runtime, and no host test can
+  prove the app never relied on the lax behaviour.
+
+### 19.5 Reaching it from the app
+
+- [x] Sync runs on sign-in and on returning to the foreground — the moment another device's changes
+  are most likely to be waiting and the only one the user is present for.
+- [x] A "Sync now" control and a status line in Settings. The status line is the point: sync that
+  silently succeeds is indistinguishable from sync that silently does nothing. A failure is worded
+  as ordinary, because for a phone it is, and the data is safe locally either way.
+- [x] The three-way prompt, shown only for the case adoption cannot decide alone. Not dismissible:
+  every other way out is a silent decision about which of the user's records to discard, and a tap
+  on the scrim is not consent. "Keep both" is first and described as losing nothing.
+- [x] **Sign-in now runs in three steps, and the order is load-bearing.** The user row must exist
+  before adoption can re-parent onto it; adoption must run before the starter wallet is seeded, or
+  someone bringing real data across is left with an empty "Cash" beside it they never made; and
+  sync must not start until the question is settled, or it publishes an answer the user never gave.
+  `AppDataSeeder.ensureUserRow` exists to make that middle step possible.
+- [x] An unreachable remote decides nothing rather than guessing, and retries next launch.
+
+### 19.6 Free tier
+
+- [x] Nothing in the design needs a paid plan: document reads and writes, transactions, server
+  timestamps and security rules are all Spark. No Cloud Functions, no Cloud Storage, no scheduled
+  jobs. `firebase.json` configures Firestore and the local emulator, nothing else.
+- [x] **The sign-in check read the whole account to answer one boolean.** `plan()` called
+  `pull(0).isNotEmpty()`, so every sign-in read every document — billed per read, against a 50k/day
+  free quota, for a yes/no. `hasAnyRecords()` asks for one row and stops.
+
+### 19.7 Operational — still yours to do
+
+- [ ] **Deploy the rules** before any build with sync reaches a real user. Without this, the
+  project's default rules apply and the tested ones are just a file in the repo. If the CLI returns
+  a 403 asking for billing, that is the deploy path trying to enable the Firestore API rather than
+  anything the app does: create the database from the console first, or paste the rules into the
+  console's Rules tab, which needs no CLI and no billing.
+- [ ] Enable **App Check enforcement for Firestore** in the console once sync ships — zero code,
+  real protection, and the reason App Check was set up in the first place.
+- [ ] Register the App Check **debug token** (needed again after every clear-data).
+
+## Phase 22 — Wallets kept apart, and wide-window auth
+
+- [x] Excluding a wallet from the combined total no longer hides it. One property meant both "what
+  the total sums" and "what the list shows", so "do not count this" was read as "do not show this"
+  — and the wallet vanished along with the only control that could bring it back.
+- [x] Inclusion is a checkbox on the card and in the quick switcher, toggleable from either.
+  Toggling in the switcher does not switch wallet or close the menu: choosing what makes up "All
+  accounts" is usually several decisions in a row.
+- [x] Auth screens capped their width with `fillMaxWidth().widthIn(max = 420.dp)`, which does
+  nothing — constraints flow left to right, so filling first fixes the width and leaves the cap
+  nothing to shrink. Invisible on a phone, edge-to-edge on a tablet or in a browser.
+
+## Phase 23 — Release readiness
+
+> Where the branch stands, honestly, before bug-fixing begins.
+
+### Verified on a real device
+
+- [x] Sync reaches Firestore. Records appear under `users/{uid}/records/` with a server-assigned
+  sequence, once the rules are actually deployed.
+
+### Built, tested on the host, **not yet seen working on a device**
+
+- [ ] Editor forms scroll (transactions, budgets, goals, recurring)
+- [ ] The two web crashes: the enum route argument, and the `DeleteAccountUseCase` name collision
+- [ ] Reinstall no longer invents a spare "Cash" wallet
+- [ ] A refused or undeliverable sync fails within 90s instead of hanging forever
+- [ ] SMS notifications arrive in the app's language rather than the phone's
+- [ ] Budget alerts appear outside the app
+- [ ] An excluded wallet stays on screen, and can be toggled from the switcher
+- [ ] Foreign keys: deleting a wallet takes its transactions with it and nothing else
+- [ ] Sync between **two** devices — the case the whole engine exists for
+
+### Known outstanding
+
+- [ ] **MTN MoMo parser.** The one feature a user in this market would notice missing. Blocked on
+  real sample messages: the format has to be written against, not guessed at.
+- [ ] **Spare "Cash" wallets already in Firestore** need deleting once by hand. The fix stops new
+  ones; it cannot clean up what already synced.
+- [ ] Deploy the rules, enable App Check enforcement, register the debug token.
+- [x] Launcher icon — the gauge in gold on charcoal, with a monochrome layer so Android 13+ themed
+  icons follow the wallpaper instead of fighting it.
+- [x] Splash mark drifts through a palette rather than sitting on one brand colour, held still
+  under reduced motion.
+- [ ] Play listing icon (512px) and feature graphic still to export.
+
+## Phase 21 — Budget alerts outside the app
+
+- [x] Budget warnings and overspends now post a system notification as well as an inbox row. A
+  spending warning is only useful while there is still time to act on it; one that waits for the
+  user to next open the app has usually stopped being a warning by the time they read it.
+- [x] The notifier moved to `:core` as a shared `SystemNotifier`. The SMS importer had the only
+  implementation and it lived in `:shared`, which no feature can import — so the alternative was a
+  second copy of the same code.
+- [x] Its own channel, so the OS settings can silence budget alerts without silencing import
+  notifications. Both channel names are translated; one was a hardcoded English constant that
+  Android showed in its own settings.
+- [x] Notification ids double as tags, so a budget that keeps crossing its limit replaces its own
+  notification rather than stacking.
+
+## Phase 10 — Encryption at rest — **deliberately not done**
+
+Skipped for this release, on the reasoning that it is second-order here: on a non-rooted,
+screen-locked phone, app-private storage is already covered by the platform's own file encryption,
+and the auto-backup hole that would have leaked the database off the device was closed in Phase 2.
+SQLCipher's real value is physical extraction, which is a different threat from the one this app
+faces. Revisit if the app ever stores credentials or ships to a market where device seizure is a
+realistic concern.
+
+## Phase 20 — Screen previews
+
+- [x] Splash pinned light, dark and mid-reveal. It needed a split first: the visuals were welded to
+  a ViewModel, a coroutine and a clock, so `SplashContent` now takes the reveal as plain numbers
+  and the screen keeps the timing and navigation. It is the first thing anyone sees and the one
+  screen with no state left to inspect afterwards, which makes a regression there both the most
+  visible and the easiest to miss.
+- [x] The adoption dialog, light and dark. Pinned for its wording rather than its layout: if the
+  three options stop making clear which side is discarded, a user cannot recover from choosing
+  wrong.
+- [x] Already covered: dashboard (loaded, loading, error, and four locale/RTL variants), the
+  balance card, the AI insights widget, notifications, and the lock screen.
+- [ ] **The remaining screens need a stateless split before they can be captured.** Login,
+  onboarding, transactions, accounts, budgets, goals and reports all take a ViewModel, so a
+  screenshot test cannot render them without standing up Koin. Dashboard and notifications were
+  already split; the rest are the same one-file change each, and worth doing as its own pass rather
+  than smuggled into a sync phase.
+- [ ] **Web previews could not be captured here.** The dev server serves and the Wasm binary and
+  fonts load, but the Compose canvas never attaches in this environment and screenshots time out.
+  That is equally consistent with a missing WebGL context in the headless browser and with a real
+  regression, so it needs one look in an ordinary browser to tell the two apart before anything is
+  concluded.
 
 ### Phase 9 — Insight & polish
 

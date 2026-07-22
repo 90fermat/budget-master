@@ -64,7 +64,7 @@ class SqlDelightDashboardRepositoryTest {
 
         // Setup foreign keys to avoid SQLite constraint violations
         queries.insertUser(userId, "Test User", "test@test.com", "USD", now)
-        queries.insertAccount(accountId, userId, "Checking", "CHECKING", 1500.0, "USD", now, 0)
+        queries.insertAccount(accountId, userId, "Checking", "CHECKING", 1500.0, "USD", now, 0, 1)
         queries.insertCategory(categoryId, userId, "Food", "🍔", "#FF0000", 1)
 
         // Insert transactions within the last 30 days
@@ -120,7 +120,7 @@ class SqlDelightDashboardRepositoryTest {
         val categoryId = "cat_1"
 
         queries.insertUser(userId, "Test User", "test@test.com", "USD", now)
-        queries.insertAccount(accountId, userId, "Checking", "CHECKING", 1500.0, "USD", now, 0)
+        queries.insertAccount(accountId, userId, "Checking", "CHECKING", 1500.0, "USD", now, 0, 1)
         queries.insertCategory(categoryId, userId, "Food", "🍔", "#FF0000", 1)
 
         queries.insertTransaction("tx_to_delete", accountId, categoryId, -25.0, "Burger", now, null, null, 0, null)

@@ -75,6 +75,8 @@ class SqlDelightAccountRepository(
                 currency = draft.currency,
                 createdAt = Clock.System.now().toEpochMilliseconds(),
                 isArchived = 0,
+                // New wallets count toward totals; opting one out is a deliberate act afterwards.
+                includeInTotals = 1,
             )
             newId
         } else {
@@ -92,6 +94,11 @@ class SqlDelightAccountRepository(
     override suspend fun setArchived(id: String, archived: Boolean): Unit = withContext(dispatcher) {
         databaseProvider.getDatabase().budgetMasterDatabaseQueries
             .setAccountArchived(isArchived = if (archived) 1 else 0, id = id)
+    }
+
+    override suspend fun setIncludedInTotals(id: String, included: Boolean): Unit = withContext(dispatcher) {
+        databaseProvider.getDatabase().budgetMasterDatabaseQueries
+            .setAccountIncludedInTotals(includeInTotals = if (included) 1 else 0, id = id)
     }
 
     override suspend fun transfer(
@@ -183,4 +190,5 @@ private fun AccountEntity.toDomain(movement: Double): Account = Account(
     currentBalance = balance + movement,
     currency = currency,
     isArchived = isArchived == 1L,
+    includeInTotals = includeInTotals == 1L,
 )

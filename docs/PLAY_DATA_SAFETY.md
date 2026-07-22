@@ -1,6 +1,6 @@
 # Play Console — Data safety answers
 
-**Draft for review. Derived from the code, current as of 17 July 2026.**
+**Draft for review. Derived from the code, current as of 22 July 2026.**
 
 Google requires this form to match what the app actually does; a wrong answer here is how apps
 get pulled. Every answer below has the reason next to it, so you can re-check it rather than
@@ -9,7 +9,13 @@ the two things that would make it wrong.
 
 ## Does your app collect or share any of the required user data types?
 
-**Yes** — email address, crash logs, and (opt-in only) aggregated financial summaries.
+**Yes** — email address, crash logs, **the user's financial records once they sign in**, and
+(opt-in only) aggregated financial summaries sent to an AI model.
+
+> **This answer changed on 22 July 2026 and the change is material.** The app previously held every
+> transaction on the device and nothing else. It now syncs the user's records to Cloud Firestore
+> when they are signed in. Financial info must therefore be declared as **collected**, which it
+> previously was not. Submitting the old answer against this build would be a false declaration.
 
 ---
 
@@ -24,9 +30,21 @@ the two things that would make it wrong.
 - **Why:** Firebase Authentication stores the email to sign the user in.
 
 ### Financial info → Purchase history / other financial info
-- **Collected:** **No** — with one nuance, below.
-- **Why:** Transactions, balances, budgets and goals are stored **only** in an app-private
-  database on the device. There is no backend holding them.
+- **Collected:** **Yes**
+- **Shared:** No — stored in Google Firestore as the app's own backend processor, not disclosed to
+  any other party.
+- **Processed ephemerally:** No — it is stored so a second device can read it.
+- **Required or optional:** Optional. Signed out, nothing financial leaves the device; signing in
+  is what turns sync on.
+- **Purpose:** App functionality (keeping the user's devices consistent).
+- **Why:** Once signed in, accounts, transactions, budgets, savings goals, user-created categories
+  and recurring entries are written to `users/{uid}/…` in Cloud Firestore and read back on the
+  user's other devices. Security rules restrict every document to the owning account.
+- **Not uploaded:** the record of which SMS messages were read, in-app notifications, cached
+  exchange rates, AI insight caches.
+- **Deletion:** account deletion erases the cloud copy along with the local database.
+
+### Financial info → the AI nuance (separate from the above)
 - **Nuance:** if the user turns on AI insights (**off by default**), *aggregated totals* —
   income/expense sums and per-category totals for 30 days — are sent to Google's Gemini via
   Firebase AI Logic to generate text. No individual transactions, descriptions, dates, or
@@ -63,8 +81,9 @@ the two things that would make it wrong.
 ## Security practices
 
 - **Is data encrypted in transit?** Yes — everything that leaves the device goes over HTTPS.
-- **Can users request data deletion?** Yes — uninstalling deletes all local data; account
-  deletion is by request (see the privacy policy contact).
+- **Can users request data deletion?** Yes — uninstalling deletes all local data, and Settings →
+  Delete account erases the Firestore copy along with it. Uninstalling alone no longer removes
+  everything once the user has signed in, which is a change from the previous answer.
 - **Committed to the Play Families policy?** Not applicable — not directed at children.
 - **Independent security review?** No.
 

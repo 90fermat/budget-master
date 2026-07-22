@@ -1,5 +1,6 @@
 package com.budgetmaster.dashboard.di
 
+import com.budgetmaster.core.notifications.NotificationRepository
 import com.budgetmaster.dashboard.data.repository.SqlDelightDashboardRepository
 import com.budgetmaster.dashboard.data.service.GeminiInsightsService
 import com.budgetmaster.dashboard.domain.repository.DashboardRepository
@@ -39,6 +40,7 @@ val dashboardModule = module {
             getAiInsights = get(),
             settingsRepository = get(),
             sessionStore = get(),
+            unreadNotifications = get<NotificationRepository>().observeUnreadCount(),
         )
     }
 }

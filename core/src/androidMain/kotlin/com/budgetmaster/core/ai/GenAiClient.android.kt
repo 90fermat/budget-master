@@ -2,6 +2,7 @@ package com.budgetmaster.core.ai
 
 import com.google.firebase.Firebase
 import com.google.firebase.ai.ai
+import com.google.firebase.ai.type.FirebaseAIException
 import com.google.firebase.ai.type.GenerativeBackend
 import com.google.firebase.ai.type.PromptBlockedException
 import com.google.firebase.ai.type.QuotaExceededException
@@ -49,8 +50,33 @@ internal class FirebaseGenAiClient(
         } catch (e: ResponseStoppedException) {
             throw GenAiException.Failed("Response stopped: ${e.response.candidates.firstOrNull()?.finishReason}", e)
         } catch (e: ServerException) {
+            // App Check rejections arrive here as a server error mentioning the token. They are
+            // not transient and must not be reported as "try again".
+            if (e.isAppCheckRejection()) {
+                throw GenAiException.NotAuthorized("App Check rejected this app instance", e)
+            }
             throw GenAiException.Failed("AI Logic server error: ${e.message}", e)
+        } catch (e: FirebaseAIException) {
+            // Deliberate catch-all for the SDK's own hierarchy. Without it, any subtype not named
+            // above escaped `generateJson` un-wrapped, past callers that only catch GenAiException
+            // - which is how an App Check refusal could surface as an unhandled failure.
+            if (e.isAppCheckRejection()) {
+                throw GenAiException.NotAuthorized("App Check rejected this app instance", e)
+            }
+            throw GenAiException.Failed(e.message ?: "AI Logic call failed", e)
         }
+    }
+
+    /**
+     * Whether this failure is the backend refusing to attest the app.
+     *
+     * Matched on the message because Firebase AI Logic surfaces App Check refusals as a generic
+     * server error rather than a distinct type. Narrow and case-insensitive; a miss only costs the
+     * clearer message, never correctness.
+     */
+    private fun Throwable.isAppCheckRejection(): Boolean {
+        val text = message?.lowercase() ?: return false
+        return "app check" in text || "appcheck" in text
     }
 
     private companion object {

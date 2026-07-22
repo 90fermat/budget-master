@@ -28,6 +28,7 @@
     <string name="auth_error_too_many_requests">Trop de tentatives. Réessayez plus tard.</string>
     <string name="auth_error_network">Erreur réseau. Vérifiez votre connexion et réessayez.</string>
     <string name="auth_error_google_cancelled">Connexion Google annulée.</string>
+    <string name="auth_error_google_transient">La connexion Google n'a pas répondu. Touchez à nouveau.</string>
     <string name="auth_error_google_unavailable">La connexion Google n'est pas disponible sur cet appareil pour le moment.</string>
     <string name="auth_error_unknown">Une erreur s'est produite. Veuillez réessayer.</string>
 
@@ -153,6 +154,9 @@
     <string name="category_other">Autre</string>
     <!-- French writes the day before the month: "20 janvier". -->
     <!-- Fonctions IA (activation facultative) -->
+    <string name="settings_privacy_title">Confidentialité</string>
+    <string name="settings_secure_screen">Masquer aux captures d'écran</string>
+    <string name="settings_secure_screen_desc">Bloque les captures et l'enregistrement d'écran, et garde vos soldes hors de l'aperçu des applications récentes. Désactivez-le si vous devez capturer l'écran.</string>
     <string name="settings_ai_title">Analyses IA</string>
     <string name="settings_ai_enable">Activer les analyses IA</string>
     <string name="settings_ai_enable_desc">Envoie un résumé de vos dépenses — totaux par catégorie et revenus et dépenses du mois — à Gemini de Google pour générer des analyses. Les libellés de vos transactions, les noms et les dates ne sont jamais envoyés. Désactivé par défaut.</string>
@@ -182,6 +186,7 @@
     <string name="reports_ai_ask_placeholder">ex. Où est parti l'essentiel de mon argent ?</string>
     <string name="reports_ai_ask_action">Demander</string>
     <string name="reports_ai_failed">Impossible de joindre l'IA. Réessayez dans un instant.</string>
+    <string name="reports_ai_not_authorized">Les fonctions IA ne sont pas autorisées pour cette version. C'est un problème de configuration, pas un incident passager : réessayer n'y changera rien.</string>
     <string name="reports_ai_rate_limited">L'IA est occupée pour le moment. Réessayez bientôt.</string>
 
     <!-- Suggestions de budgets IA -->
@@ -206,11 +211,12 @@
     <string name="settings_sms_enable_desc">Lit les messages Orange Money et MTN MoMo sur cet appareil et enregistre les transactions pour vous. Les messages sont lus sur votre téléphone et ne sont jamais envoyés ; seuls les montants et les noms des commerçants sont conservés.</string>
     <string name="settings_sms_number_label">Votre numéro mobile money</string>
     <string name="settings_sms_number_placeholder">ex. 659228030</string>
-    <string name="settings_sms_number_help">Nécessaire pour distinguer l'argent envoyé de l'argent reçu.</string>
+    <string name="settings_sms_numbers_registered">Numéros enregistrés</string>
+    <string name="settings_sms_number_help">Nécessaire pour distinguer l'argent envoyé de l'argent reçu. Ajoutez-en plusieurs, séparés par des virgules, si vous utilisez plus d'un numéro (par exemple une ligne Orange et une ligne MTN).</string>
     <string name="settings_sms_permission_needed">L'autorisation est requise pour lire les messages de transaction.</string>
     <string name="settings_sms_backfill">Importer les anciens messages</string>
     <string name="settings_sms_backfill_running">Lecture de vos messages…</string>
-    <string name="settings_sms_backfill_done">%1$d transactions importées.</string>
+    <string name="settings_sms_backfill_done">%1$d transactions importées. Ouvrez Notifications pour voir lesquelles et où.</string>
 
     <string name="settings_delete_account">Supprimer le compte</string>
     <string name="settings_delete_account_title">Supprimer votre compte ?</string>
@@ -474,6 +480,7 @@
     <string name="transactions_paste_label">Coller un message de transaction</string>
     <string name="transactions_paste_placeholder">Collez ici un SMS Orange Money ou MoMo</string>
     <string name="transactions_paste_action">Importer</string>
+    <string name="transactions_paste_no_wallet">Créez d'abord un portefeuille : cette opération n'a nulle part où aller.</string>
     <string name="transactions_paste_needs_review">Envoyé en examen - cela ressemble à une opération déjà saisie. À vous de choisir juste en dessous.</string>
     <!-- File d'examen : messages capturés que l'import n'a pas pu distinguer d'une saisie manuelle. -->
     <string name="transactions_review_title">À vous de décider</string>
@@ -485,4 +492,101 @@
     <string name="transactions_paste_imported">Importé.</string>
     <string name="transactions_paste_duplicate">Déjà enregistré.</string>
     <string name="transactions_paste_unreadable">Cela ne ressemble pas à un message de transaction.</string>
+    <!-- Traçabilité des imports : chaque import SMS s'annonce. %1$s opérateur, %2$s montant, %3$s description, %4$s portefeuille. -->
+    <string name="import_notif_imported_title">Opération importée</string>
+    <string name="import_notif_imported_body">%1$s : %2$s — %3$s → %4$s</string>
+    <string name="import_notif_review_title">Opération à valider</string>
+    <string name="import_notif_review_body">%1$s : %2$s — %3$s ressemble à une opération déjà saisie. Décidez dans Opérations.</string>
+    <string name="import_notif_no_wallet_title">Choisissez un portefeuille pour les imports</string>
+    <string name="import_notif_no_wallet_body">Un message %1$s a été capturé mais aucun portefeuille de destination n'est défini. Choisissez-en un dans Réglages, puis lancez « Importer les anciens messages ».</string>
+    <string name="settings_sms_destination_label">Importer %1$s dans</string>
+    <string name="settings_sms_destination_help">Les transactions captées depuis %1$s sont ajoutées à ce portefeuille. Vous pourrez déplacer toute écriture plus tard.</string>
+    <string name="settings_sms_no_wallets">Créez d'abord un portefeuille, puis choisissez la destination des imports.</string>
+    <string name="notif_budget_exceeded_body">Vous avez dépassé votre budget %1$s (%2$s).</string>
+    <string name="notif_budget_warning_body">Vous êtes à %2$s de votre budget %1$s.</string>
+    <string name="notifications_title">Notifications</string>
+    <string name="notifications_empty_title">Tout est à jour</string>
+    <string name="notifications_empty_subtitle">Les alertes de budget et les transactions importées apparaîtront ici.</string>
+    <string name="notifications_mark_all_read">Tout marquer comme lu</string>
+    <string name="notifications_delete">Supprimer la notification</string>
+    <string name="notifications_back">Retour</string>
+    <string name="lock_title">Budget Master est verrouillé</string>
+    <string name="lock_subtitle">Saisissez votre code pour continuer</string>
+    <string name="lock_use_biometric">Utiliser la biométrie</string>
+    <string name="lock_biometric_title">Déverrouiller Budget Master</string>
+    <string name="lock_biometric_subtitle">Confirmez que c'est bien vous pour voir vos comptes</string>
+    <string name="lock_biometric_cancel">Utiliser le code</string>
+    <string name="lock_wrong_pin">Code incorrect. Réessayez.</string>
+    <string name="lock_locked_out">Trop de tentatives. Réessayez dans %1$d s.</string>
+    <string name="lock_delete_digit">Effacer le dernier chiffre</string>
+    <string name="settings_lock_title">Verrouillage de l'app</string>
+    <string name="settings_lock_enable">Demander le déverrouillage</string>
+    <string name="settings_lock_enable_desc">Demande votre biométrie ou votre code à l'ouverture, pour que vos soldes ne soient pas visibles par qui prend votre téléphone.</string>
+    <string name="settings_lock_biometric">Autoriser la biométrie</string>
+    <string name="settings_lock_biometric_desc">Déverrouillez avec votre empreinte ou votre visage. Votre code reste toujours disponible.</string>
+    <string name="settings_lock_timeout">Verrouiller après</string>
+    <string name="settings_lock_timeout_immediate">Immédiatement</string>
+    <string name="settings_lock_timeout_seconds">%1$d secondes</string>
+    <string name="settings_lock_timeout_minutes">%1$d minutes</string>
+    <string name="settings_lock_change_pin">Modifier le code</string>
+    <string name="settings_lock_set_pin">Définir un code</string>
+    <string name="pin_setup_title">Choisissez un code</string>
+    <string name="pin_setup_subtitle">Six chiffres.</string>
+    <string name="pin_confirm_title">Confirmez votre code</string>
+    <string name="pin_confirm_mismatch">Les codes ne correspondent pas. Recommencez.</string>
+    <string name="pin_current_title">Saisissez votre code actuel</string>
+    <string name="settings_backup_title">Sauvegarde</string>
+    <string name="settings_backup_export">Exporter une sauvegarde</string>
+    <string name="settings_backup_export_desc">Enregistre tout dans un fichier chiffré que vous conservez. La sauvegarde automatique Google est volontairement désactivée : c'est ainsi que vos données survivent à une réinstallation.</string>
+    <string name="settings_backup_import">Restaurer une sauvegarde</string>
+    <string name="settings_backup_import_desc">Remplace tout le contenu actuel de l'application par celui du fichier de sauvegarde.</string>
+    <string name="backup_passphrase_title">Choisissez une phrase secrète</string>
+    <string name="backup_passphrase_desc">Cette phrase exacte sera nécessaire pour restaurer. Elle n'est stockée nulle part et ne peut pas être récupérée.</string>
+    <string name="backup_passphrase_restore_title">Saisissez la phrase secrète</string>
+    <string name="backup_passphrase_label">Phrase secrète</string>
+    <string name="backup_export_ok">Sauvegarde créée.</string>
+    <string name="backup_export_failed">Impossible de créer le fichier de sauvegarde.</string>
+    <string name="backup_restore_confirm_title">Tout remplacer ?</string>
+    <string name="backup_restore_confirm_body">La restauration remplace tous les portefeuilles, transactions, budgets et objectifs actuels. C'est irréversible. Tapez RESTORE pour confirmer.</string>
+    <string name="backup_restore_confirm_word">RESTORE</string>
+    <string name="backup_restore_ok">Sauvegarde restaurée.</string>
+    <string name="backup_error_not_a_backup">Ce fichier n'est pas une sauvegarde Budget Master.</string>
+    <string name="backup_error_wrong_passphrase">Phrase secrète incorrecte, ou fichier modifié.</string>
+    <string name="backup_error_version">Cette sauvegarde vient d'une version plus récente. Mettez à jour d'abord.</string>
+    <string name="action_continue">Continuer</string>
+    <string name="accounts_include_in_totals">Compter dans « Tous les comptes »</string>
+    <string name="accounts_exclude_from_totals">Exclure de « Tous les comptes »</string>
+    <string name="accounts_excluded_badge">Gardé à part</string>
+    <string name="provider_orange_money">Orange Money</string>
+    <string name="provider_mtn_momo">MTN MoMo</string>
+    <string name="settings_sync_title">Synchronisation</string>
+    <string name="settings_sync_desc">Garde vos portefeuilles, transactions, budgets et objectifs identiques sur chaque appareil où vous vous connectez.</string>
+    <string name="settings_sync_now">Synchroniser maintenant</string>
+    <string name="settings_sync_status_idle">Pas encore synchronisé sur cet appareil.</string>
+    <string name="settings_sync_status_syncing">Synchronisation…</string>
+    <string name="settings_sync_status_synced">Dernière synchronisation : %1$s.</string>
+    <string name="settings_sync_status_failed">Synchronisation impossible. Vos données restent sur cet appareil et partiront à la prochaine tentative.</string>
+    <string name="settings_sync_status_signed_out">Connectez-vous pour synchroniser vos appareils.</string>
+    <string name="settings_sync_status_unsupported">La synchronisation n'est pas disponible dans le navigateur, car la version web ne conserve rien entre les visites.</string>
+    <string name="adoption_title">Vous avez des données des deux côtés</string>
+    <string name="adoption_body">Cet appareil contient des portefeuilles ou des transactions absents de votre compte, et votre compte a déjà ses propres données. Choisissez ce qu'il faut garder — rien n'est supprimé avant votre choix.</string>
+    <string name="adoption_merge">Garder les deux</string>
+    <string name="adoption_merge_desc">Tout ce qui est sur cet appareil est ajouté à votre compte. Rien n'est perdu.</string>
+    <string name="adoption_cloud">Garder les données de mon compte</string>
+    <string name="adoption_cloud_desc">Supprime uniquement ce qui se trouve sur cet appareil.</string>
+    <string name="adoption_device">Garder les données de cet appareil</string>
+    <string name="adoption_device_desc">Votre compte conserve aussi ses données ; celles de cet appareil s'y ajoutent.</string>
+    <string name="settings_sync_status_failed_reason">Synchronisation impossible : %1$s. Vos données restent sur cet appareil et partiront à la prochaine tentative.</string>
+    <string name="import_notif_channel_name">Transactions importées</string>
+    <string name="notif_budget_channel_name">Alertes de budget</string>
+    <string name="guide_accounts_5_title">Mettre un portefeuille à part</string>
+    <string name="guide_accounts_5_body">Décochez « Compter dans les totaux » et le portefeuille reste pleinement utilisable — vous pouvez l’ouvrir, l’alimenter, voir son solde — mais il n’entre plus dans les chiffres combinés. Pratique pour une épargne ou une tontine que vous ne voulez pas mélanger à l’argent du quotidien. La case est sur la carte du portefeuille et dans le sélecteur en haut.</string>
+    <string name="guide_settings_4_title">Synchroniser vos appareils</string>
+    <string name="guide_settings_4_body">Une fois connecté, vos portefeuilles et vos opérations restent identiques sur chaque appareil. Les modifications faites hors ligne partent dès que la connexion revient : rien n’attend le réseau. Les réglages indiquent la dernière synchronisation et permettent d’en lancer une.</string>
+    <string name="guide_settings_5_title">Verrouiller l’application</string>
+    <string name="guide_settings_5_body">Protégez l’application par empreinte ou visage, avec un code PIN de secours. Choisissez le délai d’inactivité avant re-verrouillage. Vos écrans financiers sont aussi masqués dans le sélecteur d’applications et sur les captures d’écran.</string>
+    <string name="guide_settings_6_title">Sauvegarder avant d’en avoir besoin</string>
+    <string name="guide_settings_6_body">Exportez tout dans un fichier chiffré, protégé par une phrase secrète de votre choix. C’est la réponse au téléphone perdu, sans compte nécessaire. Conservez bien la phrase : elle n’est stockée nulle part et le fichier ne s’ouvre pas sans elle.</string>
+    <string name="guide_settings_7_title">Mobile money par SMS</string>
+    <string name="guide_settings_7_body">Laissez l’application lire vos messages Orange Money et enregistrer les opérations. Les messages sont lus sur l’appareil et ne sont jamais envoyés ailleurs. Vous choisissez le portefeuille de destination et pouvez indiquer plusieurs de vos numéros. Ce dont l’application n’est pas sûre attend votre confirmation.</string>
 </resources>

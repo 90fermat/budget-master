@@ -44,6 +44,15 @@ enum class AuthError {
      */
     GoogleUnavailable,
 
+    /**
+     * Google sign-in failed in a way that usually succeeds on a second attempt.
+     *
+     * Kept separate from [GoogleUnavailable] because the two need opposite advice: this one means
+     * "try again", the other means "this will not work here". Collapsing them told users their
+     * device did not support Google sign-in when in fact the provider had simply cold-started.
+     */
+    GoogleTransient,
+
     /** Any failure that does not map to a more specific case. */
     Unknown,
 }

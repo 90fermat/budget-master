@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    Charcoal ground for the gauge mark.
+
+    Deep and near-black on purpose: the gold arc reads as light against it, and a dark tile stands
+    out on the light home screens most people run. A light ground would have put a pale icon on a
+    pale wallpaper.
+-->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
@@ -11,8 +18,8 @@
                 android:type="linear"
                 android:startX="0" android:startY="0"
                 android:endX="108" android:endY="108">
-                <item android:offset="0" android:color="#FF4F46E5" />
-                <item android:offset="1" android:color="#FF7C3AED" />
+                <item android:offset="0" android:color="#FF1C1917" />
+                <item android:offset="1" android:color="#FF0C0A09" />
             </gradient>
         </aapt:attr>
     </path>

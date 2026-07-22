@@ -41,6 +41,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -75,6 +76,9 @@ import budgetmaster.core.generated.resources.guide_tips_reset_done
 import budgetmaster.core.generated.resources.guide_tips_show
 import budgetmaster.core.generated.resources.guide_tips_show_desc
 import budgetmaster.core.generated.resources.guide_tips_title
+import budgetmaster.core.generated.resources.settings_privacy_title
+import budgetmaster.core.generated.resources.settings_secure_screen
+import budgetmaster.core.generated.resources.settings_secure_screen_desc
 import budgetmaster.core.generated.resources.settings_ai_title
 import budgetmaster.core.generated.resources.settings_ai_enable
 import budgetmaster.core.generated.resources.settings_ai_enable_desc
@@ -85,6 +89,10 @@ import budgetmaster.core.generated.resources.settings_delete_account_body
 import budgetmaster.core.generated.resources.settings_delete_account_confirm
 import budgetmaster.core.generated.resources.settings_delete_account_failed
 import budgetmaster.core.generated.resources.settings_sms_title
+import budgetmaster.core.generated.resources.settings_sms_numbers_registered
+import budgetmaster.core.generated.resources.settings_sms_no_wallets
+import budgetmaster.core.generated.resources.settings_sms_destination_help
+import budgetmaster.core.generated.resources.settings_sms_destination_label
 import budgetmaster.core.generated.resources.settings_sms_enable
 import budgetmaster.core.generated.resources.settings_sms_enable_desc
 import budgetmaster.core.generated.resources.settings_sms_number_label
@@ -111,7 +119,17 @@ import com.budgetmaster.core.designsystem.DynamicSwatchColors
 import com.budgetmaster.core.designsystem.Spacing
 import com.budgetmaster.core.designsystem.colorScheme
 import com.budgetmaster.core.localization.AppLanguage
+import com.budgetmaster.core.notifications.rememberNotificationPermissionRequester
 import com.budgetmaster.core.sms.rememberSmsPermissionRequester
+import com.budgetmaster.core.sms.moneyProviderLabelRes
+import com.budgetmaster.core.db.WalletRef
+import androidx.compose.material3.MenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import com.budgetmaster.core.currency.SUPPORTED_CURRENCY_CODES
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -141,6 +159,14 @@ fun SettingsScreen(
      * created. Runs when the user switches import on, so the ledger starts with their history.
      */
     onBackfillMessages: suspend () -> Int = { 0 },
+    /**
+     * Writes an encrypted backup and hands it to the platform. Returns a message to show inline.
+     */
+    onExportBackup: suspend (passphrase: String) -> String = { "" },
+    /**
+     * Replaces all local data from a backup file. Returns a message to show inline.
+     */
+    onRestoreBackup: suspend (content: String, passphrase: String) -> String = { _, _ -> "" },
 ) {
     val state by viewModel.state.collectAsState()
     val scrollState = rememberScrollState()
@@ -270,10 +296,40 @@ fun SettingsScreen(
         SmsImportSection(
             enabled = state.smsImportEnabled,
             msisdns = state.smsOwnerMsisdns,
+            providers = state.smsProviders,
+            importAccounts = state.smsImportAccounts,
+            wallets = state.wallets,
             onEnabledChange = { viewModel.onIntent(SettingsIntent.SmsImportEnabledChanged(it)) },
             onMsisdnsChange = { viewModel.onIntent(SettingsIntent.SmsOwnerMsisdnsChanged(it)) },
+            onDestinationChange = { provider, accountId ->
+                viewModel.onIntent(SettingsIntent.SmsImportAccountChanged(provider, accountId))
+            },
             onBackfill = onBackfillMessages,
         )
+
+        Spacer(modifier = Modifier.height(Spacing.medium))
+        PrivacySection(
+            secureScreen = state.secureScreen,
+            onSecureScreenChange = { viewModel.onIntent(SettingsIntent.SecureScreenChanged(it)) },
+        )
+
+        Spacer(modifier = Modifier.height(Spacing.medium))
+        AppLockSection(
+            enabled = state.appLockEnabled,
+            pinSet = state.appLockPinSet,
+            biometricEnabled = state.appLockBiometricEnabled,
+            timeoutSeconds = state.appLockTimeoutSeconds,
+            onEnabledChange = { viewModel.onIntent(SettingsIntent.AppLockEnabledChanged(it)) },
+            onPinChosen = { viewModel.onIntent(SettingsIntent.AppLockPinChosen(it)) },
+            onBiometricChange = { viewModel.onIntent(SettingsIntent.AppLockBiometricChanged(it)) },
+            onTimeoutChange = { viewModel.onIntent(SettingsIntent.AppLockTimeoutChanged(it)) },
+        )
+
+        Spacer(modifier = Modifier.height(Spacing.medium))
+        SyncSection(controller = koinInject())
+
+        Spacer(modifier = Modifier.height(Spacing.medium))
+        BackupSection(onExport = onExportBackup, onRestore = onRestoreBackup)
 
         Spacer(modifier = Modifier.height(Spacing.medium))
         AiSection(
@@ -476,12 +532,67 @@ private fun SettingsCard(content: @Composable () -> Unit) {
  * that could never work. Turning it on requests the permission first — flipping the preference
  * without the grant would leave a setting that says "on" while nothing is captured.
  */
+/**
+ * A dropdown that chooses which wallet a provider's imported transactions land in.
+ *
+ * One per configured provider. The selection is persisted immediately; there is no "save" step,
+ * consistent with every other setting on this screen.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ImportDestinationPicker(
+    provider: String,
+    wallets: List<WalletRef>,
+    selectedId: String?,
+    onSelect: (String) -> Unit,
+) {
+    val providerName = moneyProviderLabelRes(provider)?.let { stringResource(it) } ?: provider
+    val selected = wallets.firstOrNull { it.id == selectedId }
+    var expanded by remember { mutableStateOf(false) }
+
+    Column(Modifier.fillMaxWidth().padding(vertical = Spacing.small)) {
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = it },
+        ) {
+            OutlinedTextField(
+                value = selected?.name ?: "",
+                onValueChange = {},
+                readOnly = true,
+                label = { Text(stringResource(Res.string.settings_sms_destination_label, providerName)) },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable),
+            )
+            ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                wallets.forEach { wallet ->
+                    DropdownMenuItem(
+                        text = { Text(wallet.name) },
+                        onClick = {
+                            onSelect(wallet.id)
+                            expanded = false
+                        },
+                    )
+                }
+            }
+        }
+        Text(
+            text = stringResource(Res.string.settings_sms_destination_help, providerName),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
 @Composable
 private fun SmsImportSection(
     enabled: Boolean,
     msisdns: String,
+    providers: List<String>,
+    importAccounts: Map<String, String>,
+    wallets: List<WalletRef>,
     onEnabledChange: (Boolean) -> Unit,
     onMsisdnsChange: (String) -> Unit,
+    onDestinationChange: (provider: String, accountId: String?) -> Unit,
     onBackfill: suspend () -> Int,
 ) {
     val scope = rememberCoroutineScope()
@@ -489,10 +600,18 @@ private fun SmsImportSection(
     var backfilled by remember { mutableStateOf<Int?>(null) }
     var permissionDenied by remember { mutableStateOf(false) }
 
+    // Fire-and-forget: a denied notification permission is not fatal, because every import is also
+    // written to the in-app inbox. Requested here because enabling capture is when live captures
+    // start needing to announce themselves.
+    val notificationPermission = rememberNotificationPermissionRequester {}
+
     val permission = rememberSmsPermissionRequester { granted ->
         permissionDenied = !granted
         if (granted) {
             onEnabledChange(true)
+            if (notificationPermission.isSupported && !notificationPermission.isGranted) {
+                notificationPermission.request()
+            }
             // Backfill immediately: a ledger that starts with the user's history is useful today,
             // one that starts empty is useful in a month.
             backfilling = true
@@ -555,9 +674,46 @@ private fun SmsImportSection(
     }
 
     if (enabled) {
+        // Where each provider's captured transactions land. This is the fix for imports silently
+        // going to the first wallet ever created: the destination is now the user's choice, shown
+        // and changeable, defaulted to the active wallet when import was switched on.
+        if (wallets.isEmpty()) {
+            Text(
+                text = stringResource(Res.string.settings_sms_no_wallets),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(vertical = Spacing.small),
+            )
+        } else {
+            providers.forEach { provider ->
+                ImportDestinationPicker(
+                    provider = provider,
+                    wallets = wallets,
+                    selectedId = importAccounts[provider],
+                    onSelect = { accountId -> onDestinationChange(provider, accountId) },
+                )
+            }
+        }
+
+        // The field owns its own text once the user starts typing.
+        //
+        // It used to render `msisdns` straight from the ViewModel, which meant every keystroke
+        // made a round trip through a DataStore write and a 7-way combine before coming back --
+        // and a plain String value carries no selection for Compose to preserve, so the cursor
+        // snapped every time the delayed value landed. Holding a local draft and never reading
+        // the echo back removes the round trip from the typing path entirely.
+        //
+        // Null means "nothing typed yet", so the persisted value still shows on first load. That
+        // matters because the state flow starts at SettingsState() with an empty string and fills
+        // in a moment later; seeding from it eagerly would have shown a blank field.
+        var draft by rememberSaveable { mutableStateOf<String?>(null) }
+
         OutlinedTextField(
-            value = msisdns,
-            onValueChange = onMsisdnsChange,
+            value = draft ?: msisdns,
+            onValueChange = { typed ->
+                draft = typed
+                onMsisdnsChange(typed)
+            },
             label = { Text(stringResource(Res.string.settings_sms_number_label)) },
             placeholder = { Text(stringResource(Res.string.settings_sms_number_placeholder)) },
             supportingText = { Text(stringResource(Res.string.settings_sms_number_help)) },
@@ -565,6 +721,26 @@ private fun SmsImportSection(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
             modifier = Modifier.fillMaxWidth(),
         )
+
+        // Echo the parsed numbers back as chips, so it is obvious that several are registered and
+        // exactly how the text was split - the same split the importer uses to identify "me".
+        val registered = (draft ?: msisdns)
+            .split(',', ';')
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+        if (registered.isNotEmpty()) {
+            Text(
+                text = stringResource(Res.string.settings_sms_numbers_registered),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = Spacing.small),
+            )
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.small)) {
+                registered.forEach { number ->
+                    AssistChip(onClick = {}, label = { Text(number) })
+                }
+            }
+        }
 
         when {
             backfilling -> Text(
@@ -596,6 +772,47 @@ private fun SmsImportSection(
  * The description spells out exactly what is and isn't sent, because "enable AI insights" alone
  * doesn't tell anyone that a summary of their money leaves the device. Off by default.
  */
+/**
+ * Screen-capture protection.
+ *
+ * Separate from the AI section because it protects something different: the AI switch governs what
+ * leaves the device, this governs what a passer-by or the recents switcher can see.
+ */
+@Composable
+private fun PrivacySection(
+    secureScreen: Boolean,
+    onSecureScreenChange: (Boolean) -> Unit,
+) {
+    Text(
+        text = stringResource(Res.string.settings_privacy_title),
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.onBackground,
+    )
+    Spacer(modifier = Modifier.height(Spacing.small))
+
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.small),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = stringResource(Res.string.settings_secure_screen),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+            Text(
+                text = stringResource(Res.string.settings_secure_screen_desc),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Spacer(modifier = Modifier.width(Spacing.small))
+        Switch(checked = secureScreen, onCheckedChange = onSecureScreenChange)
+    }
+}
+
 @Composable
 private fun AiSection(
     enabled: Boolean,

@@ -82,6 +82,21 @@ import budgetmaster.core.generated.resources.guide_transactions_4_body
 import budgetmaster.core.generated.resources.guide_transactions_4_title
 import budgetmaster.core.generated.resources.guide_transactions_intro
 import budgetmaster.core.generated.resources.guide_transactions_title
+import androidx.compose.material.icons.filled.Backup
+import androidx.compose.material.icons.filled.CheckBox
+import androidx.compose.material.icons.filled.CloudSync
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Sms
+import budgetmaster.core.generated.resources.guide_accounts_5_body
+import budgetmaster.core.generated.resources.guide_accounts_5_title
+import budgetmaster.core.generated.resources.guide_settings_4_body
+import budgetmaster.core.generated.resources.guide_settings_4_title
+import budgetmaster.core.generated.resources.guide_settings_5_body
+import budgetmaster.core.generated.resources.guide_settings_5_title
+import budgetmaster.core.generated.resources.guide_settings_6_body
+import budgetmaster.core.generated.resources.guide_settings_6_title
+import budgetmaster.core.generated.resources.guide_settings_7_body
+import budgetmaster.core.generated.resources.guide_settings_7_title
 
 /**
  * Every screen's guide, in one place.
@@ -207,6 +222,11 @@ object GuidanceRegistry {
                     Res.string.guide_accounts_3_body,
                 ),
                 FeatureNote(
+                    Icons.Filled.CheckBox,
+                    Res.string.guide_accounts_5_title,
+                    Res.string.guide_accounts_5_body,
+                ),
+                FeatureNote(
                     Icons.Filled.Archive,
                     Res.string.guide_accounts_4_title,
                     Res.string.guide_accounts_4_body,
@@ -249,6 +269,26 @@ object GuidanceRegistry {
                     Icons.Filled.Translate,
                     Res.string.guide_settings_2_title,
                     Res.string.guide_settings_2_body,
+                ),
+                FeatureNote(
+                    Icons.Filled.CloudSync,
+                    Res.string.guide_settings_4_title,
+                    Res.string.guide_settings_4_body,
+                ),
+                FeatureNote(
+                    Icons.Filled.Lock,
+                    Res.string.guide_settings_5_title,
+                    Res.string.guide_settings_5_body,
+                ),
+                FeatureNote(
+                    Icons.Filled.Backup,
+                    Res.string.guide_settings_6_title,
+                    Res.string.guide_settings_6_body,
+                ),
+                FeatureNote(
+                    Icons.Filled.Sms,
+                    Res.string.guide_settings_7_title,
+                    Res.string.guide_settings_7_body,
                 ),
                 FeatureNote(
                     Icons.Filled.BarChart,

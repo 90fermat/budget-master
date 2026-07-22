@@ -75,6 +75,7 @@ import budgetmaster.core.generated.resources.transactions_paste_action
 import budgetmaster.core.generated.resources.transactions_paste_imported
 import budgetmaster.core.generated.resources.transactions_paste_duplicate
 import budgetmaster.core.generated.resources.transactions_paste_needs_review
+import budgetmaster.core.generated.resources.transactions_paste_no_wallet
 import budgetmaster.core.generated.resources.transactions_paste_unreadable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -91,6 +92,7 @@ import com.budgetmaster.core.designsystem.components.HelpIconButton
 import com.budgetmaster.core.designsystem.components.ShimmerListPlaceholder
 import com.budgetmaster.core.designsystem.components.rememberGuidance
 import com.budgetmaster.core.guidance.GuidanceKey
+import com.budgetmaster.core.navigation.TransactionKind
 import com.budgetmaster.core.designsystem.categoryIconFor
 import com.budgetmaster.core.util.MoneyFormatter
 import com.budgetmaster.transactions.domain.usecase.RecurringCharge
@@ -104,6 +106,7 @@ import com.budgetmaster.transactions.presentation.components.TransactionRowItem
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import com.budgetmaster.core.designsystem.EditorScrollContainer
 
 /**
  * Transactions screen: searchable, filterable, day-grouped list backed by live SQLDelight
@@ -116,8 +119,18 @@ import org.koin.compose.viewmodel.koinViewModel
 fun TransactionsScreen(
     viewModel: TransactionsViewModel = koinViewModel(),
     onManageRecurring: () -> Unit = {},
+    openEditorFor: TransactionKind? = null,
 ) {
     val state by viewModel.state.collectAsState()
+
+    // Arriving from a Dashboard quick action: open the editor straight away, pre-set to the kind
+    // the button named. Keyed on the argument so returning to this screen normally does not
+    // re-open it, and a configuration change does not open it twice.
+    LaunchedEffect(openEditorFor) {
+        if (openEditorFor != null) {
+            viewModel.onIntent(TransactionsIntent.AddClicked(openEditorFor))
+        }
+    }
     val snackbarHostState = remember { SnackbarHostState() }
     val guidance = rememberGuidance(GuidanceKey.TRANSACTIONS)
 
@@ -131,7 +144,7 @@ fun TransactionsScreen(
         containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { viewModel.onIntent(TransactionsIntent.AddClicked) },
+                onClick = { viewModel.onIntent(TransactionsIntent.AddClicked()) },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
             ) {
@@ -149,65 +162,14 @@ fun TransactionsScreen(
             val showDetailPane = isWide && state.editor.visible
 
             Row(modifier = Modifier.fillMaxSize()) {
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .padding(horizontal = Spacing.medium),
-                ) {
-                    Spacer(Modifier.height(Spacing.medium))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Text(
-                            text = stringResource(Res.string.transactions_title),
-                            style = MaterialTheme.typography.headlineLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onBackground,
-                        )
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            IconButton(onClick = onManageRecurring) {
-                                Icon(
-                                    Icons.Default.Autorenew,
-                                    contentDescription = stringResource(Res.string.recurring_manage),
-                                )
-                            }
-                            HelpIconButton(onClick = guidance::show)
-                        }
-                    }
-                    Spacer(Modifier.height(Spacing.medium))
-
-                    OutlinedTextField(
-                        value = state.query,
-                        onValueChange = { viewModel.onIntent(TransactionsIntent.SearchChanged(it)) },
-                        placeholder = { Text(stringResource(Res.string.transactions_search_placeholder)) },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                        singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                        ),
-                        shape = RoundedCornerShape(14.dp),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-
-                    Spacer(Modifier.height(Spacing.medium))
-                    TypeAndCategoryFilters(state, viewModel)
-                    Spacer(Modifier.height(Spacing.medium))
-
-                    when {
-                        // Placeholder rows shaped like the real list, so nothing jumps on arrival.
-                        state.isLoading -> ShimmerListPlaceholder()
-                        state.isEmpty -> EmptyState(
-                            filtered = !state.query.isBlank() || state.categoryFilterId != null ||
-                                state.typeFilter != TypeFilter.ALL,
-                            onAdd = { viewModel.onIntent(TransactionsIntent.AddClicked) },
-                        )
-                        else -> TransactionList(state, viewModel)
-                    }
-                }
+                TransactionsContent(
+                    state = state,
+                    onIntent = viewModel::onIntent,
+                    onManageRecurring = onManageRecurring,
+                    onShowGuidance = guidance::show,
+                    onImportPasted = viewModel::importPastedMessage,
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                )
 
                 if (showDetailPane) {
                     Surface(
@@ -227,6 +189,7 @@ fun TransactionsScreen(
                                 onSuggestCategory = viewModel::suggestCategory,
                                 receiptScanEnabled = state.receiptScanEnabled,
                                 onScanReceipt = viewModel::scanReceipt,
+                                initialKind = state.editor.initialKind,
                             )
                         }
                     }
@@ -241,23 +204,95 @@ fun TransactionsScreen(
     }
 }
 
+/**
+ * The transactions list: header, search, filters, and whatever the state says to show below them.
+ *
+ * Stateless, so it can be rendered without a ViewModel — which is what lets a screenshot test pin
+ * it. The editor deliberately stays in [TransactionsScreen]: it is a separate surface with its own
+ * AI hooks, and it is not on screen in the state a preview captures.
+ */
 @Composable
-private fun TypeAndCategoryFilters(state: TransactionsState, viewModel: TransactionsViewModel) {
+fun TransactionsContent(
+    state: TransactionsState,
+    onIntent: (TransactionsIntent) -> Unit,
+    modifier: Modifier = Modifier,
+    onManageRecurring: () -> Unit = {},
+    onShowGuidance: () -> Unit = {},
+    onImportPasted: suspend (String) -> ImportOutcome = { ImportOutcome.AlreadySeen },
+) {
+    Column(modifier = modifier.padding(horizontal = Spacing.medium)) {
+                Spacer(Modifier.height(Spacing.medium))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        text = stringResource(Res.string.transactions_title),
+                        style = MaterialTheme.typography.headlineLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground,
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = onManageRecurring) {
+                            Icon(
+                                Icons.Default.Autorenew,
+                                contentDescription = stringResource(Res.string.recurring_manage),
+                            )
+                        }
+                        HelpIconButton(onClick = onShowGuidance)
+                    }
+                }
+                Spacer(Modifier.height(Spacing.medium))
+
+                OutlinedTextField(
+                    value = state.query,
+                    onValueChange = { onIntent(TransactionsIntent.SearchChanged(it)) },
+                    placeholder = { Text(stringResource(Res.string.transactions_search_placeholder)) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    ),
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                Spacer(Modifier.height(Spacing.medium))
+                TypeAndCategoryFilters(state, onIntent)
+                Spacer(Modifier.height(Spacing.medium))
+
+                when {
+                    // Placeholder rows shaped like the real list, so nothing jumps on arrival.
+                    state.isLoading -> ShimmerListPlaceholder()
+                    state.isEmpty -> EmptyState(
+                        filtered = !state.query.isBlank() || state.categoryFilterId != null ||
+                            state.typeFilter != TypeFilter.ALL,
+                        onAdd = { onIntent(TransactionsIntent.AddClicked()) },
+                    )
+                    else -> TransactionList(state, onIntent, onImportPasted)
+                }
+            }
+}
+
+@Composable
+private fun TypeAndCategoryFilters(state: TransactionsState, onIntent: (TransactionsIntent) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.small)) {
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.small)) {
             FilterChip(
                 selected = state.typeFilter == TypeFilter.ALL,
-                onClick = { viewModel.onIntent(TransactionsIntent.TypeFilterChanged(TypeFilter.ALL)) },
+                onClick = { onIntent(TransactionsIntent.TypeFilterChanged(TypeFilter.ALL)) },
                 label = { Text(stringResource(Res.string.transactions_filter_all)) },
             )
             FilterChip(
                 selected = state.typeFilter == TypeFilter.INCOME,
-                onClick = { viewModel.onIntent(TransactionsIntent.TypeFilterChanged(TypeFilter.INCOME)) },
+                onClick = { onIntent(TransactionsIntent.TypeFilterChanged(TypeFilter.INCOME)) },
                 label = { Text(stringResource(Res.string.transactions_filter_income)) },
             )
             FilterChip(
                 selected = state.typeFilter == TypeFilter.EXPENSE,
-                onClick = { viewModel.onIntent(TransactionsIntent.TypeFilterChanged(TypeFilter.EXPENSE)) },
+                onClick = { onIntent(TransactionsIntent.TypeFilterChanged(TypeFilter.EXPENSE)) },
                 label = { Text(stringResource(Res.string.transactions_filter_expense)) },
             )
         }
@@ -269,7 +304,7 @@ private fun TypeAndCategoryFilters(state: TransactionsState, viewModel: Transact
                     selected = state.categoryFilterId == category.id,
                     onClick = {
                         val next = if (state.categoryFilterId == category.id) null else category.id
-                        viewModel.onIntent(TransactionsIntent.CategoryFilterChanged(next))
+                        onIntent(TransactionsIntent.CategoryFilterChanged(next))
                     },
                     label = { Text(categoryNameFor(category.id, category.name)) },
                     leadingIcon = {
@@ -286,11 +321,15 @@ private fun TypeAndCategoryFilters(state: TransactionsState, viewModel: Transact
 }
 
 @Composable
-private fun TransactionList(state: TransactionsState, viewModel: TransactionsViewModel) {
+private fun TransactionList(
+    state: TransactionsState,
+    onIntent: (TransactionsIntent) -> Unit,
+    onImportPasted: suspend (String) -> ImportOutcome,
+) {
     val uncategorized = stringResource(Res.string.transactions_uncategorized)
     LazyColumn(verticalArrangement = Arrangement.spacedBy(Spacing.small)) {
         item(key = "paste_message") {
-            PasteMessageCard(onImport = viewModel::importPastedMessage)
+            PasteMessageCard(onImport = onImportPasted)
         }
         if (state.pendingImports.isNotEmpty()) {
             // Above the list on purpose: it is a question addressed to the user, and a question
@@ -300,7 +339,7 @@ private fun TransactionList(state: TransactionsState, viewModel: TransactionsVie
                     items = state.pendingImports,
                     currencyCode = state.currencyCode,
                     onResolve = { hash, keep ->
-                        viewModel.onIntent(TransactionsIntent.ResolvePendingImport(hash, keep))
+                        onIntent(TransactionsIntent.ResolvePendingImport(hash, keep))
                     },
                 )
             }
@@ -318,15 +357,22 @@ private fun TransactionList(state: TransactionsState, viewModel: TransactionsVie
                 TransactionRowItem(
                     item = item,
                     currencyCode = state.currencyCode,
-                    categoryLabel = item.category?.name ?: uncategorized,
-                    onClick = { viewModel.onIntent(TransactionsIntent.EditClicked(item)) },
-                    onDelete = { viewModel.onIntent(TransactionsIntent.DeleteRequested(item.id)) },
+                    // Through categoryNameFor, not the raw stored name. Default categories
+                    // are seeded into the database as English literals at first run, so the
+                    // stored name is English whatever the app language is. The picker in the
+                    // editor already localised; this row did not, which is why a category chosen
+                    // in French reappeared in English the moment it was saved.
+                    categoryLabel = item.category
+                        ?.let { categoryNameFor(it.id, it.name) }
+                        ?: uncategorized,
+                    onClick = { onIntent(TransactionsIntent.EditClicked(item)) },
+                    onDelete = { onIntent(TransactionsIntent.DeleteRequested(item.id)) },
                 )
             }
         }
         // Reaching the tail widens the page window (no-op once everything is loaded).
         item {
-            LaunchedEffect(state.groups.size) { viewModel.onIntent(TransactionsIntent.LoadMore) }
+            LaunchedEffect(state.groups.size) { onIntent(TransactionsIntent.LoadMore) }
             Spacer(Modifier.height(80.dp))
         }
     }
@@ -440,6 +486,7 @@ private fun TransactionEditor(state: TransactionsState, viewModel: TransactionsV
                                 onSuggestCategory = viewModel::suggestCategory,
                                 receiptScanEnabled = state.receiptScanEnabled,
                                 onScanReceipt = viewModel::scanReceipt,
+                                initialKind = state.editor.initialKind,
             )
         }
         if (isCompact) {
@@ -447,14 +494,14 @@ private fun TransactionEditor(state: TransactionsState, viewModel: TransactionsV
                 onDismissRequest = { viewModel.onIntent(TransactionsIntent.EditorDismissed) },
                 sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
                 containerColor = MaterialTheme.colorScheme.surface,
-            ) { form() }
+            ) { EditorScrollContainer { form() } }
         } else {
             Dialog(onDismissRequest = { viewModel.onIntent(TransactionsIntent.EditorDismissed) }) {
                 Surface(
                     shape = RoundedCornerShape(24.dp),
                     color = MaterialTheme.colorScheme.surface,
                     modifier = Modifier.width(480.dp),
-                ) { form() }
+                ) { EditorScrollContainer { form() } }
             }
         }
     }
@@ -503,6 +550,7 @@ private fun PasteMessageCard(onImport: suspend (String) -> ImportOutcome) {
     val imported = stringResource(Res.string.transactions_paste_imported)
     val duplicate = stringResource(Res.string.transactions_paste_duplicate)
     val needsReview = stringResource(Res.string.transactions_paste_needs_review)
+    val noWallet = stringResource(Res.string.transactions_paste_no_wallet)
     val unreadable = stringResource(Res.string.transactions_paste_unreadable)
 
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.micro)) {
@@ -531,6 +579,9 @@ private fun PasteMessageCard(onImport: suspend (String) -> ImportOutcome) {
                                 // answer is now waiting a few rows down the same screen.
                                 is ImportOutcome.NeedsReview -> { text = ""; needsReview }
                                 ImportOutcome.NotRecognised -> unreadable
+                                // Only reachable with zero wallets: the paste path falls back to
+                                // the active wallet, so a configured destination is not required.
+                                is ImportOutcome.NoDestination -> noWallet
                             }
                             busy = false
                         }

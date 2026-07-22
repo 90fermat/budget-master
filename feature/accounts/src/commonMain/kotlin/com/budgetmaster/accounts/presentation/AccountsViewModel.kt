@@ -5,8 +5,9 @@ package com.budgetmaster.accounts.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.budgetmaster.accounts.domain.usecase.ArchiveAccountUseCase
+import com.budgetmaster.accounts.domain.usecase.SetAccountIncludedInTotalsUseCase
 import com.budgetmaster.accounts.domain.usecase.CalculateNetWorthUseCase
-import com.budgetmaster.accounts.domain.usecase.DeleteAccountUseCase
+import com.budgetmaster.accounts.domain.usecase.DeleteWalletUseCase
 import com.budgetmaster.accounts.domain.usecase.ObserveAccountsUseCase
 import com.budgetmaster.accounts.domain.usecase.ObserveActiveAccountUseCase
 import com.budgetmaster.accounts.domain.usecase.ReconcileAccountUseCase
@@ -29,7 +30,8 @@ class AccountsViewModel(
     private val observeActiveAccount: ObserveActiveAccountUseCase,
     private val saveAccount: SaveAccountUseCase,
     private val archiveAccount: ArchiveAccountUseCase,
-    private val deleteAccount: DeleteAccountUseCase,
+    private val setIncludedInTotals: SetAccountIncludedInTotalsUseCase,
+    private val deleteAccount: DeleteWalletUseCase,
     private val selectActiveAccount: SelectActiveAccountUseCase,
     private val transferBetweenAccounts: TransferBetweenAccountsUseCase,
     private val reconcileAccount: ReconcileAccountUseCase,
@@ -49,7 +51,7 @@ class AccountsViewModel(
                 }
                 // Convert net worth once the wallets are known; rates come from the local cache.
                 val current = _state.value
-                val netWorth = calculateNetWorth(current.activeAccounts, current.primaryCurrency)
+                val netWorth = calculateNetWorth(current.accountsInTotals, current.primaryCurrency)
                 _state.update { it.copy(netWorthConverted = netWorth) }
             }
         }
@@ -68,6 +70,9 @@ class AccountsViewModel(
             }
             is AccountsIntent.SetArchived -> viewModelScope.launch {
                 archiveAccount(intent.id, intent.archived)
+            }
+            is AccountsIntent.SetIncludedInTotals -> viewModelScope.launch {
+                setIncludedInTotals(intent.id, intent.included)
             }
             is AccountsIntent.Delete -> viewModelScope.launch {
                 // If the deleted account was active, fall back to the "All accounts" view.

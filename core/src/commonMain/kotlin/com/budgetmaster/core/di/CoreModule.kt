@@ -1,8 +1,10 @@
 package com.budgetmaster.core.di
 
+import com.budgetmaster.core.backup.BackupService
 import com.budgetmaster.core.db.AppDataSeeder
 import com.budgetmaster.core.db.DatabaseDriverFactory
 import com.budgetmaster.core.db.UserDataEraser
+import com.budgetmaster.core.db.WalletDirectory
 import com.budgetmaster.core.db.DatabaseProvider
 import com.budgetmaster.core.ai.GenAiClient
 import com.budgetmaster.core.ai.createGenAiClient
@@ -12,11 +14,20 @@ import com.budgetmaster.core.currency.ExchangeRateFetcher
 import com.budgetmaster.core.currency.ExchangeRateRepository
 import com.budgetmaster.core.currency.RefreshExchangeRatesUseCase
 import com.budgetmaster.core.notifications.NotificationRepository
+import com.budgetmaster.core.notifications.createSystemNotifier
 import com.budgetmaster.core.prefs.AppSettingsRepository
 import com.budgetmaster.core.guidance.GuidancePreferences
 import com.budgetmaster.core.prefs.OnboardingPreferences
 import com.budgetmaster.core.session.ActiveAccountStore
+import com.budgetmaster.core.security.AppLockController
+import com.budgetmaster.core.security.BiometricPrompter
 import com.budgetmaster.core.session.SessionStore
+import com.budgetmaster.core.sync.DeviceIdProvider
+import com.budgetmaster.core.sync.LocalDataAdoption
+import com.budgetmaster.core.sync.SyncController
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import org.koin.core.module.Module
 import org.koin.dsl.module
 
@@ -32,6 +43,7 @@ val coreModule = module {
     single { GuidancePreferences(get()) }
     single { SessionStore() }
     single { UserDataEraser(get()) }
+    single { WalletDirectory(get(), get()) }
     single { ActiveAccountStore(get()) }
     single { ExchangeRateRepository(get()) }
     single { ExchangeRateFetcher() }
@@ -46,6 +58,17 @@ val coreModule = module {
     // isAvailable) respects it with no per-feature wiring.
     single<GenAiClient> { createGenAiClient(get()) }
     single { NotificationRepository(get(), get()) }
+    single { createSystemNotifier() }
+    single { BiometricPrompter() }
+    single { BackupService(get()) }
+    // One controller for the process: the lock state must outlive any screen that shows it, and
+    // the failed-attempt count must survive the unlock UI being closed and reopened.
+    single { AppLockController(get(), CoroutineScope(SupervisorJob() + Dispatchers.Default)) }
+    single { DeviceIdProvider(get()) }
+    single { LocalDataAdoption(get()) }
+    // One per process: two passes at once would each be pushing rows the other is still
+    // reconciling, and the status the UI shows has to be the whole app's, not one screen's.
+    single { SyncController(get(), get(), get(), CoroutineScope(SupervisorJob() + Dispatchers.Default)) }
 }
 
 /**

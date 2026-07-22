@@ -3,6 +3,7 @@
 package com.budgetmaster.dashboard.domain.usecase
 
 import com.budgetmaster.core.model.Transaction
+import com.budgetmaster.dashboard.domain.model.DeletedTransaction
 import com.budgetmaster.dashboard.domain.model.BalanceSummary
 import com.budgetmaster.dashboard.domain.model.BalanceTrend
 import com.budgetmaster.dashboard.domain.model.Period
@@ -69,7 +70,8 @@ class GetBalanceSummaryUseCaseTest {
         override val isAiConfigured: Boolean = true
         override suspend fun getAiInsights(forceRefresh: Boolean, languageTag: String): Result<List<Insight>> =
             Result.success(emptyList())
-        override suspend fun deleteTransaction(id: String) {}
+        override suspend fun deleteTransaction(id: String): DeletedTransaction? = null
+        override suspend fun restoreTransaction(snapshot: DeletedTransaction) {}
         override suspend fun dismissInsight(id: String) {}
     }
 

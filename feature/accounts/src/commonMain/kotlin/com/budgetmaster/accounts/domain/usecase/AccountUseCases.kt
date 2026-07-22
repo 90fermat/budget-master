@@ -47,8 +47,18 @@ class ArchiveAccountUseCase(private val repository: AccountRepository) {
     suspend operator fun invoke(id: String, archived: Boolean) = repository.setArchived(id, archived)
 }
 
+/**
+ * Includes or excludes a wallet from the consolidated "All accounts" view.
+ *
+ * Distinct from archiving: archived means "no longer in use", this means "in use, but kept apart".
+ */
+class SetAccountIncludedInTotalsUseCase(private val repository: AccountRepository) {
+    suspend operator fun invoke(id: String, included: Boolean) =
+        repository.setIncludedInTotals(id, included)
+}
+
 /** Permanently deletes an account and its transactions. */
-class DeleteAccountUseCase(
+class DeleteWalletUseCase(
     private val repository: AccountRepository,
     private val activeAccountStore: ActiveAccountStore,
 ) {

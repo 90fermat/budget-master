@@ -83,6 +83,7 @@ import budgetmaster.core.generated.resources.reports_ai_ask_label
 import budgetmaster.core.generated.resources.reports_ai_ask_placeholder
 import budgetmaster.core.generated.resources.reports_ai_ask_action
 import budgetmaster.core.generated.resources.reports_ai_failed
+import budgetmaster.core.generated.resources.reports_ai_not_authorized
 import budgetmaster.core.generated.resources.reports_ai_rate_limited
 import budgetmaster.core.generated.resources.ai_disclaimer
 import com.budgetmaster.core.designsystem.components.GuidanceHost
@@ -304,9 +305,17 @@ private fun AiTextBlock(text: String) {
     Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
 }
 
-/** "rate_limited" gets its own copy; everything else is the generic failure. */
-private fun aiFailureRes(code: String) =
-    if (code == "rate_limited") Res.string.reports_ai_rate_limited else Res.string.reports_ai_failed
+/**
+ * Maps a failure code to copy.
+ *
+ * "not_authorized" is deliberately separate: an App Check refusal is not transient, and telling
+ * the user to try again in a moment is what let a 97% rejection rate pass for a flaky network.
+ */
+private fun aiFailureRes(code: String) = when (code) {
+    "rate_limited" -> Res.string.reports_ai_rate_limited
+    "not_authorized" -> Res.string.reports_ai_not_authorized
+    else -> Res.string.reports_ai_failed
+}
 
 @Composable
 private fun ReportBody(report: ReportSummary) {

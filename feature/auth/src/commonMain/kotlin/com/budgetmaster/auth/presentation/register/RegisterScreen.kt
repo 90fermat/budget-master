@@ -82,7 +82,12 @@ fun RegisterScreen(
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.fillMaxWidth().widthIn(max = 420.dp),
+            // widthIn before fillMaxWidth, and the order is the whole point: constraints flow
+            // left to right, so filling first fixes the width to the parent's and leaves
+            // widthIn nothing it can shrink. Written the other way round the cap silently
+            // did nothing, and every field and button ran the full width of a tablet or
+            // browser window.
+            modifier = Modifier.widthIn(max = 420.dp).fillMaxWidth(),
         ) {
             Text(stringResource(Res.string.register_title), style = MaterialTheme.typography.headlineLarge)
             Text(

@@ -81,6 +81,7 @@ import com.budgetmaster.core.designsystem.categoryIconFor
 import com.budgetmaster.core.designsystem.pressScale
 import com.budgetmaster.core.util.DateUtils
 import com.budgetmaster.core.util.rememberHaptics
+import com.budgetmaster.core.navigation.TransactionKind
 import com.budgetmaster.core.ocr.ReceiptImage
 import com.budgetmaster.core.ocr.rememberReceiptPicker
 import com.budgetmaster.core.designsystem.categoryNameFor
@@ -124,8 +125,13 @@ internal fun AddEditTransactionForm(
     // Receipt scan: OCR runs on-device, then the extracted text is parsed into the same fields.
     receiptScanEnabled: Boolean = false,
     onScanReceipt: suspend (ReceiptImage) -> Result<QuickEntryDraft> = { Result.failure(NotImplementedError()) },
+    // Set when the user arrived from a Dashboard quick action, which already named the kind.
+    // Ignored while editing, where the existing entry decides.
+    initialKind: TransactionKind? = null,
 ) {
-    var isExpense by remember { mutableStateOf(editing?.isExpense ?: true) }
+    var isExpense by remember {
+        mutableStateOf(editing?.isExpense ?: (initialKind != TransactionKind.INCOME))
+    }
     var amountText by remember {
         mutableStateOf(editing?.let { kotlin.math.abs(it.amount).toString() } ?: "")
     }

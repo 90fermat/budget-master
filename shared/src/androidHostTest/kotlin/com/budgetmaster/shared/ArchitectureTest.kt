@@ -17,6 +17,17 @@ class ArchitectureTest {
     )
 
     /**
+     * Packages that handle money, message text, or credentials.
+     *
+     * Everything in this app is arguably sensitive, but these are where a stray log line would be
+     * worst: the SMS parsers see raw message bodies, the repositories see amounts and account
+     * ids, and the AI services see prompts built from spending.
+     */
+    private val sensitivePackages = listOf(
+        ".sms.", ".data.repository.", ".data.service.", ".ai.", ".auth.",
+    )
+
+    /**
      * The central rule of the module graph: features may depend on `:core` (and the shell may
      * depend on features), but never on each other. Cross-feature reuse goes through `:core`.
      */
@@ -98,5 +109,28 @@ class ArchitectureTest {
     private fun com.lemonappdev.konsist.api.provider.KoPackageProvider.featureModule(): String? {
         val pkg = packagee?.name ?: return null
         return featureModules.firstOrNull { pkg.startsWith("com.budgetmaster.$it.") }
+    }
+
+    /**
+     * No logging where the values are sensitive.
+     *
+     * On Android `println` goes to logcat, which is readable by anything with log access on a
+     * rooted device and is captured verbatim in bug reports. A single debug line in the SMS
+     * parser would put message bodies there; one in a repository would put amounts and account
+     * ids. This was a real instance, not a hypothetical: an exception in the insights service was
+     * being printed, and that message can carry prompt fragments built from the user's spending.
+     *
+     * Deliberately a build failure rather than a review convention. The cost of logging is
+     * invisible at the call site and only shows up in someone else's log capture.
+     */
+    @Test
+    fun `sensitive packages do not log`() {
+        Konsist.scopeFromProduction()
+            .files
+            .filter { file -> sensitivePackages.any { it in ".${file.packagee?.name.orEmpty()}." } }
+            .assertFalse { file ->
+                file.text.contains("println(") ||
+                    file.imports.any { it.name.startsWith("android.util.Log") }
+            }
     }
 }

@@ -1,5 +1,7 @@
 package com.budgetmaster.transactions.presentation
 
+import com.budgetmaster.core.navigation.TransactionKind
+
 import com.budgetmaster.core.util.RelativeDay
 import com.budgetmaster.transactions.domain.usecase.RecurringCharge
 import com.budgetmaster.transactions.domain.model.TransactionAccount
@@ -17,7 +19,14 @@ sealed interface TransactionsIntent {
     data class DeleteRequested(val id: String) : TransactionsIntent
     data object UndoDelete : TransactionsIntent
     data class SaveTransaction(val draft: TransactionDraft) : TransactionsIntent
-    data object AddClicked : TransactionsIntent
+    /**
+     * Opens the editor for a new entry.
+     *
+     * @param kind pre-selects expense or income. Non-null when the user arrived from a Dashboard
+     *   quick action, which is the whole point of carrying it: those buttons name the kind, so
+     *   making the user pick it again on arrival would waste the intent they already expressed.
+     */
+    data class AddClicked(val kind: TransactionKind? = null) : TransactionsIntent
 
     /** The list reached its end; widen the page window. */
     data object LoadMore : TransactionsIntent
@@ -76,6 +85,8 @@ data class TransactionDayGroup(
 data class EditorState(
     val visible: Boolean = false,
     val editing: TransactionItem? = null,
+    /** Pre-selects the expense/income toggle for a new entry. Ignored when [editing] is set. */
+    val initialKind: TransactionKind? = null,
 )
 
 /**

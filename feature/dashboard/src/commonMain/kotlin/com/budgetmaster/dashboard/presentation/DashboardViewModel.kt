@@ -6,6 +6,7 @@ import com.budgetmaster.core.model.Transaction
 import com.budgetmaster.core.prefs.AppSettingsRepository
 import com.budgetmaster.core.session.SessionStore
 import com.budgetmaster.dashboard.domain.model.BalanceSummary
+import com.budgetmaster.dashboard.domain.model.DeletedTransaction
 import com.budgetmaster.dashboard.domain.model.Period
 import com.budgetmaster.dashboard.domain.repository.DashboardRepository
 import com.budgetmaster.dashboard.domain.usecase.GetAiInsightsUseCase
@@ -24,6 +25,7 @@ import kotlinx.coroutines.flow.catch
 import androidx.compose.ui.text.intl.Locale
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -58,7 +60,13 @@ class DashboardViewModel(
     private val getAiInsights: GetAiInsightsUseCase,
     private val settingsRepository: AppSettingsRepository,
     private val sessionStore: SessionStore,
+    /** Unread notification count, injected as a flow so the ViewModel need not depend on the
+     *  concrete store - which keeps it trivial to drive in tests. */
+    private val unreadNotifications: Flow<Int>,
 ) : ViewModel() {
+
+    /** The last swiped-away row, held only until undo is taken or the snackbar lapses. */
+    private var lastDeleted: DeletedTransaction? = null
 
     private val _state = MutableStateFlow(DashboardState())
 
@@ -86,6 +94,10 @@ class DashboardViewModel(
             .map { user -> user?.displayName?.takeIf { it.isNotBlank() } ?: user?.email?.substringBefore('@') }
             .onEach { name -> _state.update { it.copy(userName = name) } }
             .launchIn(viewModelScope)
+
+        unreadNotifications
+            .onEach { count -> _state.update { it.copy(unreadNotifications = count) } }
+            .launchIn(viewModelScope)
     }
 
     /**
@@ -99,11 +111,12 @@ class DashboardViewModel(
             is DashboardIntent.RefreshRequested -> refresh()
             is DashboardIntent.PeriodChanged -> changePeriod(intent.period)
             is DashboardIntent.TransactionSwiped -> swipeTransaction(intent.id)
+            is DashboardIntent.UndoDelete -> undoDelete()
             is DashboardIntent.InsightsDismissed -> dismissInsight(intent.id)
             is DashboardIntent.QuickActionClicked -> emitEffect(
                 DashboardEffect.NavigateToAddTransaction(intent.type)
             )
-            is DashboardIntent.NotificationsClicked -> emitEffect(DashboardEffect.NavigateToSettings)
+            is DashboardIntent.NotificationsClicked -> emitEffect(DashboardEffect.NavigateToNotifications)
         }
     }
 
@@ -224,7 +237,9 @@ class DashboardViewModel(
 
         viewModelScope.launch {
             try {
-                repository.deleteTransaction(id)
+                // The snapshot, not the display model, is what undo restores from - the display
+                // model has no accountId, externalId or source to put back.
+                lastDeleted = repository.deleteTransaction(id)
                 emitEffect(DashboardEffect.ShowUndoDelete(deleted))
             } catch (e: Exception) {
                 // Rollback optimistic update
@@ -236,6 +251,20 @@ class DashboardViewModel(
                     )
                 }
                 emitEffect(DashboardEffect.ShowError(e.message ?: "Failed to delete transaction."))
+            }
+        }
+    }
+
+    /** Puts back the last swiped-away row. No-op if nothing was deleted or it was already undone. */
+    private fun undoDelete() {
+        val snapshot = lastDeleted ?: return
+        lastDeleted = null
+        viewModelScope.launch {
+            try {
+                repository.restoreTransaction(snapshot)
+                // The dashboard's lists are observed, so the row reappears on its own.
+            } catch (e: Exception) {
+                emitEffect(DashboardEffect.ShowError(e.message ?: "Failed to restore transaction."))
             }
         }
     }

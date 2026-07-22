@@ -24,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -66,8 +67,17 @@ import org.koin.compose.viewmodel.koinViewModel
 
 /** Accounts management screen: net-worth overview, wallet list, and create/edit/archive/delete. */
 @Composable
-fun AccountsScreen(viewModel: AccountsViewModel = koinViewModel()) {
+fun AccountsScreen(
+    viewModel: AccountsViewModel = koinViewModel(),
+    openTransfer: Boolean = false,
+) {
     val state by viewModel.state.collectAsState()
+
+    // Arriving from the Dashboard's "Transfer" quick action. Transfers live here rather than in
+    // the transaction editor because they write two linked legs between the user's own wallets.
+    LaunchedEffect(openTransfer) {
+        if (openTransfer) viewModel.onIntent(AccountsIntent.OpenTransfer)
+    }
     var pendingDelete by remember { mutableStateOf<String?>(null) }
     val guidance = rememberGuidance(GuidanceKey.ACCOUNTS)
     GuidanceHost(guidance)
@@ -76,7 +86,7 @@ fun AccountsScreen(viewModel: AccountsViewModel = koinViewModel()) {
         floatingActionButton = {
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 // Transfers need at least two wallets to move money between.
-                if (state.activeAccounts.size > 1) {
+                if (state.accountsInTotals.size > 1) {
                     ExtendedFloatingActionButton(
                         onClick = { viewModel.onIntent(AccountsIntent.OpenTransfer) },
                         icon = { Icon(Icons.Filled.SwapHoriz, contentDescription = null) },
@@ -92,7 +102,9 @@ fun AccountsScreen(viewModel: AccountsViewModel = koinViewModel()) {
             }
         },
     ) { padding ->
-        val active = state.activeAccounts
+        // Every unarchived wallet, counted or not. An excluded one still belongs on this screen;
+        // it is the only place its "count in totals" switch lives.
+        val active = state.visibleAccounts
         val archived = state.accounts.filter { it.isArchived }
 
         LazyColumn(
@@ -133,6 +145,11 @@ fun AccountsScreen(viewModel: AccountsViewModel = koinViewModel()) {
                     account = account,
                     onEdit = { viewModel.onIntent(AccountsIntent.OpenEdit(account)) },
                     onArchiveToggle = { viewModel.onIntent(AccountsIntent.SetArchived(account.id, true)) },
+                    onIncludeInTotalsToggle = {
+                        viewModel.onIntent(
+                            AccountsIntent.SetIncludedInTotals(account.id, !account.includeInTotals),
+                        )
+                    },
                     onReconcile = { viewModel.onIntent(AccountsIntent.OpenReconcile(account)) },
                     onDelete = { pendingDelete = account.id },
                     modifier = Modifier.fillMaxWidth(),
@@ -152,6 +169,11 @@ fun AccountsScreen(viewModel: AccountsViewModel = koinViewModel()) {
                         account = account,
                         onEdit = { viewModel.onIntent(AccountsIntent.OpenEdit(account)) },
                         onArchiveToggle = { viewModel.onIntent(AccountsIntent.SetArchived(account.id, false)) },
+                        onIncludeInTotalsToggle = {
+                            viewModel.onIntent(
+                                AccountsIntent.SetIncludedInTotals(account.id, !account.includeInTotals),
+                            )
+                        },
                         onReconcile = { viewModel.onIntent(AccountsIntent.OpenReconcile(account)) },
                         onDelete = { pendingDelete = account.id },
                         modifier = Modifier.fillMaxWidth(),
@@ -171,7 +193,7 @@ fun AccountsScreen(viewModel: AccountsViewModel = koinViewModel()) {
 
     if (state.transferOpen) {
         TransferForm(
-            accounts = state.activeAccounts,
+            accounts = state.accountsInTotals,
             initialFromId = state.activeAccountId,
             onSubmit = { from, to, amount, timestamp ->
                 viewModel.onIntent(AccountsIntent.SubmitTransfer(from, to, amount, timestamp))

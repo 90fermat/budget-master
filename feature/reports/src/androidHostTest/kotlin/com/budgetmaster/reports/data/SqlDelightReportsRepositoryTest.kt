@@ -52,7 +52,7 @@ class SqlDelightReportsRepositoryTest {
 
         val queries = database.budgetMasterDatabaseQueries
         queries.insertUser(userId, "You", "you@test.com", "USD", now)
-        queries.insertAccount(accountId, userId, "Cash", "CASH", 0.0, "USD", now, 0)
+        queries.insertAccount(accountId, userId, "Cash", "CASH", 0.0, "USD", now, 0, 1)
         queries.insertCategory("cat_food", userId, "Food", "🍔", "#F59E0B", 1)
         queries.insertCategory("cat_salary", userId, "Salary", "💰", "#059669", 1)
         return repo to database

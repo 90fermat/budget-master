@@ -48,6 +48,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Duration.Companion.milliseconds
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.ui.graphics.Color
+import com.budgetmaster.core.designsystem.logoCycleColor
+import com.budgetmaster.core.designsystem.LogoCyclePalette
 
 /** Minimum time the splash stays visible so its entrance animation is appreciated. */
 private const val MIN_SPLASH_MILLIS = 2000L
@@ -113,6 +117,52 @@ fun SplashScreen(
         }
     }
 
+    // The mark drifts through a palette instead of sitting on one brand colour. Slow enough to
+    // read as a colour that is alive rather than an animation demanding attention, and held still
+    // under reduced motion, where a constant hue change is exactly what that setting asks to avoid.
+    val cycle by rememberInfiniteTransition(label = "markHue").animateFloat(
+        initialValue = 0f,
+        targetValue = LogoCyclePalette.size.toFloat(),
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 18_000, easing = LinearEasing),
+        ),
+        label = "markHue",
+    )
+    val t = if (reducedMotion) 0f else cycle
+
+    SplashContent(
+        markColors = listOf(logoCycleColor(t), logoCycleColor(t + 1.6f)),
+        markSparkColor = logoCycleColor(t + 0.8f),
+        markScale = markScale.value,
+        contentAlpha = contentAlpha.value,
+        wordmarkAlpha = wordmarkAlpha.value,
+        accentScale = accentScale.value,
+        creditAlpha = creditAlpha.value,
+        glow = glow,
+    )
+}
+
+/**
+ * The splash picture, with the reveal expressed as plain numbers.
+ *
+ * Separated from [SplashScreen] so it can be rendered without a ViewModel, a coroutine or a clock —
+ * which is what lets a screenshot test pin it. Nothing here decides anything; the defaults are the
+ * fully revealed end state, which is the frame worth pinning.
+ */
+@Composable
+fun SplashContent(
+    markScale: Float = 1f,
+    contentAlpha: Float = 1f,
+    wordmarkAlpha: Float = 1f,
+    accentScale: Float = 1f,
+    creditAlpha: Float = 1f,
+    glow: Float = 1f,
+    // Null means "use the theme's own colours". The shifting palette is passed in by
+    // [SplashScreen] rather than generated here, so this stays a pure function of its arguments
+    // and a screenshot of it is the same image every time.
+    markColors: List<Color>? = null,
+    markSparkColor: Color? = null,
+) {
     val primary = MaterialTheme.colorScheme.primary
     val background = MaterialTheme.colorScheme.background
 
@@ -136,14 +186,19 @@ fun SplashScreen(
                 modifier = Modifier
                     .size(104.dp)
                     .graphicsLayer {
-                        scaleX = markScale.value
-                        scaleY = markScale.value
-                        alpha = contentAlpha.value
-                    }
+                        scaleX = markScale
+                        scaleY = markScale
+                        alpha = contentAlpha
+                    },
+                ringColors = markColors ?: listOf(
+                    MaterialTheme.colorScheme.primary,
+                    MaterialTheme.colorScheme.tertiary,
+                ),
+                sparkColor = markSparkColor ?: MaterialTheme.financialColors.income,
             )
             Spacer(Modifier.height(24.dp))
             AppWordmark(
-                modifier = Modifier.alpha(wordmarkAlpha.value),
+                modifier = Modifier.alpha(wordmarkAlpha),
                 fontSize = 34.sp,
             )
             Spacer(Modifier.height(14.dp))
@@ -152,7 +207,7 @@ fun SplashScreen(
                 modifier = Modifier
                     .width(120.dp)
                     .height(4.dp)
-                    .graphicsLayer { scaleX = accentScale.value }
+                    .graphicsLayer { scaleX = accentScale }
                     .clip(RoundedCornerShape(2.dp))
                     .background(
                         Brush.horizontalGradient(
@@ -167,7 +222,7 @@ fun SplashScreen(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 40.dp)
-                .alpha(creditAlpha.value),
+                .alpha(creditAlpha),
         ) {
             Text(
                 text = stringResource(Res.string.splash_credit_from),

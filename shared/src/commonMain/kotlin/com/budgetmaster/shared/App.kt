@@ -42,13 +42,16 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.toRoute
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -60,8 +63,12 @@ import budgetmaster.core.generated.resources.nav_history
 import budgetmaster.core.generated.resources.nav_home
 import budgetmaster.core.generated.resources.nav_reports
 import budgetmaster.core.generated.resources.nav_settings
-import com.budgetmaster.auth.presentation.biometric.BiometricScreen
-import com.budgetmaster.auth.presentation.biometric.BiometricViewModel
+import com.budgetmaster.core.security.AppLockController
+import com.budgetmaster.core.security.BiometricPrompter
+import com.budgetmaster.shared.lock.presentation.LockScreen
+import com.budgetmaster.settings.domain.usecase.ExportBackupUseCase
+import com.budgetmaster.settings.domain.usecase.RestoreBackupUseCase
+import com.budgetmaster.shared.notifications.presentation.NotificationsScreen
 import com.budgetmaster.auth.presentation.forgotpassword.ForgotPasswordScreen
 import com.budgetmaster.auth.presentation.forgotpassword.ForgotPasswordViewModel
 import com.budgetmaster.auth.presentation.login.LoginScreen
@@ -72,7 +79,7 @@ import com.budgetmaster.auth.presentation.register.RegisterScreen
 import com.budgetmaster.auth.presentation.register.RegisterViewModel
 import com.budgetmaster.auth.domain.model.AuthStatus
 import com.budgetmaster.auth.domain.usecase.CheckAuthStatusUseCase
-import com.budgetmaster.auth.domain.usecase.DeleteAccountUseCase
+import com.budgetmaster.auth.domain.usecase.DeleteUserAccountUseCase
 import com.budgetmaster.auth.domain.usecase.SignOutUseCase
 import com.budgetmaster.auth.presentation.splash.SplashScreen
 import com.budgetmaster.auth.presentation.splash.SplashViewModel
@@ -108,6 +115,14 @@ import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
+import com.budgetmaster.core.sync.createRemoteSyncDataSource
+import com.budgetmaster.core.sync.SyncController
+import com.budgetmaster.core.sync.LocalDataAdoption
+import com.budgetmaster.core.sync.shouldSeedStarterWallet
+import com.budgetmaster.core.sync.AdoptionPlan
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import com.budgetmaster.core.navigation.TransactionKind
 
 /**
  * Main application entry point for the shared Compose Multiplatform UI.
@@ -132,6 +147,11 @@ fun App() {
     val checkAuthStatus = koinInject<CheckAuthStatusUseCase>()
     val materializeDueRecurring = koinInject<MaterializeDueRecurringUseCase>()
     val refreshExchangeRates = koinInject<RefreshExchangeRatesUseCase>()
+    val adoption = koinInject<LocalDataAdoption>()
+    val syncController = koinInject<SyncController>()
+    // Holds the uid whose sign-in is waiting on the user to say what to keep. Nothing is applied,
+    // and nothing is synced, until they answer.
+    var adoptionPrompt by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(Unit) {
         checkAuthStatus().collect { status ->
             if (status is AuthStatus.Authenticated) {
@@ -142,7 +162,24 @@ fun App() {
                         email = status.user.email,
                     ),
                 )
-                seeder.seedForUser(status.user.id, status.user.email)
+                // Three steps, in this order and for a reason. The user row must exist before
+                // adoption can re-parent onto it; adoption must run before the starter wallet is
+                // seeded, or a user bringing real data across is left with an empty "Cash" beside
+                // it; and sync must not run until the question of what to keep is settled, or it
+                // would publish an answer the user never gave.
+                seeder.ensureUserRow(status.user.id, status.user.email)
+                val plan = runCatching {
+                    adoption.plan(status.user.id, createRemoteSyncDataSource(status.user.id))
+                }.getOrNull()
+                when (plan) {
+                    null -> Unit // Remote unreachable: decide nothing rather than guess. Retries next launch.
+                    AdoptionPlan.AskUser -> adoptionPrompt = status.user.id
+                    else -> adoption.apply(status.user.id, plan)
+                }
+                if (shouldSeedStarterWallet(plan)) {
+                    seeder.seedForUser(status.user.id, status.user.email)
+                }
+                if (plan != null && plan != AdoptionPlan.AskUser) syncController.requestSync()
             } else {
                 // Not signed in: fall back to the local default user so the app stays usable.
                 sessionStore.setCurrentUser(null)
@@ -178,11 +215,56 @@ fun App() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,
                 ) {
-                    AppShell()
+                    AppLockGate(settings) { AppShell() }
+
+                    // Above the shell, because the answer decides what the shell will show. Sync
+                    // is only started once a choice has been applied.
+                    adoptionPrompt?.let { uid ->
+                        val scope = rememberCoroutineScope()
+                        AdoptionDialog { choice ->
+                            adoptionPrompt = null
+                            scope.launch {
+                                adoption.apply(uid, AdoptionPlan.AskUser, choice)
+                                syncController.requestSync()
+                            }
+                        }
+                    }
                 }
             }
         }
     }
+}
+
+/**
+ * Shows the unlock screen instead of the app while the app lock is engaged.
+ *
+ * Deliberately *instead of*, not on top of: composing the app underneath a lock would keep the
+ * user's balances rendered and readable in the recents preview, which is most of what the lock is
+ * for. When unlocked this adds nothing but a pass-through.
+ */
+@Composable
+private fun AppLockGate(settings: AppSettings, content: @Composable () -> Unit) {
+    val appLock = koinInject<AppLockController>()
+    val prompter = koinInject<BiometricPrompter>()
+    val locked by appLock.isLocked.collectAsState()
+
+    if (!locked) {
+        content()
+        return
+    }
+
+    // Biometrics are offered only when the user allowed them and the hardware actually has an
+    // enrolment; otherwise the PIN stands alone, which it always can.
+    val biometricOffered = remember(settings.appLockBiometricEnabled) {
+        settings.appLockBiometricEnabled && prompter.isAvailable()
+    }
+
+    LockScreen(
+        biometricOffered = biometricOffered,
+        onSubmitPin = { pin -> appLock.submitPin(pin) },
+        onBiometric = { title, subtitle, cancel -> prompter.authenticate(title, subtitle, cancel) },
+        onBiometricSuccess = appLock::unlockWithBiometric,
+    )
 }
 
 /**
@@ -195,19 +277,45 @@ private fun AppShell() {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
 
-    // Identify which destinations belong to the core dashboard sub-navigation tabs
+    // Identify which destinations belong to the core dashboard sub-navigation tabs.
+    //
+    // Matched by route *class*, not by `destination.route` string equality. Once a route carries
+    // arguments its route string becomes "…Transactions/{openEditorFor}" rather than the bare
+    // qualified name, so string equality silently stops matching and the whole navigation bar
+    // disappears on that tab. `hasRoute` compares the class and is indifferent to arguments.
     val mainDestinations = listOf(
-        AuthRoute.Dashboard::class.qualifiedName,
-        AuthRoute.Transactions::class.qualifiedName,
-        AuthRoute.Budgets::class.qualifiedName,
-        AuthRoute.Goals::class.qualifiedName,
-        AuthRoute.Reports::class.qualifiedName,
-        AuthRoute.Settings::class.qualifiedName,
-        AuthRoute.Accounts::class.qualifiedName,
-        AuthRoute.Recurring::class.qualifiedName
+        AuthRoute.Dashboard::class,
+        AuthRoute.Transactions::class,
+        AuthRoute.Budgets::class,
+        AuthRoute.Goals::class,
+        AuthRoute.Reports::class,
+        AuthRoute.Settings::class,
+        AuthRoute.Accounts::class,
+        AuthRoute.Recurring::class,
     )
 
-    val isTabDestination = currentRoute in mainDestinations
+    val destination = backStackEntry?.destination
+    val isTabDestination = destination != null && mainDestinations.any { destination.hasRoute(it) }
+
+    // Auth guard.
+    //
+    // Routing used to be entirely imperative: whoever called navigate() decided, and nothing
+    // checked afterwards. That is how a first install reached the Dashboard without signing in -
+    // the onboarding flow simply navigated there. It also meant that losing the session while the
+    // app was open (token revoked, account deleted elsewhere) cleared SessionStore but left the
+    // user sitting on their finances.
+    //
+    // This closes the class rather than the instance: whenever the session is gone and the user
+    // is on a signed-in destination, they go to Login regardless of how they got there.
+    val checkAuthStatus = koinInject<CheckAuthStatusUseCase>()
+    val authStatus by checkAuthStatus().collectAsState(initial = null)
+    LaunchedEffect(authStatus, isTabDestination) {
+        if (authStatus is AuthStatus.Unauthenticated && isTabDestination) {
+            navController.navigate(AuthRoute.Login) {
+                popUpTo(navController.graph.findStartDestination().id) { inclusive = true }
+            }
+        }
+    }
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val isTablet = maxWidth >= 600.dp && maxWidth < 1240.dp
@@ -235,7 +343,7 @@ private fun AppShell() {
                                 navigationItems.forEach { item ->
                                     NavigationDrawerItem(
                                         label = { Text(stringResource(item.title)) },
-                                        selected = currentRoute == item.route::class.qualifiedName,
+                                        selected = destination?.hasRoute(item.route::class) == true,
                                         onClick = {
                                             navController.navigate(item.route) {
                                                 popUpTo(navController.graph.findStartDestination().id) {
@@ -280,7 +388,7 @@ private fun AppShell() {
                         Spacer(modifier = Modifier.weight(1f))
                         navigationItems.forEach { item ->
                             NavigationRailItem(
-                                selected = currentRoute == item.route::class.qualifiedName,
+                                selected = destination?.hasRoute(item.route::class) == true,
                                 onClick = {
                                     navController.navigate(item.route) {
                                         popUpTo(navController.graph.findStartDestination().id) {
@@ -322,7 +430,7 @@ private fun AppShell() {
                         ) {
                             navigationItems.forEach { item ->
                                 NavigationBarItem(
-                                    selected = currentRoute == item.route::class.qualifiedName,
+                                    selected = destination?.hasRoute(item.route::class) == true,
                                     onClick = {
                                         navController.navigate(item.route) {
                                             popUpTo(navController.graph.findStartDestination().id) {
@@ -410,11 +518,6 @@ private fun MainNavGraph(navController: androidx.navigation.NavHostController) {
             val onboardingViewModel: OnboardingViewModel = koinViewModel()
             OnboardingScreen(
                 viewModel = onboardingViewModel,
-                onNavigateToBiometric = {
-                    navController.navigate(AuthRoute.Biometric) {
-                        popUpTo(AuthRoute.Onboarding) { inclusive = true }
-                    }
-                },
                 onNavigateToLogin = {
                     navController.navigate(AuthRoute.Login) {
                         popUpTo(AuthRoute.Onboarding) { inclusive = true }
@@ -466,27 +569,33 @@ private fun MainNavGraph(navController: androidx.navigation.NavHostController) {
             )
         }
 
-        composable<AuthRoute.Biometric> {
-            val biometricViewModel: BiometricViewModel = koinViewModel()
-            BiometricScreen(
-                viewModel = biometricViewModel,
-                onNavigateToHome = {
-                    navController.navigate(AuthRoute.Dashboard) {
-                        popUpTo(AuthRoute.Biometric) { inclusive = true }
-                    }
-                }
-            )
-        }
 
         composable<AuthRoute.Dashboard> {
             DashboardScreen(
-                onNavigateToSettings = { navController.navigate(AuthRoute.Settings) },
-                onViewAllTransactions = { navController.navigate(AuthRoute.Transactions) },
+                onNavigateToNotifications = { navController.navigate(AuthRoute.Notifications) },
+                onViewAllTransactions = { navController.navigate(AuthRoute.Transactions()) },
+                onAddTransaction = { kind -> navController.navigate(AuthRoute.Transactions(kind.name)) },
+                onTransfer = { navController.navigate(AuthRoute.Accounts(openTransfer = true)) },
+                // The AI schema constrains actionRoute to exactly these three values
+                // (GeminiInsightsService: GenAiSchema.Enumeration), so the mapping is closed and
+                // anything else is a model that ignored its schema - ignored rather than crashed.
+                onInsightNavigate = { route ->
+                    when (route) {
+                        "transactions" -> navController.navigate(AuthRoute.Transactions())
+                        "budgets" -> navController.navigate(AuthRoute.Budgets)
+                        "goals" -> navController.navigate(AuthRoute.Goals)
+                        else -> Unit
+                    }
+                },
             )
         }
 
-        composable<AuthRoute.Transactions> {
-            TransactionsScreen(onManageRecurring = { navController.navigate(AuthRoute.Recurring) })
+        composable<AuthRoute.Transactions> { entry ->
+            val route: AuthRoute.Transactions = entry.toRoute()
+            TransactionsScreen(
+                onManageRecurring = { navController.navigate(AuthRoute.Recurring) },
+                openEditorFor = TransactionKind.byNameOrNull(route.openEditorFor),
+            )
         }
 
         composable<AuthRoute.Budgets> {
@@ -501,20 +610,34 @@ private fun MainNavGraph(navController: androidx.navigation.NavHostController) {
             ReportsScreen()
         }
 
-        composable<AuthRoute.Accounts> {
-            AccountsScreen()
+        composable<AuthRoute.Accounts> { entry ->
+            val route: AuthRoute.Accounts = entry.toRoute()
+            AccountsScreen(openTransfer = route.openTransfer)
         }
 
         composable<AuthRoute.Recurring> {
             RecurringScreen()
         }
 
+        composable<AuthRoute.Notifications> {
+            NotificationsScreen(onBack = { navController.popBackStack() })
+        }
+
         composable<AuthRoute.Settings> {
             val signOutUseCase = koinInject<SignOutUseCase>()
-            val deleteAccountUseCase = koinInject<DeleteAccountUseCase>()
+            val deleteAccountUseCase = koinInject<DeleteUserAccountUseCase>()
             val backfillMessages = rememberMessageBackfill()
             val signOutScope = rememberCoroutineScope()
+            val exportBackup = koinInject<ExportBackupUseCase>()
+            val restoreBackup = koinInject<RestoreBackupUseCase>()
+            val backupMessages = rememberBackupMessages()
             SettingsScreen(
+                onExportBackup = { passphrase ->
+                    backupMessages(exportBackup(passphrase, defaultBackupFileName()))
+                },
+                onRestoreBackup = { content, passphrase ->
+                    backupMessages(restoreBackup(content, passphrase))
+                },
                 onSignOut = {
                     signOutScope.launch {
                         // Clear the real auth session so getAuthStatus() flips to
@@ -562,7 +685,10 @@ private fun AccountScopeBar(navController: androidx.navigation.NavHostController
             AccountSwitcher(
                 state = accountsState,
                 onSelect = { accountsViewModel.onIntent(AccountsIntent.SelectActive(it)) },
-                onManage = { navController.navigate(AuthRoute.Accounts) },
+                onManage = { navController.navigate(AuthRoute.Accounts()) },
+                onSetIncludedInTotals = { id, included ->
+                    accountsViewModel.onIntent(AccountsIntent.SetIncludedInTotals(id, included))
+                },
             )
         }
     }
@@ -582,7 +708,7 @@ private data class NavigationItem(
  */
 private val navigationItems: List<NavigationItem> = listOf(
     NavigationItem(Res.string.nav_home, Icons.Default.Home, AuthRoute.Dashboard),
-    NavigationItem(Res.string.nav_history, Icons.AutoMirrored.Filled.List, AuthRoute.Transactions),
+    NavigationItem(Res.string.nav_history, Icons.AutoMirrored.Filled.List, AuthRoute.Transactions()),
     NavigationItem(Res.string.nav_budgets, Icons.Default.PieChart, AuthRoute.Budgets),
     NavigationItem(Res.string.nav_goals, Icons.Default.Flag, AuthRoute.Goals),
     NavigationItem(Res.string.nav_reports, Icons.Default.BarChart, AuthRoute.Reports),

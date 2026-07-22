@@ -132,7 +132,11 @@ class GeminiInsightsService(
             return newInsights
 
         } catch (e: Exception) {
-            println("Exception in GeminiInsightsService: ${e.message}")
+            // Deliberately not logged. This path handles a failure while generating insights from
+            // the user's spending, and an exception message here can carry prompt or response
+            // fragments - which on Android means the user's finances in logcat, readable by
+            // anything with log access on a rooted device and captured by bug reports. The
+            // fallback below is the real handling; a println was never part of it.
             if (e is RateLimitException) {
                 // Rate limit -> Return cached
                 if (cachedEntities.isNotEmpty()) {

@@ -12,6 +12,7 @@ import com.budgetmaster.core.prefs.OnboardingPreferences
 import com.budgetmaster.settings.domain.usecase.ObserveAppSettingsUseCase
 import com.budgetmaster.settings.domain.usecase.ResetOnboardingUseCase
 import com.budgetmaster.settings.domain.usecase.SetAiEnabledUseCase
+import com.budgetmaster.settings.domain.usecase.SetSecureScreenUseCase
 import com.budgetmaster.settings.domain.usecase.SetSmsImportEnabledUseCase
 import com.budgetmaster.settings.domain.usecase.SetSmsOwnerMsisdnsUseCase
 import com.budgetmaster.settings.domain.usecase.SetCurrencyUseCase
@@ -29,6 +30,17 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import app.cash.sqldelight.async.coroutines.synchronous
+import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
+import com.budgetmaster.core.db.BudgetMasterDatabase
+import com.budgetmaster.core.db.DatabaseProvider
+import com.budgetmaster.core.db.DefaultData
+import com.budgetmaster.core.db.WalletDirectory
+import com.budgetmaster.core.session.ActiveAccountStore
+import com.budgetmaster.core.session.SessionStore
+import com.budgetmaster.core.sms.MoneyProviders
+import com.budgetmaster.settings.domain.usecase.AppLockSettingsUseCase
+import com.budgetmaster.settings.domain.usecase.SetSmsImportAccountUseCase
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -50,9 +62,18 @@ class SettingsViewModelTest {
 
     private val dispatcher = StandardTestDispatcher()
     private lateinit var repository: AppSettingsRepository
+    private lateinit var database: BudgetMasterDatabase
+    private lateinit var activeAccountStore: ActiveAccountStore
 
-    private fun viewModel(): SettingsViewModel {
+    private fun viewModel(
+        smsProviders: List<String> = emptyList(),
+    ): SettingsViewModel {
         repository = AppSettingsRepository(FakeStore())
+        val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
+        BudgetMasterDatabase.Schema.synchronous().create(driver)
+        database = BudgetMasterDatabase(driver)
+        val sessionStore = SessionStore()
+        activeAccountStore = ActiveAccountStore(FakeStore())
         return SettingsViewModel(
             observeAppSettings = ObserveAppSettingsUseCase(repository),
             setPalette = SetPaletteUseCase(repository),
@@ -60,10 +81,23 @@ class SettingsViewModelTest {
             setLanguage = SetLanguageUseCase(repository),
             setCurrency = SetCurrencyUseCase(repository),
             setAiEnabled = SetAiEnabledUseCase(repository),
+            setSecureScreen = SetSecureScreenUseCase(repository),
             setSmsImportEnabled = SetSmsImportEnabledUseCase(repository),
+            setSmsImportAccount = SetSmsImportAccountUseCase(repository),
+            setAppLock = AppLockSettingsUseCase(repository),
             setSmsOwnerMsisdns = SetSmsOwnerMsisdnsUseCase(repository),
             resetOnboarding = ResetOnboardingUseCase(OnboardingPreferences(FakeStore())),
+            walletDirectory = WalletDirectory(DatabaseProvider(database), sessionStore, dispatcher),
+            activeAccountStore = activeAccountStore,
+            smsProviders = smsProviders,
         )
+    }
+
+    /** Seeds a default user + one wallet so the wallet directory has something to return. */
+    private suspend fun seedWallet(id: String, name: String) {
+        val q = database.budgetMasterDatabaseQueries
+        q.insertUser(DefaultData.DEFAULT_USER_ID, "You", "you@x.com", "USD", 0L)
+        q.insertAccount(id, DefaultData.DEFAULT_USER_ID, name, "CASH", 0.0, "USD", 0L, 0, 1)
     }
 
     @BeforeTest fun setUp() = Dispatchers.setMain(dispatcher)
@@ -136,5 +170,54 @@ class SettingsViewModelTest {
         vm.onIntent(SettingsIntent.AiEnabledChanged(false))
         advanceUntilIdle()
         assertFalse(vm.state.value.aiEnabled)
+    }
+
+    @Test
+    fun `enabling import defaults each provider destination to the active wallet`() = runTest(dispatcher) {
+        val vm = viewModel(smsProviders = listOf(MoneyProviders.ORANGE_MONEY))
+        keepStateHot(vm)
+        seedWallet("w_active", "Everyday")
+        seedWallet("w_other", "Savings")
+        activeAccountStore.setActiveAccount("w_active")
+        advanceUntilIdle()
+
+        vm.onIntent(SettingsIntent.SmsImportEnabledChanged(true))
+        advanceUntilIdle()
+
+        // The active wallet, not the first-created one - the whole point of the fix.
+        assertEquals("w_active", vm.state.value.smsImportAccounts[MoneyProviders.ORANGE_MONEY])
+    }
+
+    @Test
+    fun `enabling import does not overwrite a destination the user already chose`() = runTest(dispatcher) {
+        val vm = viewModel(smsProviders = listOf(MoneyProviders.ORANGE_MONEY))
+        keepStateHot(vm)
+        seedWallet("w_active", "Everyday")
+        seedWallet("w_chosen", "Mobile money")
+        activeAccountStore.setActiveAccount("w_active")
+        advanceUntilIdle()
+
+        vm.onIntent(SettingsIntent.SmsImportAccountChanged(MoneyProviders.ORANGE_MONEY, "w_chosen"))
+        advanceUntilIdle()
+        vm.onIntent(SettingsIntent.SmsImportEnabledChanged(true))
+        advanceUntilIdle()
+
+        assertEquals("w_chosen", vm.state.value.smsImportAccounts[MoneyProviders.ORANGE_MONEY])
+    }
+
+    @Test
+    fun `changing and clearing a destination flows through to state`() = runTest(dispatcher) {
+        val vm = viewModel(smsProviders = listOf(MoneyProviders.ORANGE_MONEY))
+        keepStateHot(vm)
+        seedWallet("w1", "Everyday")
+        advanceUntilIdle()
+
+        vm.onIntent(SettingsIntent.SmsImportAccountChanged(MoneyProviders.ORANGE_MONEY, "w1"))
+        advanceUntilIdle()
+        assertEquals("w1", vm.state.value.smsImportAccounts[MoneyProviders.ORANGE_MONEY])
+
+        vm.onIntent(SettingsIntent.SmsImportAccountChanged(MoneyProviders.ORANGE_MONEY, null))
+        advanceUntilIdle()
+        assertEquals(null, vm.state.value.smsImportAccounts[MoneyProviders.ORANGE_MONEY])
     }
 }

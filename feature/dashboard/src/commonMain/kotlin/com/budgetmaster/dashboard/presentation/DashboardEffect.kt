@@ -7,6 +7,11 @@ import com.budgetmaster.dashboard.domain.model.TransactionType
  * One-shot side effects emitted by [DashboardViewModel] and consumed exactly once by the UI.
  *
  * Effects are delivered via a `SharedFlow` and must never be stored in [DashboardState].
+ *
+ * Every case here must be emitted by the ViewModel *and* handled by the screen. Two cases
+ * (NavigateToAnalytics, NavigateToBudgetDetail) were removed because nothing emitted them - they
+ * were speculative API that an `else ->` branch in the collector made invisible. The collector is
+ * now exhaustive, so an unhandled effect is a compile error.
  */
 sealed interface DashboardEffect {
     /**
@@ -22,23 +27,12 @@ sealed interface DashboardEffect {
     data class NavigateToAddTransaction(val type: TransactionType) : DashboardEffect
 
     /**
-     * Navigate to the Analytics / Reports screen.
-     */
-    data object NavigateToAnalytics : DashboardEffect
-
-    /**
-     * Navigate to Settings (also where notifications currently live).
+     * Open the notifications inbox.
      *
-     * Replaced a stringly-typed `onQuickAction("Settings")` callback.
+     * The bell used to route here to Settings, because there was no inbox and the contentDescription
+     * lied to screen readers about the destination. Now it opens the real thing.
      */
-    data object NavigateToSettings : DashboardEffect
-
-    /**
-     * Navigate to the detail page for a specific budget category.
-     *
-     * @property budgetId The unique identifier of the budget to open.
-     */
-    data class NavigateToBudgetDetail(val budgetId: String) : DashboardEffect
+    data object NavigateToNotifications : DashboardEffect
 
     /**
      * Show a Snackbar offering to undo a recently deleted transaction.

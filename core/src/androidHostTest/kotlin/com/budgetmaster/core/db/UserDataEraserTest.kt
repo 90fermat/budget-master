@@ -36,8 +36,8 @@ class UserDataEraserTest {
         // Two users, each with an account + a transaction on it, plus a category and a budget.
         q.insertUser("u1", "One", "u1@x.com", "USD", 0L)
         q.insertUser("u2", "Two", "u2@x.com", "USD", 0L)
-        q.insertAccount("acc1", "u1", "Wallet 1", "CHECKING", 0.0, "USD", 0L, 0)
-        q.insertAccount("acc2", "u2", "Wallet 2", "CHECKING", 0.0, "USD", 0L, 0)
+        q.insertAccount("acc1", "u1", "Wallet 1", "CHECKING", 0.0, "USD", 0L, 0, 1)
+        q.insertAccount("acc2", "u2", "Wallet 2", "CHECKING", 0.0, "USD", 0L, 0, 1)
         q.insertTransaction("t1", "acc1", "cat_food", -10.0, "u1 spend", 1L, null, null, 0, null)
         q.insertTransaction("t2", "acc2", "cat_food", -20.0, "u2 spend", 1L, null, null, 0, null)
         q.insertCategory("c1", "u1", "Food", "🍔", "#000000", 0)
@@ -57,5 +57,41 @@ class UserDataEraserTest {
         assertEquals(1, q.selectTransactionsByUser("u2").awaitAsList().size)
         assertEquals(1, q.selectAccountsByUserId("u2").awaitAsList().size)
         assertNotNull(q.selectUserById("u2").awaitAsOneOrNull())
+    }
+
+    @Test
+    fun `erases the imported-message ledger`(): Unit = runBlocking {
+        // This table was missed by the original wipe, so deleting an account left behind a record
+        // of every mobile-money message the app had read: who sent it, when it arrived, and for
+        // anything awaiting review the parsed amount and description. The query to clear it
+        // already existed and simply was not called.
+        val database = db()
+        val q = database.budgetMasterDatabaseQueries
+        q.insertUser("u1", "One", "u1@x.com", "USD", 0L)
+        q.insertUser("u2", "Two", "u2@x.com", "USD", 0L)
+
+        suspend fun seedMessage(hash: String, userId: String) = q.insertImportedMessage(
+            hash = hash,
+            userId = userId,
+            provider = "orange_money",
+            sender = "OrangeMoney",
+            receivedAt = 1L,
+            status = "PENDING_REVIEW",
+            transactionId = null,
+            externalId = "OM250717.1200.A1",
+            // Kept only for a pending review, and the most sensitive part of the row.
+            pendingAccountId = "acc1",
+            pendingAmount = -20_244.0,
+            pendingFee = 44.48,
+            pendingDescription = "FOYANG CYRILLE",
+            pendingOccurredAt = 1L,
+        )
+        seedMessage("h1", "u1")
+        seedMessage("h2", "u2")
+
+        UserDataEraser(DatabaseProvider(database), Dispatchers.Unconfined).eraseAllData("u1")
+
+        assertNull(q.selectImportedMessageByHash("h1").awaitAsOneOrNull())
+        assertNotNull(q.selectImportedMessageByHash("h2").awaitAsOneOrNull())
     }
 }

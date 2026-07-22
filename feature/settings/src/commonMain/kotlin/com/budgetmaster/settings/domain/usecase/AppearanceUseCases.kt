@@ -43,11 +43,21 @@ class SetAiEnabledUseCase(private val repository: AppSettingsRepository) {
 }
 
 /** Turns automatic mobile-money message import on or off. */
+class SetSecureScreenUseCase(private val repository: AppSettingsRepository) {
+    suspend operator fun invoke(enabled: Boolean) = repository.setSecureScreen(enabled)
+}
+
 class SetSmsImportEnabledUseCase(private val repository: AppSettingsRepository) {
     suspend operator fun invoke(enabled: Boolean) = repository.setSmsImportEnabled(enabled)
 }
 
 /** Records the user's own mobile-money number(s), which resolve transfer direction. */
+class SetSmsImportAccountUseCase(private val repository: AppSettingsRepository) {
+    /** @param accountId null clears the destination for [provider]. */
+    suspend operator fun invoke(provider: String, accountId: String?) =
+        repository.setSmsImportAccount(provider, accountId)
+}
+
 class SetSmsOwnerMsisdnsUseCase(private val repository: AppSettingsRepository) {
     suspend operator fun invoke(msisdns: String) = repository.setSmsOwnerMsisdns(msisdns)
 }

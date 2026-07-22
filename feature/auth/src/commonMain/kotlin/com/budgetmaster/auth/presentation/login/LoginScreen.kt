@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
@@ -46,7 +45,6 @@ import androidx.compose.ui.unit.dp
 import budgetmaster.core.generated.resources.Res
 import budgetmaster.core.generated.resources.auth_hide_password
 import budgetmaster.core.generated.resources.auth_show_password
-import budgetmaster.core.generated.resources.login_biometric_btn_text
 import budgetmaster.core.generated.resources.login_btn_text
 import budgetmaster.core.generated.resources.login_email_label
 import budgetmaster.core.generated.resources.login_forgot_password_link
@@ -61,6 +59,9 @@ import com.budgetmaster.auth.domain.model.AuthException
 import com.budgetmaster.auth.presentation.localizedMessage
 import com.budgetmaster.auth.presentation.rememberGoogleSignInLauncher
 import org.jetbrains.compose.resources.stringResource
+import com.budgetmaster.core.designsystem.Spacing
+import com.budgetmaster.core.designsystem.GoogleLogo
+import androidx.compose.ui.graphics.Color
 
 /**
  * Composable login screen that collects email/password and dispatches [LoginIntent]s.
@@ -108,7 +109,12 @@ fun LoginScreen(
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.fillMaxWidth().widthIn(max = 420.dp),
+            // widthIn before fillMaxWidth, and the order is the whole point: constraints flow
+            // left to right, so filling first fixes the width to the parent's and leaves
+            // widthIn nothing it can shrink. Written the other way round the cap silently
+            // did nothing, and every field and button ran the full width of a tablet or
+            // browser window.
+            modifier = Modifier.widthIn(max = 420.dp).fillMaxWidth(),
         ) {
             Text(
                 text = stringResource(Res.string.login_title),
@@ -200,21 +206,24 @@ fun LoginScreen(
 
             if (isGoogleSignInSupported) {
                 OutlinedButton(
-                    onClick = { launchGoogleSignIn() },
+                    onClick = {
+                        viewModel.onIntent(LoginIntent.GoogleSignInStarted)
+                        launchGoogleSignIn()
+                    },
                     enabled = !state.isLoading,
                     modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp),
                 ) {
+                    Icon(
+                        imageVector = GoogleLogo,
+                        // Null rather than "Google": the label beside it already says so, and a
+                        // screen reader announcing both reads the button twice.
+                        contentDescription = null,
+                        tint = Color.Unspecified,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Spacer(modifier = Modifier.width(Spacing.small))
                     Text(text = stringResource(Res.string.login_google_btn_text))
                 }
-            }
-
-            OutlinedButton(
-                onClick = { viewModel.onIntent(LoginIntent.BiometricLoginClicked) },
-                modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp),
-            ) {
-                Icon(imageVector = Icons.Default.Fingerprint, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text(text = stringResource(Res.string.login_biometric_btn_text))
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {

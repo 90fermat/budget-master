@@ -1,27 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    The budget gauge: a track, how far along it you are, and the needle's hub.
+
+    Says the one thing that is specific to this app — a limit and your position against it — rather
+    than "money" or "growth" in the abstract, which every other finance icon already says.
+
+    Geometry sits inside the middle 72dp of the 108dp canvas. Adaptive icons are masked and can be
+    zoomed by the launcher, so anything in the outer ring is liable to be cropped on some devices;
+    art drawn to the edge looks fine in Studio and loses its ends on a real phone.
+-->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Coin ring -->
+
+    <!-- Track: the whole budget, dimmed. -->
     <path
-        android:pathData="M28,54 a26,26 0 1,1 52,0 a26,26 0 1,1 -52,0"
+        android:pathData="M36,70 A22,22 0 1 1 72,70"
         android:strokeColor="#FFFFFFFF"
-        android:strokeWidth="8"
+        android:strokeAlpha="0.22"
+        android:strokeWidth="9"
         android:strokeLineCap="round" />
-    <!-- Rising growth line -->
+
+    <!-- Spent so far, in gold. Stops short of the end: a gauge at its limit is a warning, and the
+         icon should not permanently read as one. -->
     <path
-        android:pathData="M38,64 L48,52 L56,60 L70,44"
-        android:strokeColor="#FF34D399"
-        android:strokeWidth="6"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round" />
-    <!-- Arrow head -->
+        android:pathData="M36,70 A22,22 0 0 1 66,49"
+        android:strokeColor="#FFFBBF24"
+        android:strokeWidth="9"
+        android:strokeLineCap="round" />
+
+    <!-- Hub. -->
     <path
-        android:pathData="M70,44 L61,44 M70,44 L70,53"
-        android:strokeColor="#FF34D399"
-        android:strokeWidth="6"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round" />
+        android:pathData="M54,59m-5,0a5,5 0 1,0 10,0a5,5 0 1,0 -10,0"
+        android:fillColor="#FFFFFFFF" />
 </vector>

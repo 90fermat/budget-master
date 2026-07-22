@@ -11,7 +11,7 @@ kotlin {
         compileSdk = 37
         minSdk = 26
         compilerOptions {
-            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
         }
         androidResources {
             enable = true
@@ -67,6 +67,9 @@ kotlin {
             dependencies {
                 implementation(kotlin("test"))
                 implementation(libs.kotlinx.coroutines.test)
+                // A real in-memory database, so the SMS-destination logic is tested against the
+                // actual WalletDirectory rather than a fake that could drift from it.
+                implementation(libs.sqldelight.driver.sqlite)
             }
         }
 

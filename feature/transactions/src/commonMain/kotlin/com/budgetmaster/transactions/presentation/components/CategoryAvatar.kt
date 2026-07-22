@@ -13,6 +13,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.budgetmaster.core.designsystem.categoryIconFor
+import com.budgetmaster.core.designsystem.categoryNameFor
 import com.budgetmaster.core.designsystem.parseHexColor
 import com.budgetmaster.transactions.domain.model.TransactionCategory
 
@@ -39,7 +40,7 @@ internal fun CategoryAvatar(
     ) {
         Icon(
             imageVector = categoryIconFor(category?.id),
-            contentDescription = category?.name,
+            contentDescription = category?.let { categoryNameFor(it.id, it.name) },
             tint = accent,
             modifier = Modifier.size((size * 0.5).dp),
         )

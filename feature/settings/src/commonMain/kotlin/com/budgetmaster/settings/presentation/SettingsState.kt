@@ -2,6 +2,7 @@ package com.budgetmaster.settings.presentation
 
 import com.budgetmaster.core.designsystem.AppPalette
 import com.budgetmaster.core.designsystem.DarkModeSetting
+import com.budgetmaster.core.db.WalletRef
 import com.budgetmaster.core.localization.AppLanguage
 
 /**
@@ -19,8 +20,24 @@ data class SettingsState(
     val currency: String = "USD",
     /** Whether the user has opted in to sending spending aggregates to a cloud model. */
     val aiEnabled: Boolean = false,
+    /** On by default; see AppSettings.secureScreen for why this default runs the other way. */
+    val secureScreen: Boolean = true,
     /** Whether incoming mobile-money messages are read and imported automatically. */
     val smsImportEnabled: Boolean = false,
     /** The user's own number(s); import cannot resolve transfer direction without them. */
     val smsOwnerMsisdns: String = "",
+    /** Providers with a parser, so only actionable destinations are offered. */
+    val smsProviders: List<String> = emptyList(),
+    /** provider -> destination wallet id. Empty entry means "not chosen yet". */
+    val smsImportAccounts: Map<String, String> = emptyMap(),
+    /** Wallets to choose an import destination from (id + name only). */
+    val wallets: List<WalletRef> = emptyList(),
+    /** The active wallet, used as the default destination when import is switched on. */
+    val activeAccountId: String? = null,
+    /** App lock: requires biometrics or a PIN to open the app. */
+    val appLockEnabled: Boolean = false,
+    /** True once a PIN exists; enabling the lock requires one. */
+    val appLockPinSet: Boolean = false,
+    val appLockBiometricEnabled: Boolean = true,
+    val appLockTimeoutSeconds: Int = 0,
 )

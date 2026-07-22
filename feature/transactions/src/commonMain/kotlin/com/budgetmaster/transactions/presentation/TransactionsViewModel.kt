@@ -169,7 +169,15 @@ class TransactionsViewModel(
             is TransactionsIntent.UndoDelete -> undoDelete()
             is TransactionsIntent.SaveTransaction -> save(intent)
             is TransactionsIntent.AddClicked ->
-                _state.update { it.copy(editor = EditorState(visible = true, editing = null)) }
+                _state.update {
+                    it.copy(
+                        editor = EditorState(
+                            visible = true,
+                            editing = null,
+                            initialKind = intent.kind,
+                        ),
+                    )
+                }
             is TransactionsIntent.EditClicked ->
                 _state.update { it.copy(editor = EditorState(visible = true, editing = intent.item)) }
             is TransactionsIntent.EditorDismissed ->
@@ -210,15 +218,21 @@ class TransactionsViewModel(
             .map { it.filter(Char::isDigit) }
             .filter { it.isNotBlank() }
             .toSet()
-        val accountId = _state.value.accounts.firstOrNull()?.id
-            ?: return ImportOutcome.NotRecognised
-
         return importMoneyMessage(
             // No sender: the importer falls back to matching on the body.
             sender = "",
             body = text,
             receivedAt = Clock.System.now().toEpochMilliseconds(),
-            accountId = accountId,
+            // The configured destination for the provider first. Falling back is right *here*,
+            // unlike in automatic capture: the user is present, pasting into this screen, and the
+            // resulting row appears in front of them - so the active wallet is their context, not
+            // a guess. The old code used the first wallet ever created, which is how a paste
+            // landed in an account the user wasn't looking at.
+            accountFor = { provider ->
+                settings.smsImportAccounts[provider]
+                    ?: _state.value.activeAccountId
+                    ?: _state.value.accounts.firstOrNull()?.id
+            },
             ownerMsisdns = owners,
         )
     }

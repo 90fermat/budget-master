@@ -1,5 +1,6 @@
 package com.budgetmaster.dashboard.domain.repository
 
+import com.budgetmaster.dashboard.domain.model.DeletedTransaction
 import com.budgetmaster.core.model.Transaction
 import com.budgetmaster.dashboard.domain.model.BalanceSummary
 import com.budgetmaster.dashboard.domain.model.BudgetProgress
@@ -66,7 +67,17 @@ interface DashboardRepository {
      *
      * @param id The identifier of the transaction to remove.
      */
-    suspend fun deleteTransaction(id: String)
+    /**
+     * Deletes a transaction and returns a snapshot of what was removed.
+     *
+     * @return the deleted row, or null if it no longer existed. Pass it to [restoreTransaction]
+     *   to undo. Returning the snapshot rather than nothing is what makes an honest undo
+     *   possible - the display model does not carry enough of the row to rebuild it.
+     */
+    suspend fun deleteTransaction(id: String): DeletedTransaction?
+
+    /** Re-inserts a row removed by [deleteTransaction], exactly as it was. */
+    suspend fun restoreTransaction(snapshot: DeletedTransaction)
 
     /**
      * Marks an AI insight as dismissed so it is excluded from future results.

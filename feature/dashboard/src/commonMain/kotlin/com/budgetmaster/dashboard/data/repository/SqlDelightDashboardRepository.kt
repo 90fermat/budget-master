@@ -3,6 +3,7 @@
 package com.budgetmaster.dashboard.data.repository
 
 import app.cash.sqldelight.async.coroutines.awaitAsList
+import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import com.budgetmaster.core.db.DatabaseProvider
@@ -10,6 +11,7 @@ import com.budgetmaster.core.db.DefaultData
 import com.budgetmaster.core.model.Transaction
 import com.budgetmaster.core.session.ActiveAccountStore
 import com.budgetmaster.core.session.SessionStore
+import com.budgetmaster.dashboard.domain.model.DeletedTransaction
 import com.budgetmaster.dashboard.domain.model.BalanceSummary
 import com.budgetmaster.dashboard.domain.model.BalanceTrend
 import com.budgetmaster.dashboard.domain.model.BudgetProgress
@@ -87,8 +89,22 @@ class SqlDelightDashboardRepository(
                     // Account balances are opening balances; the live total is that plus
                     // the signed sum of the transactions in scope (single source of truth
                     // shared with the transactions/accounts features).
+                    // Scoped the same way the transactions above are, or the opening balance and
+                    // the movement would be measured over different sets of wallets and the total
+                    // would reconcile with neither.
+                    //
+                    // In the consolidated view that means: not archived, and counted in totals.
+                    // Archived was previously ignored here while the Accounts screen excluded it,
+                    // so the dashboard balance and the net worth disagreed for anyone who had
+                    // archived a wallet.
                     val accounts = queries.selectAccountsByUserId(userId()).awaitAsList()
-                        .filter { activeAccountId == null || it.id == activeAccountId }
+                        .filter { account ->
+                            if (activeAccountId != null) {
+                                account.id == activeAccountId
+                            } else {
+                                account.isArchived == 0L && account.includeInTotals == 1L
+                            }
+                        }
                     val openingBalance = accounts.sumOf { it.balance }
                     val totalBalance = openingBalance + transactions.sumOf { it.amount }
 
@@ -230,10 +246,49 @@ class SqlDelightDashboardRepository(
         }
     }
 
-    override suspend fun deleteTransaction(id: String) {
+    override suspend fun deleteTransaction(id: String): DeletedTransaction? =
         withContext(dispatcher) {
-            val db = databaseProvider.getDatabase()
-            db.budgetMasterDatabaseQueries.deleteTransaction(id)
+            val queries = databaseProvider.getDatabase().budgetMasterDatabaseQueries
+            // Read the whole row first: once it is gone there is nothing left to reconstruct an
+            // undo from, and the display model is too lossy to serve as the record.
+            val row = queries.selectTransactionById(id).awaitAsOneOrNull()
+                ?: return@withContext null
+            queries.deleteTransaction(id)
+            DeletedTransaction(
+                id = row.id,
+                accountId = row.accountId,
+                categoryId = row.categoryId,
+                amount = row.amount,
+                description = row.description,
+                timestamp = row.timestamp,
+                notes = row.notes,
+                tags = row.tags,
+                isRecurring = row.isRecurring,
+                transferGroupId = row.transferGroupId,
+                externalId = row.externalId,
+                source = row.source,
+            )
+        }
+
+    override suspend fun restoreTransaction(snapshot: DeletedTransaction) {
+        withContext(dispatcher) {
+            // insertImportedTransaction rather than insertTransaction: it is the only insert that
+            // carries externalId and source, and dropping those on an undo would let a
+            // mobile-money re-send import the same payment a second time.
+            databaseProvider.getDatabase().budgetMasterDatabaseQueries.insertImportedTransaction(
+                id = snapshot.id,
+                accountId = snapshot.accountId,
+                categoryId = snapshot.categoryId,
+                amount = snapshot.amount,
+                description = snapshot.description,
+                timestamp = snapshot.timestamp,
+                notes = snapshot.notes,
+                tags = snapshot.tags,
+                isRecurring = snapshot.isRecurring,
+                transferGroupId = snapshot.transferGroupId,
+                externalId = snapshot.externalId,
+                source = snapshot.source,
+            )
         }
     }
 

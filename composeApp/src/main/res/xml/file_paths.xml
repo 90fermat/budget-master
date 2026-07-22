@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Paths the FileProvider may hand out, as content:// uris.
+
+  Only the export directory inside the app cache: a share sheet should be able to pass along a
+  file the user asked to export, and nothing else. The database and preferences are deliberately
+  not reachable through this provider.
+-->
+<paths>
+    <cache-path name="exports" path="exports/" />
+</paths>

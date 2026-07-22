@@ -3,7 +3,6 @@ package com.budgetmaster.auth.presentation.onboarding
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.budgetmaster.auth.domain.usecase.CompleteOnboardingUseCase
-import com.budgetmaster.core.util.isBiometricAuthSupported
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -56,13 +55,17 @@ class OnboardingViewModel(
     private fun finishOnboarding() {
         viewModelScope.launch {
             completeOnboarding()
-            // Biometric setup is meaningless on platforms without biometric hardware (Web).
-            val effect = if (isBiometricAuthSupported) {
-                OnboardingEffect.NavigateToBiometric
-            } else {
-                OnboardingEffect.NavigateToLogin
-            }
-            _effects.emit(effect)
+            // Always Login, never Biometric.
+            //
+            // This used to branch on `isBiometricAuthSupported`, which is true on Android - so a
+            // first install went Splash -> Onboarding -> Biometric -> Dashboard and never asked
+            // anyone to sign in. Every button on the biometric screen, including "Skip", led to
+            // the Dashboard. The user landed on their finances with no session at all, which is
+            // why the greeting read "Bonjour, vous".
+            //
+            // Biometric setup is an *enrolment* step: it protects an account, so it can only
+            // sensibly run once there is an account to protect. It now lives after sign-in.
+            _effects.emit(OnboardingEffect.NavigateToLogin)
         }
     }
 }

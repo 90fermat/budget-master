@@ -1,0 +1,44 @@
+-- Migrates schema v8 <- v7: clears rows orphaned while foreign keys were switched off.
+--
+-- The schema has declared ON DELETE CASCADE since v1, but nothing ever enabled enforcement: SQLite
+-- defaults foreign keys to off, Android's framework leaves them off, and neither SQLDelight driver
+-- turns them on. Every cascade in this file was decorative. Deleting a wallet removed the wallet
+-- and left its transactions on disk — invisible, because every query that reads transactions joins
+-- accounts, but present.
+--
+-- Harmless while the data never left the phone. Not harmless now: sync reads rows directly rather
+-- than through those joins, so the next push would upload years of transactions belonging to
+-- wallets the user deleted long ago, and every other device would receive them.
+--
+-- The drivers now enable enforcement, which stops new orphans but does nothing about existing
+-- ones. These deletes are safe precisely because the rows are already unreachable: nothing in the
+-- app can display, edit or total a transaction whose account is gone.
+
+DELETE FROM TransactionEntity
+WHERE accountId NOT IN (SELECT id FROM AccountEntity);
+
+DELETE FROM RecurringTransactionEntity
+WHERE accountId NOT IN (SELECT id FROM AccountEntity);
+
+DELETE FROM AccountEntity
+WHERE userId NOT IN (SELECT id FROM UserEntity);
+
+DELETE FROM BudgetEntity
+WHERE userId NOT IN (SELECT id FROM UserEntity);
+
+DELETE FROM SavingsGoalEntity
+WHERE userId NOT IN (SELECT id FROM UserEntity);
+
+DELETE FROM CategoryEntity
+WHERE userId NOT IN (SELECT id FROM UserEntity);
+
+-- A category that has gone should leave the transaction uncategorised, which is what the schema's
+-- ON DELETE SET NULL would have done had it ever run. Deleting the transaction instead would throw
+-- away a real spend record over a missing label.
+UPDATE TransactionEntity
+SET categoryId = NULL
+WHERE categoryId IS NOT NULL AND categoryId NOT IN (SELECT id FROM CategoryEntity);
+
+UPDATE RecurringTransactionEntity
+SET categoryId = NULL
+WHERE categoryId IS NOT NULL AND categoryId NOT IN (SELECT id FROM CategoryEntity);

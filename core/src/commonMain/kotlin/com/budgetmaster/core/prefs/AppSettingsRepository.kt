@@ -5,6 +5,7 @@ import com.budgetmaster.core.designsystem.DarkModeSetting
 import com.budgetmaster.core.localization.AppLanguage
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 
 /**
  * App-wide user settings applied by the app shell in `:shared`.
@@ -40,6 +41,42 @@ data class AppSettings(
      * money arrived or left, and only matching these numbers against each side resolves it.
      */
     val smsOwnerMsisdns: String = "",
+    /**
+     * Where imported mobile-money transactions go, as `provider → accountId`.
+     *
+     * Explicit rather than guessed. Imports used to land in the first wallet ever created, which
+     * put money in an account the user was not looking at and, worse, was silent about it. A map
+     * rather than a single id because a user with an Orange number and an MTN number keeps two
+     * real wallets; with one provider configured the settings UI reads as a single picker.
+     *
+     * Serialized as `provider=accountId` pairs joined with `,` — flat and diff-friendly, and the
+     * provider ids (`orange_money`, `mtn_momo`) never contain either delimiter.
+     */
+    val smsImportAccounts: Map<String, String> = emptyMap(),
+    /**
+     * Whether to block screenshots and hide the app's contents from the recents screen.
+     *
+     * **On by default**, unlike the other privacy switches here. Those govern what leaves the
+     * device, where an unset preference must never be read as consent. This one governs what a
+     * passer-by can see over the user's shoulder or in a recents thumbnail, and defaulting it off
+     * would mean shipping balances visible in the app switcher until someone thought to look for
+     * a setting. It is a toggle rather than fixed because it also blocks the user's own
+     * screenshots, which is occasionally a legitimate thing to want.
+     */
+    val secureScreen: Boolean = true,
+    /**
+     * App lock: require biometrics or a PIN to open the app.
+     *
+     * All four default to a *disabled* lock. Enabling it is an explicit choice in Settings, and
+     * requires a PIN to be set first so there is always a fallback if biometrics are unavailable.
+     */
+    val appLockEnabled: Boolean = false,
+    /** The stored PIN as a [com.budgetmaster.core.security.PinHasher] record, or null if unset. */
+    val appLockPinHash: String? = null,
+    /** Whether to offer biometrics at the lock screen (the PIN is always available as fallback). */
+    val appLockBiometricEnabled: Boolean = true,
+    /** Grace period, in seconds, before a backgrounded app re-locks. 0 locks immediately. */
+    val appLockTimeoutSeconds: Int = 0,
 )
 
 /**
@@ -60,6 +97,12 @@ class AppSettingsRepository(private val store: KeyValueStore) {
         store.observeString(KEY_AI_ENABLED),
         store.observeString(KEY_SMS_IMPORT_ENABLED),
         store.observeString(KEY_SMS_OWNER_MSISDNS),
+        store.observeString(KEY_SECURE_SCREEN),
+        store.observeString(KEY_SMS_IMPORT_ACCOUNTS),
+        store.observeString(KEY_APP_LOCK_ENABLED),
+        store.observeString(KEY_APP_LOCK_PIN_HASH),
+        store.observeString(KEY_APP_LOCK_BIOMETRIC),
+        store.observeString(KEY_APP_LOCK_TIMEOUT),
     ) { values ->
         AppSettings(
             palette = AppPalette.fromId(values[0]),
@@ -70,6 +113,15 @@ class AppSettingsRepository(private val store: KeyValueStore) {
             aiEnabled = values[4].toBoolean(),
             smsImportEnabled = values[5].toBoolean(),
             smsOwnerMsisdns = values[6].orEmpty(),
+            // Absent means on: see the property doc for why this default runs the other way.
+            secureScreen = values[7]?.toBoolean() ?: true,
+            smsImportAccounts = parseImportAccounts(values[8]),
+            appLockEnabled = values[9].toBoolean(),
+            appLockPinHash = values[10],
+            // Absent means on: if the user set a lock, offering the biometric they have is the
+            // expected default; they can turn it off to force PIN-only.
+            appLockBiometricEnabled = values[11]?.toBoolean() ?: true,
+            appLockTimeoutSeconds = values[12]?.toIntOrNull() ?: 0,
         )
     }
 
@@ -86,6 +138,32 @@ class AppSettingsRepository(private val store: KeyValueStore) {
     suspend fun setSmsImportEnabled(enabled: Boolean) =
         store.putString(KEY_SMS_IMPORT_ENABLED, enabled.toString())
 
+    /** Sets (or clears, with null) the destination wallet for one provider's imports. */
+    suspend fun setSmsImportAccount(provider: String, accountId: String?) {
+        val current = parseImportAccounts(store.observeString(KEY_SMS_IMPORT_ACCOUNTS).first())
+        val next = if (accountId == null) current - provider else current + (provider to accountId)
+        store.putString(
+            KEY_SMS_IMPORT_ACCOUNTS,
+            next.entries.joinToString(",") { "${it.key}=${it.value}" },
+        )
+    }
+
+    suspend fun setSecureScreen(enabled: Boolean) =
+        store.putString(KEY_SECURE_SCREEN, enabled.toString())
+
+    suspend fun setAppLockEnabled(enabled: Boolean) =
+        store.putString(KEY_APP_LOCK_ENABLED, enabled.toString())
+
+    /** @param hash a PinHasher record, or null to clear the PIN. */
+    suspend fun setAppLockPinHash(hash: String?) =
+        if (hash == null) store.remove(KEY_APP_LOCK_PIN_HASH) else store.putString(KEY_APP_LOCK_PIN_HASH, hash)
+
+    suspend fun setAppLockBiometricEnabled(enabled: Boolean) =
+        store.putString(KEY_APP_LOCK_BIOMETRIC, enabled.toString())
+
+    suspend fun setAppLockTimeoutSeconds(seconds: Int) =
+        store.putString(KEY_APP_LOCK_TIMEOUT, seconds.toString())
+
     /** @param msisdns comma-separated; whitespace is tolerated and stripped on read. */
     suspend fun setSmsOwnerMsisdns(msisdns: String) =
         store.putString(KEY_SMS_OWNER_MSISDNS, msisdns)
@@ -98,6 +176,24 @@ class AppSettingsRepository(private val store: KeyValueStore) {
         const val KEY_LANGUAGE = "app.language"
         const val KEY_CURRENCY = "app.currency"
         const val KEY_AI_ENABLED = "app.ai_enabled"
+        const val KEY_SECURE_SCREEN = "app.secure_screen"
+        const val KEY_SMS_IMPORT_ACCOUNTS = "app.sms_import_accounts"
+        const val KEY_APP_LOCK_ENABLED = "app.lock_enabled"
+        const val KEY_APP_LOCK_PIN_HASH = "app.lock_pin_hash"
+        const val KEY_APP_LOCK_BIOMETRIC = "app.lock_biometric"
+        const val KEY_APP_LOCK_TIMEOUT = "app.lock_timeout"
+
+        private fun parseImportAccounts(raw: String?): Map<String, String> =
+            raw.orEmpty()
+                .split(',')
+                .mapNotNull { entry ->
+                    val (provider, accountId) = entry.split('=', limit = 2)
+                        .takeIf { it.size == 2 } ?: return@mapNotNull null
+                    provider.trim().takeIf { it.isNotEmpty() }?.let { p ->
+                        accountId.trim().takeIf { it.isNotEmpty() }?.let { a -> p to a }
+                    }
+                }
+                .toMap()
         const val KEY_SMS_IMPORT_ENABLED = "app.sms_import_enabled"
         const val KEY_SMS_OWNER_MSISDNS = "app.sms_owner_msisdns"
     }

@@ -21,8 +21,24 @@ sealed class SettingsIntent {
     /** The user turned AI insights on or off. Off means nothing is sent to a cloud model. */
     data class AiEnabledChanged(val enabled: Boolean) : SettingsIntent()
 
+    /** Toggles FLAG_SECURE: screenshots, screen recording, and the recents thumbnail. */
+    data class SecureScreenChanged(val enabled: Boolean) : SettingsIntent()
+
     /** The user turned automatic mobile-money message import on or off. */
     data class SmsImportEnabledChanged(val enabled: Boolean) : SettingsIntent()
+
+    /** Turns the app lock on or off. Turning it on requires a PIN to already exist. */
+    data class AppLockEnabledChanged(val enabled: Boolean) : SettingsIntent()
+
+    /** Stores a freshly chosen PIN (already confirmed by the UI). */
+    data class AppLockPinChosen(val pin: String) : SettingsIntent()
+
+    data class AppLockBiometricChanged(val enabled: Boolean) : SettingsIntent()
+
+    data class AppLockTimeoutChanged(val seconds: Int) : SettingsIntent()
+
+    /** The user chose which wallet a provider's imports land in. Null clears it. */
+    data class SmsImportAccountChanged(val provider: String, val accountId: String?) : SettingsIntent()
 
     /** The user edited their own mobile-money number(s). */
     data class SmsOwnerMsisdnsChanged(val msisdns: String) : SettingsIntent()

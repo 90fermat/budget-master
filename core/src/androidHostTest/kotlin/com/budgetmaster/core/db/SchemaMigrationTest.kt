@@ -253,10 +253,164 @@ class SchemaMigrationTest {
     }
 
     @Test
+    fun migratingV4AddsIncludeInTotalsDefaultingToOn() {
+        val driver = v1Database().apply {
+            BudgetMasterDatabase.Schema.synchronous().migrate(this, 1, 4)
+        }
+        assertTrue("includeInTotals" !in driver.columnsOf("AccountEntity"))
+
+        // An account that existed before the column did.
+        driver.exec(
+            """
+            INSERT INTO AccountEntity (id, userId, name, type, balance, currency, createdAt, isArchived)
+            VALUES ('a_old', 'u1', 'Everyday', 'CASH', 10.0, 'XAF', 0, 0)
+            """.trimIndent(),
+        )
+
+        BudgetMasterDatabase.Schema.synchronous().migrate(driver, 4, 5)
+
+        assertTrue("includeInTotals" in driver.columnsOf("AccountEntity"))
+        // Defaults to counted, so nobody's totals silently change on upgrade.
+        val included = driver.executeQuery(
+            null,
+            "SELECT includeInTotals FROM AccountEntity WHERE id = 'a_old'",
+            { c -> c.next(); app.cash.sqldelight.db.QueryResult.Value(c.getLong(0)) },
+            0,
+        ).value
+        assertEquals(1L, included)
+    }
+
+
+    /** The synced tables the v1 helper omits, in a shape valid just before the v6 migration. */
+    private fun otherSyncedTablesAsOfV5(): List<String> = listOf(
+        "CREATE TABLE UserEntity (id TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, " +
+            "email TEXT NOT NULL UNIQUE, currency TEXT NOT NULL, createdAt INTEGER NOT NULL)",
+        "CREATE TABLE CategoryEntity (id TEXT NOT NULL PRIMARY KEY, userId TEXT NOT NULL, " +
+            "name TEXT NOT NULL, icon TEXT NOT NULL, color TEXT NOT NULL, isDefault INTEGER NOT NULL DEFAULT 0)",
+        "CREATE TABLE BudgetEntity (id TEXT NOT NULL PRIMARY KEY, userId TEXT NOT NULL, " +
+            "categoryId TEXT NOT NULL, amount REAL NOT NULL, spent REAL NOT NULL DEFAULT 0.0, " +
+            "startDate INTEGER NOT NULL, endDate INTEGER NOT NULL)",
+        "CREATE TABLE SavingsGoalEntity (id TEXT NOT NULL PRIMARY KEY, userId TEXT NOT NULL, " +
+            "name TEXT NOT NULL, targetAmount REAL NOT NULL, currentAmount REAL NOT NULL DEFAULT 0.0, " +
+            "targetDate INTEGER NOT NULL, createdAt INTEGER NOT NULL)",
+        "CREATE TABLE RecurringTransactionEntity (id TEXT NOT NULL PRIMARY KEY, accountId TEXT NOT NULL, " +
+            "categoryId TEXT, amount REAL NOT NULL, description TEXT NOT NULL, frequency TEXT NOT NULL, " +
+            "startDate INTEGER NOT NULL, nextRunDate INTEGER NOT NULL, isActive INTEGER NOT NULL DEFAULT 1)",
+    )
+
+    @Test
+    fun migratingV5BackfillsUpdatedAtRatherThanLeavingItZero() {
+        val driver = v1Database().apply {
+            BudgetMasterDatabase.Schema.synchronous().migrate(this, 1, 5)
+            // The v1 helper reconstructs only the two tables the earlier migrations touch. The v6
+            // migration backfills every synced table, so the rest have to exist for it to run —
+            // a real upgrade has had them since v1.
+            otherSyncedTablesAsOfV5().forEach { exec(it) }
+        }
+        driver.exec(
+            """
+            INSERT INTO AccountEntity (id, userId, name, type, balance, currency, createdAt, isArchived, includeInTotals)
+            VALUES ('a_old', 'u1', 'Everyday', 'CASH', 10.0, 'XAF', 0, 0, 1)
+            """.trimIndent(),
+        )
+
+        BudgetMasterDatabase.Schema.synchronous().migrate(driver, 5, 6)
+
+        // The trap this guards: the column defaults to 0, and 0 loses every last-write-wins
+        // comparison — so on first sync the cloud would silently overwrite every pre-existing
+        // local row. The backfill has to make existing data current, not ancient.
+        val updatedAt = driver.executeQuery(
+            null,
+            "SELECT updatedAt FROM AccountEntity WHERE id = 'a_old'",
+            { c -> c.next(); app.cash.sqldelight.db.QueryResult.Value(c.getLong(0)) },
+            0,
+        ).value
+        assertTrue((updatedAt ?: 0L) > 0L, "pre-existing rows must not be left at epoch zero")
+    }
+
+    @Test
+    fun migratingV6MarksExistingTombstonesAsAlreadyPushed() {
+        val driver = v1Database().apply {
+            BudgetMasterDatabase.Schema.synchronous().migrate(this, 1, 5)
+            otherSyncedTablesAsOfV5().forEach { exec(it) }
+            BudgetMasterDatabase.Schema.synchronous().migrate(this, 5, 6)
+        }
+        driver.exec(
+            "INSERT INTO SyncTombstone (tableName, rowId, deletedAt) VALUES ('AccountEntity', 'a_gone', 123)",
+        )
+
+        BudgetMasterDatabase.Schema.synchronous().migrate(driver, 6, 7)
+
+        // v6 tracked this with a cursor over deletedAt, so anything already synced was, by that
+        // cursor's reckoning, sent. Carrying it over as pushed keeps that meaning; being wrong
+        // costs one redundant push, and pushes are idempotent per row.
+        val pushed = driver.executeQuery(
+            null,
+            "SELECT pushed FROM SyncTombstone WHERE rowId = 'a_gone'",
+            { c -> c.next(); app.cash.sqldelight.db.QueryResult.Value(c.getLong(0)) },
+            0,
+        ).value
+        assertEquals(1L, pushed, "tombstones predating the flag must not all be re-pushed")
+    }
+
+    @Test
+    fun migratingV7ClearsRowsOrphanedWhileForeignKeysWereOff() {
+        val driver = v1Database().apply {
+            BudgetMasterDatabase.Schema.synchronous().migrate(this, 1, 5)
+            otherSyncedTablesAsOfV5().forEach { exec(it) }
+            BudgetMasterDatabase.Schema.synchronous().migrate(this, 5, 7)
+        }
+        driver.exec(
+            "INSERT INTO UserEntity (id, name, email, currency, createdAt) VALUES ('u1', 'C', 'c@e.com', 'XAF', 0)",
+        )
+        driver.exec(
+            """
+            INSERT INTO AccountEntity (id, userId, name, type, balance, currency, createdAt, isArchived, includeInTotals)
+            VALUES ('a_live', 'u1', 'Cash', 'CASH', 0.0, 'XAF', 0, 0, 1)
+            """.trimIndent(),
+        )
+        // The state a real device is in: the wallet was deleted, the cascade never fired because
+        // nothing had enabled foreign keys, and its transactions stayed on disk.
+        driver.exec(
+            "INSERT INTO TransactionEntity (id, accountId, categoryId, amount, description, timestamp, " +
+                "notes, tags, isRecurring, transferGroupId, externalId, source) VALUES " +
+                "('t_orphan', 'a_deleted', NULL, -5.0, 'Ghost', 1, NULL, NULL, 0, NULL, NULL, 'MANUAL')",
+        )
+        driver.exec(
+            "INSERT INTO TransactionEntity (id, accountId, categoryId, amount, description, timestamp, " +
+                "notes, tags, isRecurring, transferGroupId, externalId, source) VALUES " +
+                "('t_live', 'a_live', 'cat_gone', -5.0, 'Real', 1, NULL, NULL, 0, NULL, NULL, 'MANUAL')",
+        )
+
+        BudgetMasterDatabase.Schema.synchronous().migrate(driver, 7, 8)
+
+        fun scalar(sql: String) = driver.executeQuery(
+            null,
+            sql,
+            { c -> c.next(); app.cash.sqldelight.db.QueryResult.Value(c.getLong(0)) },
+            0,
+        ).value
+
+        assertEquals(
+            0L,
+            scalar("SELECT COUNT(*) FROM TransactionEntity WHERE id = 't_orphan'"),
+            "a transaction whose wallet is gone would otherwise be uploaded to every other device",
+        )
+        // The live row survives, and only loses a category that no longer exists — which is what
+        // ON DELETE SET NULL would have done. Deleting it would throw away a real spend record
+        // over a missing label.
+        assertEquals(1L, scalar("SELECT COUNT(*) FROM TransactionEntity WHERE id = 't_live'"))
+        assertEquals(
+            1L,
+            scalar("SELECT COUNT(*) FROM TransactionEntity WHERE id = 't_live' AND categoryId IS NULL"),
+        )
+    }
+
+    @Test
     fun freshDatabaseIsCreatedAtTheCurrentVersion() {
         // Guards the mistake that caused this: bumping the .sq without a matching migration
         // leaves fresh installs on a schema that upgraded installs can never reach.
-        // v4 added the review-queue columns to ImportedMessageEntity (3.sqm).
-        assertEquals(4L, BudgetMasterDatabase.Schema.version)
+        // v8 purged rows orphaned while foreign keys were off (7.sqm).
+        assertEquals(8L, BudgetMasterDatabase.Schema.version)
     }
 }

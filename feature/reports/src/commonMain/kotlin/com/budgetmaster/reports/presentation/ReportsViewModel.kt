@@ -106,7 +106,15 @@ class ReportsViewModel(
     private fun Result<String>.toAiText(): AiText = fold(
         onSuccess = { if (it.isBlank()) AiText.Idle else AiText.Ready(it) },
         onFailure = {
-            AiText.Failed(if (it is GenAiException.RateLimited) "rate_limited" else "failed")
+            AiText.Failed(
+                when (it) {
+                    is GenAiException.RateLimited -> "rate_limited"
+                    // Distinct because retrying cannot fix it, and the old generic copy invited
+                    // exactly the retry that kept failing.
+                    is GenAiException.NotAuthorized -> "not_authorized"
+                    else -> "failed"
+                },
+            )
         },
     )
 

@@ -6,7 +6,10 @@ CREATE TABLE UserEntity (
     name TEXT NOT NULL,
     email TEXT NOT NULL UNIQUE,
     currency TEXT NOT NULL,
-    createdAt INTEGER NOT NULL
+    createdAt INTEGER NOT NULL,
+    -- Sync bookkeeping. Stamped by triggers, so no write path has to remember to set them.
+    updatedAt INTEGER NOT NULL DEFAULT 0,
+    dirty INTEGER NOT NULL DEFAULT 1
 );
 
 -- Queries for UserEntity
@@ -33,6 +36,15 @@ CREATE TABLE AccountEntity (
     currency TEXT NOT NULL,
     createdAt INTEGER NOT NULL,
     isArchived INTEGER NOT NULL DEFAULT 0, -- 0 = active, 1 = archived (hidden, history kept)
+    -- 1 = counted in the consolidated "All accounts" view, 0 = kept separate.
+    -- For wallets the user thinks of as apart from day-to-day money: savings, a tontine, a wallet
+    -- held for someone else. The account still exists and is fully usable; it just does not blend
+    -- into the combined balance, and its transactions do not appear in the combined list either,
+    -- because a total and a list that disagree are worse than either alone.
+    includeInTotals INTEGER NOT NULL DEFAULT 1,
+    -- Sync bookkeeping. Stamped by triggers, so no write path has to remember to set them.
+    updatedAt INTEGER NOT NULL DEFAULT 0,
+    dirty INTEGER NOT NULL DEFAULT 1,
     FOREIGN KEY(userId) REFERENCES UserEntity(id) ON DELETE CASCADE
 );
 
@@ -40,8 +52,8 @@ CREATE INDEX idx_account_user ON AccountEntity(userId);
 
 -- Queries for AccountEntity
 insertAccount:
-INSERT OR REPLACE INTO AccountEntity (id, userId, name, type, balance, currency, createdAt, isArchived)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+INSERT OR REPLACE INTO AccountEntity (id, userId, name, type, balance, currency, createdAt, isArchived, includeInTotals)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 selectAccountsByUserId:
 SELECT * FROM AccountEntity WHERE userId = ? ORDER BY isArchived ASC, createdAt ASC;
@@ -61,6 +73,9 @@ UPDATE AccountEntity SET name = ?, type = ?, balance = ?, currency = ? WHERE id 
 updateAccountBalance:
 UPDATE AccountEntity SET balance = ? WHERE id = ?;
 
+setAccountIncludedInTotals:
+UPDATE AccountEntity SET includeInTotals = ? WHERE id = ?;
+
 setAccountArchived:
 UPDATE AccountEntity SET isArchived = ? WHERE id = ?;
 
@@ -78,6 +93,9 @@ CREATE TABLE CategoryEntity (
     icon TEXT NOT NULL,
     color TEXT NOT NULL, -- Hex color representation
     isDefault INTEGER NOT NULL DEFAULT 0, -- 0 = False, 1 = True
+    -- Sync bookkeeping. Stamped by triggers, so no write path has to remember to set them.
+    updatedAt INTEGER NOT NULL DEFAULT 0,
+    dirty INTEGER NOT NULL DEFAULT 1,
     FOREIGN KEY(userId) REFERENCES UserEntity(id) ON DELETE CASCADE
 );
 
@@ -122,6 +140,9 @@ CREATE TABLE TransactionEntity (
     -- How this entry got here: MANUAL | SMS | RECEIPT. Lets the UI mark imported rows and lets
     -- an import be undone without touching hand-entered data.
     source TEXT NOT NULL DEFAULT 'MANUAL',
+    -- Sync bookkeeping. Stamped by triggers, so no write path has to remember to set them.
+    updatedAt INTEGER NOT NULL DEFAULT 0,
+    dirty INTEGER NOT NULL DEFAULT 1,
     FOREIGN KEY(accountId) REFERENCES AccountEntity(id) ON DELETE CASCADE,
     FOREIGN KEY(categoryId) REFERENCES CategoryEntity(id) ON DELETE SET NULL
 );
@@ -146,10 +167,12 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 selectAllTransactions:
 SELECT * FROM TransactionEntity ORDER BY timestamp DESC;
 
+-- The consolidated view: only wallets the user counts as part of their day-to-day money.
 selectTransactionsByUser:
 SELECT TransactionEntity.* FROM TransactionEntity
 JOIN AccountEntity ON TransactionEntity.accountId = AccountEntity.id
-WHERE AccountEntity.userId = ? ORDER BY TransactionEntity.timestamp DESC;
+WHERE AccountEntity.userId = ? AND AccountEntity.includeInTotals = 1
+ORDER BY TransactionEntity.timestamp DESC;
 
 selectTransactionsByAccount:
 SELECT * FROM TransactionEntity WHERE accountId = ? ORDER BY timestamp DESC;
@@ -160,7 +183,8 @@ SELECT * FROM TransactionEntity WHERE accountId = ? ORDER BY timestamp DESC;
 selectTransactionsByUserPaged:
 SELECT TransactionEntity.* FROM TransactionEntity
 JOIN AccountEntity ON TransactionEntity.accountId = AccountEntity.id
-WHERE AccountEntity.userId = ? ORDER BY TransactionEntity.timestamp DESC LIMIT ?;
+WHERE AccountEntity.userId = ? AND AccountEntity.includeInTotals = 1
+ORDER BY TransactionEntity.timestamp DESC LIMIT ?;
 
 selectTransactionsByAccountPaged:
 SELECT * FROM TransactionEntity WHERE accountId = ? ORDER BY timestamp DESC LIMIT ?;
@@ -190,6 +214,9 @@ CREATE TABLE BudgetEntity (
     spent REAL NOT NULL DEFAULT 0.0,
     startDate INTEGER NOT NULL,
     endDate INTEGER NOT NULL,
+    -- Sync bookkeeping. Stamped by triggers, so no write path has to remember to set them.
+    updatedAt INTEGER NOT NULL DEFAULT 0,
+    dirty INTEGER NOT NULL DEFAULT 1,
     FOREIGN KEY(userId) REFERENCES UserEntity(id) ON DELETE CASCADE,
     FOREIGN KEY(categoryId) REFERENCES CategoryEntity(id) ON DELETE CASCADE
 );
@@ -225,6 +252,9 @@ CREATE TABLE SavingsGoalEntity (
     currentAmount REAL NOT NULL DEFAULT 0.0,
     targetDate INTEGER NOT NULL,
     createdAt INTEGER NOT NULL,
+    -- Sync bookkeeping. Stamped by triggers, so no write path has to remember to set them.
+    updatedAt INTEGER NOT NULL DEFAULT 0,
+    dirty INTEGER NOT NULL DEFAULT 1,
     FOREIGN KEY(userId) REFERENCES UserEntity(id) ON DELETE CASCADE
 );
 
@@ -261,6 +291,9 @@ CREATE TABLE RecurringTransactionEntity (
     startDate INTEGER NOT NULL,
     nextRunDate INTEGER NOT NULL,
     isActive INTEGER NOT NULL DEFAULT 1, -- 0 = False, 1 = True
+    -- Sync bookkeeping. Stamped by triggers, so no write path has to remember to set them.
+    updatedAt INTEGER NOT NULL DEFAULT 0,
+    dirty INTEGER NOT NULL DEFAULT 1,
     FOREIGN KEY(accountId) REFERENCES AccountEntity(id) ON DELETE CASCADE,
     FOREIGN KEY(categoryId) REFERENCES CategoryEntity(id) ON DELETE SET NULL
 );
@@ -494,3 +527,389 @@ WHERE AccountEntity.userId = ?
 -- Additional Transactions Queries
 selectTransactionsSince:
 SELECT * FROM TransactionEntity WHERE timestamp >= ? ORDER BY timestamp DESC;
+
+-- ==========================================
+-- BACKUP / RESTORE
+-- ==========================================
+-- Whole-table reads and wipes, used only by BackupService. Deliberately unscoped by user: a
+-- backup is of the device, and a restore replaces everything, so filtering by the *current*
+-- session would silently drop a second profile's data from the file.
+
+selectAllUsersForBackup:
+SELECT * FROM UserEntity;
+
+selectAllAccountsForBackup:
+SELECT * FROM AccountEntity;
+
+selectAllCategoriesForBackup:
+SELECT * FROM CategoryEntity;
+
+selectAllBudgetsForBackup:
+SELECT * FROM BudgetEntity;
+
+selectAllGoalsForBackup:
+SELECT * FROM SavingsGoalEntity;
+
+selectAllNotificationsForBackup:
+SELECT * FROM NotificationEntity;
+
+selectAllImportedMessagesForBackup:
+SELECT * FROM ImportedMessageEntity;
+
+deleteAllUsers:
+DELETE FROM UserEntity;
+
+deleteAllAccounts:
+DELETE FROM AccountEntity;
+
+deleteAllCategories:
+DELETE FROM CategoryEntity;
+
+deleteAllTransactions:
+DELETE FROM TransactionEntity;
+
+deleteAllBudgets:
+DELETE FROM BudgetEntity;
+
+deleteAllGoals:
+DELETE FROM SavingsGoalEntity;
+
+deleteAllRecurring:
+DELETE FROM RecurringTransactionEntity;
+
+deleteAllNotifications:
+DELETE FROM NotificationEntity;
+
+deleteAllImportedMessages:
+DELETE FROM ImportedMessageEntity;
+
+-- ==========================================
+-- SYNC BOOKKEEPING
+-- ==========================================
+-- Deletes stay *hard*. A `deletedAt` column on every table was the obvious design and was
+-- rejected: it would have forced `AND deletedAt IS NULL` onto around sixty existing SELECTs, where
+-- one forgotten clause silently resurrects deleted rows, and it would have broken ON DELETE
+-- CASCADE. It would also have conflicted with two things that must genuinely erase - account
+-- deletion (a Play and GDPR obligation) and backup restore's replace-all.
+--
+-- Instead a row's disappearance is recorded beside it. Triggers do the recording, so no write path
+-- has to remember, and - verified against SQLite rather than assumed - a trigger on a child table
+-- fires even when the row goes via ON DELETE CASCADE, so cascaded deletes tombstone themselves.
+
+CREATE TABLE SyncTombstone (
+    tableName TEXT NOT NULL,
+    rowId TEXT NOT NULL,
+    deletedAt INTEGER NOT NULL,
+    -- Whether the remote has this removal yet. A flag rather than a "pushed up to <time>" cursor,
+    -- because deletedAt has second resolution and a cascade tombstones several rows in the same
+    -- second: a timestamp cursor would push the first and silently drop its siblings.
+    pushed INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (tableName, rowId)
+);
+
+CREATE INDEX idx_tombstone_deleted_at ON SyncTombstone(deletedAt);
+
+-- How far each table has been pulled, so a sync asks only for what changed.
+CREATE TABLE SyncCursorEntity (
+    tableName TEXT NOT NULL PRIMARY KEY,
+    lastPulledAt INTEGER NOT NULL
+);
+
+-- Queries for sync bookkeeping.
+selectAllTombstones:
+SELECT * FROM SyncTombstone;
+
+selectUnpushedTombstones:
+SELECT * FROM SyncTombstone WHERE pushed = 0 ORDER BY deletedAt ASC;
+
+-- Whether this device knows the row was deleted, so a pulled record cannot resurrect it.
+selectTombstoneDeletedAt:
+SELECT deletedAt FROM SyncTombstone WHERE tableName = ? AND rowId = ?;
+
+markTombstonePushed:
+UPDATE SyncTombstone SET pushed = 1 WHERE tableName = ? AND rowId = ?;
+
+insertTombstone:
+INSERT OR REPLACE INTO SyncTombstone (tableName, rowId, deletedAt) VALUES (?, ?, ?);
+
+deleteTombstone:
+DELETE FROM SyncTombstone WHERE tableName = ? AND rowId = ?;
+
+-- Purges tombstones older than a cutoff, once they can no longer be needed by any device.
+purgeTombstonesBefore:
+DELETE FROM SyncTombstone WHERE deletedAt < ?;
+
+selectSyncCursor:
+SELECT lastPulledAt FROM SyncCursorEntity WHERE tableName = ?;
+
+upsertSyncCursor:
+INSERT OR REPLACE INTO SyncCursorEntity (tableName, lastPulledAt) VALUES (?, ?);
+
+-- ==========================================
+-- SYNC: PER-TABLE PUSH / PULL
+-- ==========================================
+-- `dirty` rows are what this device owes the remote. Applying a remote row sets updatedAt and
+-- dirty explicitly, which is exactly what the triggers' guards exempt, so an applied row is not
+-- immediately re-queued for push.
+
+selectDirtyUser:
+SELECT * FROM UserEntity WHERE dirty = 1;
+
+markUserPushed:
+UPDATE UserEntity SET dirty = 0 WHERE id = ?;
+
+selectUserUpdatedAt:
+SELECT updatedAt, dirty FROM UserEntity WHERE id = ?;
+
+-- Carries updatedAt and dirty from the remote, so last-write-wins ordering survives the write.
+-- Applying a remote row is an insert-then-update pair, never INSERT OR REPLACE.
+--
+-- OR REPLACE is a delete followed by an insert, and these tables are joined by ON DELETE CASCADE:
+-- replacing a user row deletes every account beneath it and every transaction beneath those, and
+-- the delete triggers then tombstone the lot and publish the destruction to every other device.
+-- Renaming a wallet on one phone would have emptied the ledger on all of them.
+--
+-- The obvious alternative, ON CONFLICT DO UPDATE, is not available: UPSERT needs SQLite 3.24 and
+-- Android does not ship that until API 29, well above this app's minSdk of 26. An ignored insert
+-- followed by an update is two statements but works everywhere and deletes nothing.
+insertUserFromRemote:
+INSERT OR IGNORE INTO UserEntity (id, name, email, currency, createdAt, updatedAt, dirty)
+VALUES (?, ?, ?, ?, ?, ?, ?);
+
+updateUserFromRemote:
+UPDATE UserEntity SET
+    name = ?,
+    email = ?,
+    currency = ?,
+    createdAt = ?,
+    updatedAt = ?,
+    dirty = ?
+WHERE id = ?;
+
+selectDirtyAccount:
+SELECT * FROM AccountEntity WHERE dirty = 1;
+
+markAccountPushed:
+UPDATE AccountEntity SET dirty = 0 WHERE id = ?;
+
+selectAccountUpdatedAt:
+SELECT updatedAt, dirty FROM AccountEntity WHERE id = ?;
+
+-- Carries updatedAt and dirty from the remote, so last-write-wins ordering survives the write.
+insertAccountFromRemote:
+INSERT OR IGNORE INTO AccountEntity (id, userId, name, type, balance, currency, createdAt, isArchived, includeInTotals, updatedAt, dirty)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateAccountFromRemote:
+UPDATE AccountEntity SET
+    userId = ?,
+    name = ?,
+    type = ?,
+    balance = ?,
+    currency = ?,
+    createdAt = ?,
+    isArchived = ?,
+    includeInTotals = ?,
+    updatedAt = ?,
+    dirty = ?
+WHERE id = ?;
+
+selectDirtyCategory:
+SELECT * FROM CategoryEntity WHERE dirty = 1;
+
+markCategoryPushed:
+UPDATE CategoryEntity SET dirty = 0 WHERE id = ?;
+
+selectCategoryUpdatedAt:
+SELECT updatedAt, dirty FROM CategoryEntity WHERE id = ?;
+
+-- Carries updatedAt and dirty from the remote, so last-write-wins ordering survives the write.
+insertCategoryFromRemote:
+INSERT OR IGNORE INTO CategoryEntity (id, userId, name, icon, color, isDefault, updatedAt, dirty)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+updateCategoryFromRemote:
+UPDATE CategoryEntity SET
+    userId = ?,
+    name = ?,
+    icon = ?,
+    color = ?,
+    isDefault = ?,
+    updatedAt = ?,
+    dirty = ?
+WHERE id = ?;
+
+selectDirtyTransaction:
+SELECT * FROM TransactionEntity WHERE dirty = 1;
+
+markTransactionPushed:
+UPDATE TransactionEntity SET dirty = 0 WHERE id = ?;
+
+selectTransactionUpdatedAt:
+SELECT updatedAt, dirty FROM TransactionEntity WHERE id = ?;
+
+-- Carries updatedAt and dirty from the remote, so last-write-wins ordering survives the write.
+insertTransactionFromRemote:
+INSERT OR IGNORE INTO TransactionEntity (id, accountId, categoryId, amount, description, timestamp, notes, tags, isRecurring, transferGroupId, externalId, source, updatedAt, dirty)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateTransactionFromRemote:
+UPDATE TransactionEntity SET
+    accountId = ?,
+    categoryId = ?,
+    amount = ?,
+    description = ?,
+    timestamp = ?,
+    notes = ?,
+    tags = ?,
+    isRecurring = ?,
+    transferGroupId = ?,
+    externalId = ?,
+    source = ?,
+    updatedAt = ?,
+    dirty = ?
+WHERE id = ?;
+
+selectDirtyBudget:
+SELECT * FROM BudgetEntity WHERE dirty = 1;
+
+markBudgetPushed:
+UPDATE BudgetEntity SET dirty = 0 WHERE id = ?;
+
+selectBudgetUpdatedAt:
+SELECT updatedAt, dirty FROM BudgetEntity WHERE id = ?;
+
+-- Carries updatedAt and dirty from the remote, so last-write-wins ordering survives the write.
+insertBudgetFromRemote:
+INSERT OR IGNORE INTO BudgetEntity (id, userId, categoryId, amount, spent, startDate, endDate, updatedAt, dirty)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateBudgetFromRemote:
+UPDATE BudgetEntity SET
+    userId = ?,
+    categoryId = ?,
+    amount = ?,
+    spent = ?,
+    startDate = ?,
+    endDate = ?,
+    updatedAt = ?,
+    dirty = ?
+WHERE id = ?;
+
+selectDirtySavingsGoal:
+SELECT * FROM SavingsGoalEntity WHERE dirty = 1;
+
+markSavingsGoalPushed:
+UPDATE SavingsGoalEntity SET dirty = 0 WHERE id = ?;
+
+selectSavingsGoalUpdatedAt:
+SELECT updatedAt, dirty FROM SavingsGoalEntity WHERE id = ?;
+
+-- Carries updatedAt and dirty from the remote, so last-write-wins ordering survives the write.
+insertSavingsGoalFromRemote:
+INSERT OR IGNORE INTO SavingsGoalEntity (id, userId, name, targetAmount, currentAmount, targetDate, createdAt, updatedAt, dirty)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateSavingsGoalFromRemote:
+UPDATE SavingsGoalEntity SET
+    userId = ?,
+    name = ?,
+    targetAmount = ?,
+    currentAmount = ?,
+    targetDate = ?,
+    createdAt = ?,
+    updatedAt = ?,
+    dirty = ?
+WHERE id = ?;
+
+selectDirtyRecurringTransaction:
+SELECT * FROM RecurringTransactionEntity WHERE dirty = 1;
+
+markRecurringTransactionPushed:
+UPDATE RecurringTransactionEntity SET dirty = 0 WHERE id = ?;
+
+selectRecurringTransactionUpdatedAt:
+SELECT updatedAt, dirty FROM RecurringTransactionEntity WHERE id = ?;
+
+-- Carries updatedAt and dirty from the remote, so last-write-wins ordering survives the write.
+insertRecurringTransactionFromRemote:
+INSERT OR IGNORE INTO RecurringTransactionEntity (id, accountId, categoryId, amount, description, frequency, startDate, nextRunDate, isActive, updatedAt, dirty)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateRecurringTransactionFromRemote:
+UPDATE RecurringTransactionEntity SET
+    accountId = ?,
+    categoryId = ?,
+    amount = ?,
+    description = ?,
+    frequency = ?,
+    startDate = ?,
+    nextRunDate = ?,
+    isActive = ?,
+    updatedAt = ?,
+    dirty = ?
+WHERE id = ?;
+
+-- ==========================================
+-- ADOPTION: anonymous local data joining a signed-in account
+-- ==========================================
+-- Rows written while signed out belong to DefaultData.DEFAULT_USER_ID. Signing in has to decide
+-- what becomes of them; see LocalDataAdoption for the three cases and why each behaves as it does.
+--
+-- Default categories are excluded from re-parenting throughout: `isDefault = 1` rows are seeded
+-- constants owned by the system user and shared by everyone, so moving them would make one user's
+-- account the owner of everybody's category list.
+
+countAccountsByUser:
+SELECT COUNT(*) FROM AccountEntity WHERE userId = ?;
+
+countTransactionsByUser:
+SELECT COUNT(*) FROM TransactionEntity
+JOIN AccountEntity ON TransactionEntity.accountId = AccountEntity.id
+WHERE AccountEntity.userId = ?;
+
+countBudgetsByUser:
+SELECT COUNT(*) FROM BudgetEntity WHERE userId = ?;
+
+countGoalsByUser:
+SELECT COUNT(*) FROM SavingsGoalEntity WHERE userId = ?;
+
+countOwnCategoriesByUser:
+SELECT COUNT(*) FROM CategoryEntity WHERE userId = ? AND isDefault = 0;
+
+reparentAccounts:
+UPDATE AccountEntity SET userId = ? WHERE userId = ?;
+
+reparentOwnCategories:
+UPDATE CategoryEntity SET userId = ? WHERE userId = ? AND isDefault = 0;
+
+reparentBudgets:
+UPDATE BudgetEntity SET userId = ? WHERE userId = ?;
+
+reparentGoals:
+UPDATE SavingsGoalEntity SET userId = ? WHERE userId = ?;
+
+-- Re-keying, for the merge case only. Deterministic ids like `${userId}_cash` are identical on
+-- every device that was ever anonymous, so two such devices joining one account would otherwise
+-- collide on a single row id and silently overwrite each other's wallet.
+rekeyAccount:
+UPDATE AccountEntity SET id = ? WHERE id = ?;
+
+rekeyAccountTransactions:
+UPDATE TransactionEntity SET accountId = ? WHERE accountId = ?;
+
+rekeyRecurringForAccount:
+UPDATE RecurringTransactionEntity SET accountId = ? WHERE accountId = ?;
+
+selectAccountIdsByUser:
+SELECT id FROM AccountEntity WHERE userId = ?;
+
+-- Accounts, budgets and goals are cleared with the deleteXByUser queries the account-deletion
+-- path already defines. Categories need their own, because that one would take the shared
+-- `isDefault = 1` rows with it.
+deleteOwnCategoriesByUser:
+DELETE FROM CategoryEntity WHERE userId = ? AND isDefault = 0;
+
+
+
+

@@ -1,0 +1,9 @@
+-- Migrates schema v5 <- v4: wallets that stay out of the consolidated view.
+--
+-- Adds a per-account flag so a savings or tontine wallet can exist fully in the app without
+-- blending into the "All accounts" balance. The user asked for exactly this: an Epargne account
+-- whose money should not be mixed with everyday spending.
+--
+-- Defaults to 1, so every existing account keeps counting and no one's totals change under them
+-- on upgrade. Opting a wallet out is always a deliberate act.
+ALTER TABLE AccountEntity ADD COLUMN includeInTotals INTEGER NOT NULL DEFAULT 1;
