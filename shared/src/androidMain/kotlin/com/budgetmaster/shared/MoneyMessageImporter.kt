@@ -19,6 +19,8 @@ import com.budgetmaster.transactions.domain.usecase.ImportMoneyMessageUseCase
 import com.budgetmaster.transactions.domain.usecase.ImportOutcome
 import kotlinx.coroutines.flow.first
 import org.jetbrains.compose.resources.getString
+import com.budgetmaster.core.localization.applyAppLanguageToProcess
+import budgetmaster.core.generated.resources.import_notif_channel_name
 
 /**
  * Shared entry point for both capture paths — the live SMS broadcast and the one-off inbox
@@ -66,6 +68,12 @@ class MoneyMessageImporter(
         val settings = settingsRepository.settings.first()
         if (!settings.smsImportEnabled) return null
 
+        // An SMS can arrive with the app closed, in a process where nothing has ever composed — so
+        // the chosen language has never been applied and every string below would resolve in the
+        // device's language instead. Someone whose phone is in English and whose app is in French
+        // was reading English notifications about their own money.
+        applyAppLanguageToProcess(settings.language.tag)
+
         val owners = settings.smsOwnerMsisdns.parseMsisdns()
         if (owners.isEmpty()) return null
 
@@ -82,6 +90,11 @@ class MoneyMessageImporter(
 
     /** Writes the inbox row (and, for live captures, the system notification) for [outcome]. */
     private suspend fun announce(outcome: ImportOutcome, currencyCode: String, live: Boolean) {
+        // The channel name shows in Android's own Settings, so it is translated like everything
+        // else the user reads. Resolved here rather than in the notifier because only this side
+        // can suspend to read a string resource.
+        val channelName = getString(Res.string.import_notif_channel_name)
+
         when (outcome) {
             is ImportOutcome.Imported -> {
                 val wallet = walletDirectory.observeWallets().first()
@@ -95,7 +108,7 @@ class MoneyMessageImporter(
                     wallet,
                 )
                 notifications.notify(title, bodyText)
-                if (live) systemNotifier.notify(title, bodyText)
+                if (live) systemNotifier.notify(title, bodyText, channelName)
             }
 
             is ImportOutcome.NeedsReview -> {
@@ -107,7 +120,7 @@ class MoneyMessageImporter(
                     outcome.description,
                 )
                 notifications.notify(title, bodyText)
-                if (live) systemNotifier.notify(title, bodyText)
+                if (live) systemNotifier.notify(title, bodyText, channelName)
             }
 
             is ImportOutcome.NoDestination -> {
@@ -119,7 +132,7 @@ class MoneyMessageImporter(
                 // Idempotent id: a burst of messages with no wallet configured is one problem,
                 // not one notification per message.
                 notifications.notify(title, bodyText, id = "import_no_wallet_${outcome.provider}")
-                if (live) systemNotifier.notify(title, bodyText)
+                if (live) systemNotifier.notify(title, bodyText, channelName)
             }
 
             // Dedup outcomes are working-as-intended and would only be noise; NotRecognised is

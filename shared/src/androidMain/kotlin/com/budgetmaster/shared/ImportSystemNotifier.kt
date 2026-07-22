@@ -23,7 +23,7 @@ import androidx.core.content.ContextCompat
  */
 class ImportSystemNotifier(private val context: Context) {
 
-    fun notify(title: String, message: String) {
+    fun notify(title: String, message: String, channelName: String) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
             PackageManager.PERMISSION_GRANTED
@@ -32,7 +32,7 @@ class ImportSystemNotifier(private val context: Context) {
         }
 
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        ensureChannel(manager)
+        ensureChannel(manager, channelName)
 
         val launch = context.packageManager.getLaunchIntentForPackage(context.packageName)
             ?.apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP) }
@@ -61,10 +61,10 @@ class ImportSystemNotifier(private val context: Context) {
         manager.notify(NOTIFICATION_ID, notification)
     }
 
-    private fun ensureChannel(manager: NotificationManager) {
+    private fun ensureChannel(manager: NotificationManager, channelName: String) {
         val channel = NotificationChannel(
             CHANNEL_ID,
-            CHANNEL_NAME,
+            channelName,
             NotificationManager.IMPORTANCE_DEFAULT,
         ).apply {
             // The content is financial; the channel-level lockscreen setting mirrors the
@@ -76,7 +76,6 @@ class ImportSystemNotifier(private val context: Context) {
 
     private companion object {
         const val CHANNEL_ID = "money_import"
-        const val CHANNEL_NAME = "Imported transactions"
         const val NOTIFICATION_ID = 4001
     }
 }
