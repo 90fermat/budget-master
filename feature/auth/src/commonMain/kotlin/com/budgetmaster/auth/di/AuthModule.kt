@@ -8,7 +8,7 @@ import com.budgetmaster.auth.domain.usecase.LoginUseCase
 import com.budgetmaster.auth.domain.usecase.ResetPasswordUseCase
 import com.budgetmaster.auth.domain.usecase.SignInUseCase
 import com.budgetmaster.auth.domain.usecase.SignInWithGoogleUseCase
-import com.budgetmaster.auth.domain.usecase.DeleteAccountUseCase
+import com.budgetmaster.auth.domain.usecase.DeleteUserAccountUseCase
 import com.budgetmaster.auth.domain.usecase.SignOutUseCase
 import com.budgetmaster.auth.domain.usecase.SignUpUseCase
 import com.budgetmaster.auth.presentation.forgotpassword.ForgotPasswordViewModel
@@ -31,7 +31,7 @@ val authModule = module {
     factory { SignInUseCase(get()) }
     factory { SignUpUseCase(get()) }
     factory { SignOutUseCase(get()) }
-    factory { DeleteAccountUseCase(get(), get(), get()) }
+    factory { DeleteUserAccountUseCase(get(), get(), get()) }
     factory { ResetPasswordUseCase(get()) }
     factory { LoginUseCase(get()) }
     factory { SignInWithGoogleUseCase(get()) }

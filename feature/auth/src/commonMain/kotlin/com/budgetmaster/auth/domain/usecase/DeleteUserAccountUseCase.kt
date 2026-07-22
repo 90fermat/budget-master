@@ -17,7 +17,7 @@ import com.budgetmaster.core.session.SessionStore
  * Play requires this path for any app that has accounts, and "delete my account" must mean the
  * data is gone, not merely a sign-out.
  */
-class DeleteAccountUseCase(
+class DeleteUserAccountUseCase(
     private val authRepository: AuthRepository,
     private val userDataEraser: UserDataEraser,
     private val sessionStore: SessionStore,

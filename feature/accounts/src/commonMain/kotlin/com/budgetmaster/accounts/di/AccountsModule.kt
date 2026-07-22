@@ -5,7 +5,7 @@ import com.budgetmaster.accounts.domain.repository.AccountRepository
 import com.budgetmaster.accounts.domain.usecase.ArchiveAccountUseCase
 import com.budgetmaster.accounts.domain.usecase.SetAccountIncludedInTotalsUseCase
 import com.budgetmaster.accounts.domain.usecase.CalculateNetWorthUseCase
-import com.budgetmaster.accounts.domain.usecase.DeleteAccountUseCase
+import com.budgetmaster.accounts.domain.usecase.DeleteWalletUseCase
 import com.budgetmaster.accounts.domain.usecase.ObserveAccountsUseCase
 import com.budgetmaster.accounts.domain.usecase.ObserveActiveAccountUseCase
 import com.budgetmaster.accounts.domain.usecase.ReconcileAccountUseCase
@@ -25,7 +25,7 @@ val accountsModule = module {
     factory { SaveAccountUseCase(get()) }
     factory { ArchiveAccountUseCase(get()) }
     factory { SetAccountIncludedInTotalsUseCase(get()) }
-    factory { DeleteAccountUseCase(get(), get()) }
+    factory { DeleteWalletUseCase(get(), get()) }
     factory { ObserveActiveAccountUseCase(get()) }
     factory { SelectActiveAccountUseCase(get()) }
     factory { TransferBetweenAccountsUseCase(get()) }

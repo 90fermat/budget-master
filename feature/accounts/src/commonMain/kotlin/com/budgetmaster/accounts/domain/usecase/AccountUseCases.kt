@@ -58,7 +58,7 @@ class SetAccountIncludedInTotalsUseCase(private val repository: AccountRepositor
 }
 
 /** Permanently deletes an account and its transactions. */
-class DeleteAccountUseCase(
+class DeleteWalletUseCase(
     private val repository: AccountRepository,
     private val activeAccountStore: ActiveAccountStore,
 ) {

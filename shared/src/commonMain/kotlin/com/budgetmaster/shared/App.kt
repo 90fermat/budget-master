@@ -79,7 +79,7 @@ import com.budgetmaster.auth.presentation.register.RegisterScreen
 import com.budgetmaster.auth.presentation.register.RegisterViewModel
 import com.budgetmaster.auth.domain.model.AuthStatus
 import com.budgetmaster.auth.domain.usecase.CheckAuthStatusUseCase
-import com.budgetmaster.auth.domain.usecase.DeleteAccountUseCase
+import com.budgetmaster.auth.domain.usecase.DeleteUserAccountUseCase
 import com.budgetmaster.auth.domain.usecase.SignOutUseCase
 import com.budgetmaster.auth.presentation.splash.SplashScreen
 import com.budgetmaster.auth.presentation.splash.SplashViewModel
@@ -622,7 +622,7 @@ private fun MainNavGraph(navController: androidx.navigation.NavHostController) {
 
         composable<AuthRoute.Settings> {
             val signOutUseCase = koinInject<SignOutUseCase>()
-            val deleteAccountUseCase = koinInject<DeleteAccountUseCase>()
+            val deleteAccountUseCase = koinInject<DeleteUserAccountUseCase>()
             val backfillMessages = rememberMessageBackfill()
             val signOutScope = rememberCoroutineScope()
             val exportBackup = koinInject<ExportBackupUseCase>()

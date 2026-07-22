@@ -7,7 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.budgetmaster.accounts.domain.usecase.ArchiveAccountUseCase
 import com.budgetmaster.accounts.domain.usecase.SetAccountIncludedInTotalsUseCase
 import com.budgetmaster.accounts.domain.usecase.CalculateNetWorthUseCase
-import com.budgetmaster.accounts.domain.usecase.DeleteAccountUseCase
+import com.budgetmaster.accounts.domain.usecase.DeleteWalletUseCase
 import com.budgetmaster.accounts.domain.usecase.ObserveAccountsUseCase
 import com.budgetmaster.accounts.domain.usecase.ObserveActiveAccountUseCase
 import com.budgetmaster.accounts.domain.usecase.ReconcileAccountUseCase
@@ -31,7 +31,7 @@ class AccountsViewModel(
     private val saveAccount: SaveAccountUseCase,
     private val archiveAccount: ArchiveAccountUseCase,
     private val setIncludedInTotals: SetAccountIncludedInTotalsUseCase,
-    private val deleteAccount: DeleteAccountUseCase,
+    private val deleteAccount: DeleteWalletUseCase,
     private val selectActiveAccount: SelectActiveAccountUseCase,
     private val transferBetweenAccounts: TransferBetweenAccountsUseCase,
     private val reconcileAccount: ReconcileAccountUseCase,
