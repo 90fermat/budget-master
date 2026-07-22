@@ -74,6 +74,7 @@ import com.budgetmaster.core.designsystem.Spacing
 import com.budgetmaster.core.util.MoneyFormatter
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import com.budgetmaster.core.designsystem.EditorScrollContainer
 
 /**
  * Budgets screen: per-category monthly budgets on live data, with a summary header,
@@ -311,14 +312,14 @@ private fun BudgetEditor(state: BudgetsState, viewModel: BudgetsViewModel) {
                 onDismissRequest = { viewModel.onIntent(BudgetsIntent.EditorDismissed) },
                 sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
                 containerColor = MaterialTheme.colorScheme.surface,
-            ) { form() }
+            ) { EditorScrollContainer { form() } }
         } else {
             Dialog(onDismissRequest = { viewModel.onIntent(BudgetsIntent.EditorDismissed) }) {
                 Surface(
                     shape = RoundedCornerShape(24.dp),
                     color = MaterialTheme.colorScheme.surface,
                     modifier = Modifier.width(480.dp),
-                ) { form() }
+                ) { EditorScrollContainer { form() } }
             }
         }
     }

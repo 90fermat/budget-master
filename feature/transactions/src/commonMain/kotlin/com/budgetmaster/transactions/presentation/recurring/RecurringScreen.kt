@@ -66,6 +66,7 @@ import com.budgetmaster.core.util.rememberHaptics
 import com.budgetmaster.transactions.domain.model.RecurringTransaction
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import com.budgetmaster.core.designsystem.EditorScrollContainer
 
 /**
  * Manage recurring schedules: create, edit, pause/resume, delete.
@@ -236,7 +237,7 @@ private fun RecurringEditor(state: RecurringState, viewModel: RecurringViewModel
             ModalBottomSheet(
                 onDismissRequest = { viewModel.onIntent(RecurringIntent.EditorDismissed) },
                 sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            ) { form() }
+            ) { EditorScrollContainer { form() } }
         } else {
             Dialog(onDismissRequest = { viewModel.onIntent(RecurringIntent.EditorDismissed) }) {
                 Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surface) {

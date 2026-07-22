@@ -47,13 +47,19 @@ sealed interface AuthRoute {
     /**
      * Route representing the Transactions screen.
      *
-     * @param openEditorFor when non-null, the screen opens its editor on arrival, pre-set to this
-     *   kind. This is what makes the Dashboard's "Add expense" / "Add income" quick actions work:
-     *   before it existed the editor was only reachable from this screen's own FAB, so the
-     *   Dashboard had a button with nowhere to send the user.
+     * @param openEditorFor when non-null, the name of the [TransactionKind] whose editor the
+     *   screen opens on arrival. This is what makes the Dashboard's "Add expense" / "Add income"
+     *   quick actions work: before it existed the editor was only reachable from this screen's own
+     *   FAB, so the Dashboard had a button with nowhere to send the user.
+     *
+     *   A `String?` rather than the enum itself, and not by preference. Type-safe routes infer a
+     *   `NavType` for custom types by reflection, which does not exist on Kotlin/Wasm — so the web
+     *   build threw "could not find any NavType for argument openEditorFor" on startup and never
+     *   rendered a frame. Passing the name and resolving it with [TransactionKind.byNameOrNull]
+     *   keeps the type safety at both ends and needs no NavType at all.
      */
     @Serializable
-    data class Transactions(val openEditorFor: TransactionKind? = null) : AuthRoute
+    data class Transactions(val openEditorFor: String? = null) : AuthRoute
 
     /**
      * Route representing the Budgets screen.

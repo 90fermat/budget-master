@@ -106,6 +106,7 @@ import com.budgetmaster.transactions.presentation.components.TransactionRowItem
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import com.budgetmaster.core.designsystem.EditorScrollContainer
 
 /**
  * Transactions screen: searchable, filterable, day-grouped list backed by live SQLDelight
@@ -493,14 +494,14 @@ private fun TransactionEditor(state: TransactionsState, viewModel: TransactionsV
                 onDismissRequest = { viewModel.onIntent(TransactionsIntent.EditorDismissed) },
                 sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
                 containerColor = MaterialTheme.colorScheme.surface,
-            ) { form() }
+            ) { EditorScrollContainer { form() } }
         } else {
             Dialog(onDismissRequest = { viewModel.onIntent(TransactionsIntent.EditorDismissed) }) {
                 Surface(
                     shape = RoundedCornerShape(24.dp),
                     color = MaterialTheme.colorScheme.surface,
                     modifier = Modifier.width(480.dp),
-                ) { form() }
+                ) { EditorScrollContainer { form() } }
             }
         }
     }

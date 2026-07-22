@@ -16,4 +16,17 @@ import kotlinx.serialization.Serializable
 enum class TransactionKind {
     EXPENSE,
     INCOME,
+    ;
+
+    companion object {
+        /**
+         * The kind with this [name], or null for anything unrecognised.
+         *
+         * Routes carry the name as a string, so this is the only place a bad value can arrive —
+         * from a stale deep link, or a saved back stack written by an older build. Null means "open
+         * the screen without opening the editor", which is the harmless reading; throwing would
+         * turn a stale link into a crash.
+         */
+        fun byNameOrNull(name: String?): TransactionKind? = entries.firstOrNull { it.name == name }
+    }
 }

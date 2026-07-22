@@ -121,6 +121,7 @@ import com.budgetmaster.core.sync.LocalDataAdoption
 import com.budgetmaster.core.sync.AdoptionPlan
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
+import com.budgetmaster.core.navigation.TransactionKind
 
 /**
  * Main application entry point for the shared Compose Multiplatform UI.
@@ -570,7 +571,7 @@ private fun MainNavGraph(navController: androidx.navigation.NavHostController) {
             DashboardScreen(
                 onNavigateToNotifications = { navController.navigate(AuthRoute.Notifications) },
                 onViewAllTransactions = { navController.navigate(AuthRoute.Transactions()) },
-                onAddTransaction = { kind -> navController.navigate(AuthRoute.Transactions(kind)) },
+                onAddTransaction = { kind -> navController.navigate(AuthRoute.Transactions(kind.name)) },
                 onTransfer = { navController.navigate(AuthRoute.Accounts(openTransfer = true)) },
                 // The AI schema constrains actionRoute to exactly these three values
                 // (GeminiInsightsService: GenAiSchema.Enumeration), so the mapping is closed and
@@ -590,7 +591,7 @@ private fun MainNavGraph(navController: androidx.navigation.NavHostController) {
             val route: AuthRoute.Transactions = entry.toRoute()
             TransactionsScreen(
                 onManageRecurring = { navController.navigate(AuthRoute.Recurring) },
-                openEditorFor = route.openEditorFor,
+                openEditorFor = TransactionKind.byNameOrNull(route.openEditorFor),
             )
         }
 

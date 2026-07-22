@@ -19,6 +19,9 @@ kotlin {
             enable = true
         }
         withHostTest {
+            // Compose UI tests need the merged Android resources and the ComponentActivity that
+            // ui-test-manifest contributes; without them Robolectric cannot resolve a host activity.
+            isIncludeAndroidResources = true
         }
     }
 
@@ -83,6 +86,13 @@ kotlin {
         val androidHostTest by getting {
             dependencies {
                 implementation(libs.sqldelight.driver.sqlite)
+                // Compose UI tests run here rather than in :composeApp because the editor form is
+                // `internal`, and reaching it from another module would mean widening its
+                // visibility for a test's sake.
+                implementation(libs.junit)
+                implementation(libs.robolectric)
+                implementation(libs.androidx.ui.test.junit4)
+                implementation(libs.androidx.ui.test.manifest)
             }
         }
     }
