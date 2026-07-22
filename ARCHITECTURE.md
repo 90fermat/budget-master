@@ -80,6 +80,10 @@ The only cross-cutting shared infrastructure. Contains **no business logic and n
 | `core.prefs` | `KeyValueStore` (expect impls: DataStore on Android/iOS, `localStorage` on Wasm), `AppSettingsRepository` (palette / dark mode / language) |
 | `core.di` | `coreModule` + `platformCoreModule` — registers DB, `KeyValueStore`, `AppSettingsRepository` |
 | `core.model` | Shared primitive domain models reused by multiple features |
+| `core.sync` | `SyncEngine` (last-write-wins with delete-beats-update), `RemoteSyncDataSource` (the seam that lets the whole algorithm be proven on the host against a fake), `SyncController`, `LocalDataAdoption` (what happens to signed-out data at sign-in), `DeviceIdProvider` |
+| `core.backup` | `BackupService`, `BackupEnvelope`, `BackupCrypto` (expect/actual AES-GCM under a PBKDF2 key) |
+| `core.security` | `AppLockController`, `PinHasher` (PBKDF2, constant-time compare), `BiometricPrompter` (expect/actual) |
+| `core.notifications` | `NotificationRepository` (the in-app inbox), `SystemNotifier` (expect/actual — posts outside the app, no-op where there is nothing to post to) |
 | `core.navigation` | `AuthRoute` — sealed type-safe route hierarchy shared by all feature nav graphs |
 
 String resources (`values/strings.xml`, `values-fr/strings.xml`) also live in `:core` —
@@ -328,6 +332,24 @@ SQLDelight is configured in `:core` with `generateAsync = true` to support Kotli
 
 `DatabaseProvider` lazily initializes the schema using a Coroutines `Mutex` to prevent race
 conditions during WasmJs async driver startup.
+
+**Foreign keys are enabled explicitly on every platform.** SQLite defaults them off and neither
+driver turns them on, so every `ON DELETE CASCADE` in the schema was inert until v8 — deleting a
+wallet left its transactions on disk, invisible because every query that reads transactions joins
+accounts. Sync reads rows directly rather than through those joins, which is what made it matter.
+Migration `7.sqm` clears what was already orphaned.
+
+### Sync bookkeeping (schema v8)
+
+Synced tables carry `updatedAt` and `dirty`, maintained by SQLite triggers installed as raw DDL
+from `SyncTriggers` — SQLDelight's analyser cannot compile a trigger body that references
+`NEW`/`OLD`. Deletes stay hard and are recorded in `SyncTombstone`, which was chosen over a
+`deletedAt` column because the column would have put `AND deletedAt IS NULL` on around sixty
+existing SELECTs, where one omission silently resurrects deleted rows.
+
+`SyncCursorEntity` holds pull cursors. They store the **remote's** sequence, never a record's own
+edit time: a device that has been offline publishes changes stamped earlier than the cursor, and
+filtering on edit time strands them permanently.
 
 ---
 

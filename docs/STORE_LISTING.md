@@ -1,11 +1,16 @@
 # Play Store listing copy — Budget Master
 
-**Draft for review, 17 July 2026.**
+**Draft for review, 22 July 2026.**
 
 Every claim here is one the app actually delivers today. That constraint is deliberate: the
 README's feature list previously advertised receipt scanning, tags, heatmaps, PDF export and
 automatic sync, none of which exist, and store listings are exactly where that kind of claim
 becomes a refund request or a one-star review titled "where is the sync".
+
+**Revised 22 July 2026 because sync now exists.** The previous copy sold "your data never leaves
+your device" as the differentiator. That is no longer true when signed in, and a privacy promise
+that stops being true is far worse than one never made — so the pitch is now the honest version:
+private by default, synced only because you asked it to be.
 
 ---
 
@@ -18,19 +23,20 @@ Budget Master
 ## Short description (80 char max)
 
 ```
-Private budgeting. Your money data stays on your device — not on someone's server.
+Budgets, wallets and mobile-money SMS — private by default, synced only if you ask.
 ```
-*79 characters. Privacy is the honest differentiator: the app genuinely has no backend for
-financial data, which almost no competitor can say.*
+*80 characters. "Private by default" is still the differentiator and is still true: signed out,
+nothing financial leaves the phone. It no longer claims data never leaves, because it can.*
 
 ## Full description (4000 char max)
 
 ```
 Budget Master is a personal finance tracker built on a simple principle: your financial
-data belongs on your device, not on someone else's server.
+data is yours, and nothing happens to it that you did not ask for.
 
-No account required to look around. No ads. No selling your data — there is nothing to
-sell, because your transactions never leave your phone.
+No account required to look around. Signed out, nothing financial ever leaves your phone.
+Sign in and your wallets follow you between devices — into your own private area, readable
+by nobody else. No ads, and nothing sold to anyone, ever.
 
 
 TRACK WHAT YOU ACTUALLY SPEND
@@ -85,15 +91,16 @@ BUILT PROPERLY
 • Five colour themes, including Material You
 • Full English and French
 • Light and dark
-• Works offline — because it was never online to begin with
+• Works offline first — every edit is saved on the phone and reconciled later
 • Respects your reduced-motion and font-size settings, and works with screen readers
 
 
 HONEST ABOUT WHAT IT IS NOT
 
 • No bank account linking
-• No syncing between devices — your data is on this device only, so back up what matters
-• No receipt scanning yet
+• Mobile-money SMS import reads Orange Money only for now — MTN is not supported yet
+• Sync needs an account, and is not available in the browser version
+• No PDF export
 
 Rates by Exchange Rate API.
 ```

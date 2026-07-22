@@ -1202,7 +1202,7 @@ Config kill-switches if quotas tighten.
 > **unaccountable** — it guesses the destination, reports nothing, and cannot be told apart from
 > "did nothing at all".
 
-- [ ] **13.1 The destination account was guessed, and guessed wrong.** Imports land in
+- [x] **13.1 The destination account was guessed, and guessed wrong.** Imports land in
   `observeAccounts().first().firstOrNull()` — the first wallet ever created — with a comment
   admitting a per-wallet mapping is "the obvious refinement". The user's transactions were
   imported into an account they weren't looking at. Fix: an explicit **import destination wallet**
@@ -1210,7 +1210,7 @@ Config kill-switches if quotas tighten.
   requires choosing one. Designed per-provider from day one (a map `provider → accountId`), so
   MTN MoMo slots in as a second row rather than a schema change; with one provider the UI reads
   as a single picker.
-- [ ] **13.2 Imports are invisible.** Live capture happens (if it does) with no acknowledgement,
+- [x] **13.2 Imports are invisible.** Live capture happens (if it does) with no acknowledgement,
   and backfill reports only a count — nothing says *what* was imported or *where it went*. Fix:
   every import writes a `NotificationEntity` row (provider, amount, description, destination
   wallet), including deferred-to-review outcomes; live captures additionally post an Android
@@ -1218,12 +1218,12 @@ Config kill-switches if quotas tighten.
   "is automatic capture working?" *answerable* — today the receiver, manifest and permissions all
   look correct, but silence is indistinguishable from failure, including for the case where the
   network's actual sender ID does not match the `orange|^OM$` allowlist.
-- [ ] **13.3 Multiple numbers already work but the UI says otherwise.** The parser accepts a
+- [x] **13.3 Multiple numbers already work but the UI says otherwise.** The parser accepts a
   comma-separated list; the field is labelled "Your mobile money number", singular, with a
   one-number placeholder. Fix the copy and placeholder. The *owner numbers* stay one shared list
   across providers — any of the user's numbers can appear on either side of a transfer regardless
   of which SIM received the SMS — while the *destination* is what becomes per-provider.
-- [ ] 13.4 Merged with the notifications screen (Phase 3 of the branch plan): same table, same
+- [x] 13.4 Merged with the notifications screen (Phase 3 of the branch plan): same table, same
   surfaces, one unread badge. The bell answers "did my SMS import, and where?".
 
 ## Phase 13 — SMS-import accountability + notifications
@@ -1260,16 +1260,17 @@ Config kill-switches if quotas tighten.
 
 ### 13.2 Every outcome announces itself
 
-- [ ] `WalletDirectory` in `:core` — a read-only id+name wallet projection so Settings and the
+- [x] `WalletDirectory` in `:core` — a read-only id+name wallet projection so Settings and the
   importer can name a wallet without importing `:feature:accounts` (the architecture forbids
   feature→feature). Id+name only; balances/archival stay in the feature.
-- [ ] `ImportSystemNotifier` (Android) posts a system notification, because the app is closed when
+- [x] A system notifier posts outside the app. Since Phase 21 it lives in `:core` as
+  `SystemNotifier` and is shared with budget alerts, because the app is closed when
   an SMS arrives — an in-app row alone is invisible in the moment. Amount kept off the lock screen
   (`VISIBILITY_PRIVATE`), same reasoning as `FLAG_SECURE`.
-- [ ] Every outcome writes an in-app inbox row too (imported / needs-review / no-destination);
+- [x] Every outcome writes an in-app inbox row too (imported / needs-review / no-destination);
   dedup and not-recognised outcomes stay silent. Live captures post the system notification;
   backfill writes inbox rows only — 500 system notifications from one backfill is an attack.
-- [ ] Notification text resolved at write time in the language of that moment: a notification is a
+- [x] Notification text resolved at write time in the language of that moment: a notification is a
   historical record, so one written in French stays French after a language switch.
 - [x] `POST_NOTIFICATIONS` (Android 13+) requested when the user enables import — without it the
   system notification silently no-ops. Expect/actual so the request is a no-op below Android 13
@@ -1461,6 +1462,9 @@ Config kill-switches if quotas tighten.
 
 ### 16.4 Scope decision — recorded, not silently dropped
 
+- [x] Superseded in Phase 22 by checkboxes in the quick switcher, which turned out to be the same
+  capability with less machinery: the user ticks the wallets that make up "All accounts", and the
+  choice persists rather than evaporating with the session. Original note kept below.
 - [ ] A **transient multi-select scope** (tick several wallets for one session) was discussed
   alongside the persistent flag. Not built: it would change `ActiveAccountStore` from a nullable
   id to a scope type, which ripples into every repository's `if (id != null) byAccount else
@@ -1599,7 +1603,7 @@ contact with real use.
 
 ### 18.5 Deliberately not done here
 
-- [ ] Koin binding and a real remote — Phase 19. The engine is bound to nothing yet, which is the
+- [x] Koin binding and a real remote — Phase 19. The engine is bound to nothing yet, which is the
   point: it was proven first.
 
 ## Phase 19 — Firestore, security rules, and joining an account (schema v8)
@@ -1697,6 +1701,48 @@ contact with real use.
 - [ ] Enable **App Check enforcement for Firestore** in the console once sync ships — zero code,
   real protection, and the reason App Check was set up in the first place.
 - [ ] Register the App Check **debug token** (needed again after every clear-data).
+
+## Phase 22 — Wallets kept apart, and wide-window auth
+
+- [x] Excluding a wallet from the combined total no longer hides it. One property meant both "what
+  the total sums" and "what the list shows", so "do not count this" was read as "do not show this"
+  — and the wallet vanished along with the only control that could bring it back.
+- [x] Inclusion is a checkbox on the card and in the quick switcher, toggleable from either.
+  Toggling in the switcher does not switch wallet or close the menu: choosing what makes up "All
+  accounts" is usually several decisions in a row.
+- [x] Auth screens capped their width with `fillMaxWidth().widthIn(max = 420.dp)`, which does
+  nothing — constraints flow left to right, so filling first fixes the width and leaves the cap
+  nothing to shrink. Invisible on a phone, edge-to-edge on a tablet or in a browser.
+
+## Phase 23 — Release readiness
+
+> Where the branch stands, honestly, before bug-fixing begins.
+
+### Verified on a real device
+
+- [x] Sync reaches Firestore. Records appear under `users/{uid}/records/` with a server-assigned
+  sequence, once the rules are actually deployed.
+
+### Built, tested on the host, **not yet seen working on a device**
+
+- [ ] Editor forms scroll (transactions, budgets, goals, recurring)
+- [ ] The two web crashes: the enum route argument, and the `DeleteAccountUseCase` name collision
+- [ ] Reinstall no longer invents a spare "Cash" wallet
+- [ ] A refused or undeliverable sync fails within 90s instead of hanging forever
+- [ ] SMS notifications arrive in the app's language rather than the phone's
+- [ ] Budget alerts appear outside the app
+- [ ] An excluded wallet stays on screen, and can be toggled from the switcher
+- [ ] Foreign keys: deleting a wallet takes its transactions with it and nothing else
+- [ ] Sync between **two** devices — the case the whole engine exists for
+
+### Known outstanding
+
+- [ ] **MTN MoMo parser.** The one feature a user in this market would notice missing. Blocked on
+  real sample messages: the format has to be written against, not guessed at.
+- [ ] **Spare "Cash" wallets already in Firestore** need deleting once by hand. The fix stops new
+  ones; it cannot clean up what already synced.
+- [ ] Deploy the rules, enable App Check enforcement, register the debug token.
+- [ ] Launcher icon — concept chosen (gauge), colourway and assets outstanding.
 
 ## Phase 21 — Budget alerts outside the app
 
