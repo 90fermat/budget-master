@@ -686,6 +686,9 @@ private fun AccountScopeBar(navController: androidx.navigation.NavHostController
                 state = accountsState,
                 onSelect = { accountsViewModel.onIntent(AccountsIntent.SelectActive(it)) },
                 onManage = { navController.navigate(AuthRoute.Accounts()) },
+                onSetIncludedInTotals = { id, included ->
+                    accountsViewModel.onIntent(AccountsIntent.SetIncludedInTotals(id, included))
+                },
             )
         }
     }

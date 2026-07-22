@@ -51,7 +51,7 @@ class AccountsViewModel(
                 }
                 // Convert net worth once the wallets are known; rates come from the local cache.
                 val current = _state.value
-                val netWorth = calculateNetWorth(current.activeAccounts, current.primaryCurrency)
+                val netWorth = calculateNetWorth(current.accountsInTotals, current.primaryCurrency)
                 _state.update { it.copy(netWorthConverted = netWorth) }
             }
         }

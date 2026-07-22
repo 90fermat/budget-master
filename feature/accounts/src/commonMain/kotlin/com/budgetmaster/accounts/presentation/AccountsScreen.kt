@@ -86,7 +86,7 @@ fun AccountsScreen(
         floatingActionButton = {
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 // Transfers need at least two wallets to move money between.
-                if (state.activeAccounts.size > 1) {
+                if (state.accountsInTotals.size > 1) {
                     ExtendedFloatingActionButton(
                         onClick = { viewModel.onIntent(AccountsIntent.OpenTransfer) },
                         icon = { Icon(Icons.Filled.SwapHoriz, contentDescription = null) },
@@ -102,7 +102,9 @@ fun AccountsScreen(
             }
         },
     ) { padding ->
-        val active = state.activeAccounts
+        // Every unarchived wallet, counted or not. An excluded one still belongs on this screen;
+        // it is the only place its "count in totals" switch lives.
+        val active = state.visibleAccounts
         val archived = state.accounts.filter { it.isArchived }
 
         LazyColumn(
@@ -191,7 +193,7 @@ fun AccountsScreen(
 
     if (state.transferOpen) {
         TransferForm(
-            accounts = state.activeAccounts,
+            accounts = state.accountsInTotals,
             initialFromId = state.activeAccountId,
             onSubmit = { from, to, amount, timestamp ->
                 viewModel.onIntent(AccountsIntent.SubmitTransfer(from, to, amount, timestamp))

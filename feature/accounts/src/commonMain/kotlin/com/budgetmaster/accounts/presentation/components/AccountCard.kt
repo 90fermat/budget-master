@@ -45,6 +45,7 @@ import com.budgetmaster.accounts.domain.model.Account
 import com.budgetmaster.accounts.domain.model.AccountType
 import com.budgetmaster.core.util.MoneyFormatter
 import org.jetbrains.compose.resources.stringResource
+import androidx.compose.material3.Checkbox
 
 /**
  * A single wallet row: type icon, name/type, current balance, and an overflow menu
@@ -154,6 +155,12 @@ fun AccountCard(
                                     },
                                 ),
                             )
+                        },
+                        // A checkbox rather than a bare label, so the row reads as a setting with
+                        // a current state instead of an action whose effect you find out by trying
+                        // it. Not interactive itself — the row's own click toggles it.
+                        trailingIcon = {
+                            Checkbox(checked = account.includeInTotals, onCheckedChange = null)
                         },
                         onClick = { menuOpen = false; onIncludeInTotalsToggle() },
                     )

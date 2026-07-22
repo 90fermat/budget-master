@@ -25,6 +25,8 @@ import budgetmaster.core.generated.resources.accounts_manage
 import com.budgetmaster.accounts.presentation.AccountsState
 import com.budgetmaster.core.util.MoneyFormatter
 import org.jetbrains.compose.resources.stringResource
+import androidx.compose.ui.Alignment
+import androidx.compose.material3.Checkbox
 
 /**
  * Compact global account selector: shows the active wallet (or "All accounts") and opens a
@@ -36,6 +38,7 @@ fun AccountSwitcher(
     onSelect: (String?) -> Unit,
     onManage: () -> Unit,
     modifier: Modifier = Modifier,
+    onSetIncludedInTotals: (id: String, included: Boolean) -> Unit = { _, _ -> },
 ) {
     var open by remember { mutableStateOf(false) }
     val active = state.accounts.firstOrNull { it.id == state.activeAccountId && !it.isArchived }
@@ -54,10 +57,17 @@ fun AccountSwitcher(
                 text = { Text(stringResource(Res.string.accounts_all)) },
                 onClick = { open = false; onSelect(null) },
             )
-            state.activeAccounts.forEach { account ->
+            // Every wallet still in use, including those left out of the combined total. They are
+            // still wallets: you can switch to one and see its own figures. The checkbox is what
+            // decides whether it is added to the others, and it lives here as well as on the
+            // accounts screen because this is where the question naturally comes up.
+            state.visibleAccounts.forEach { account ->
                 DropdownMenuItem(
                     text = {
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
                             Text(account.name, modifier = Modifier.weight(1f, fill = false))
                             Text(
                                 MoneyFormatter.format(account.currentBalance, account.currency),
@@ -66,6 +76,15 @@ fun AccountSwitcher(
                         }
                     },
                     leadingIcon = { Icon(account.type.icon, contentDescription = null) },
+                    trailingIcon = {
+                        Checkbox(
+                            checked = account.includeInTotals,
+                            // Toggling does not switch wallet or close the menu: the user is
+                            // adjusting which wallets make up "All accounts", and that is usually
+                            // several decisions in a row.
+                            onCheckedChange = { onSetIncludedInTotals(account.id, it) },
+                        )
+                    },
                     onClick = { open = false; onSelect(account.id) },
                 )
             }
