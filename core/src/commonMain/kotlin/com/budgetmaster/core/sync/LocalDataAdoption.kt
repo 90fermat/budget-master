@@ -38,6 +38,26 @@ sealed interface AdoptionPlan {
     data object Nothing : AdoptionPlan
 }
 
+/**
+ * Whether sign-in should seed a starter wallet, given what adoption decided.
+ *
+ * The starter wallet exists for someone who has nothing, anywhere. Seeding it when the cloud is
+ * about to supply real wallets leaves an empty "Cash" sitting beside them that the user never
+ * created — and, because it is a local row like any other, the next push sends it to every other
+ * device they own.
+ *
+ * A null [plan] means the remote could not be reached, so whether the cloud holds anything is
+ * unknown. That also seeds nothing: an empty screen until the network returns is recoverable and
+ * self-corrects on the next launch, whereas a spurious wallet has to be found and deleted on every
+ * device it reached.
+ */
+fun shouldSeedStarterWallet(plan: AdoptionPlan?): Boolean = when (plan) {
+    null, AdoptionPlan.AdoptCloud -> false
+    // Local data is staying, so any wallet it had is still here and the seeder is a no-op anyway.
+    AdoptionPlan.AdoptLocal, AdoptionPlan.AskUser -> true
+    AdoptionPlan.Nothing -> true
+}
+
 /** What the user chose, when they were asked. */
 enum class AdoptionChoice {
     /** Keep both sets. Local rows are re-keyed so they cannot collide with the cloud's. */

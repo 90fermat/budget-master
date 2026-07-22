@@ -118,6 +118,7 @@ import org.koin.compose.viewmodel.koinViewModel
 import com.budgetmaster.core.sync.createRemoteSyncDataSource
 import com.budgetmaster.core.sync.SyncController
 import com.budgetmaster.core.sync.LocalDataAdoption
+import com.budgetmaster.core.sync.shouldSeedStarterWallet
 import com.budgetmaster.core.sync.AdoptionPlan
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
@@ -175,7 +176,9 @@ fun App() {
                     AdoptionPlan.AskUser -> adoptionPrompt = status.user.id
                     else -> adoption.apply(status.user.id, plan)
                 }
-                seeder.seedForUser(status.user.id, status.user.email)
+                if (shouldSeedStarterWallet(plan)) {
+                    seeder.seedForUser(status.user.id, status.user.email)
+                }
                 if (plan != null && plan != AdoptionPlan.AskUser) syncController.requestSync()
             } else {
                 // Not signed in: fall back to the local default user so the app stays usable.

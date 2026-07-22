@@ -67,6 +67,23 @@ class LocalDataAdoptionTest {
         getDatabase().budgetMasterDatabaseQueries.selectAllTombstones().awaitAsList()
 
     @Test
+    fun `taking the cloud's data must not also seed a starter wallet`() {
+        // A reinstall on a device whose account already has data reported an extra "Cash" wallet
+        // nobody created. Adoption discards the local rows, and the seeder then ran unconditionally
+        // — at that instant the user has no wallets, so it made one, moments before the real ones
+        // arrived. Being an ordinary local row, it was then pushed to every other device.
+        assertFalse(shouldSeedStarterWallet(AdoptionPlan.AdoptCloud))
+
+        // Unknown is treated the same way. An empty screen until the network returns self-corrects
+        // on the next launch; a spurious wallet has to be hunted down on every device it reached.
+        assertFalse(shouldSeedStarterWallet(null))
+
+        // And the cases where there is genuinely nothing to inherit still get their wallet.
+        assertTrue(shouldSeedStarterWallet(AdoptionPlan.Nothing))
+        assertTrue(shouldSeedStarterWallet(AdoptionPlan.AdoptLocal))
+    }
+
+    @Test
     fun `a seeded wallet alone is not treated as the user's data`() = runTest {
         val db = database().apply { seedAnonymous() }
 
